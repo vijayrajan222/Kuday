@@ -1,0 +1,29 @@
+    first we created a server, 
+    we installed the git and npm nad we configured tsc 
+    and we started codeing and created the server and then we learned about the 4 layers and create the first layer 
+  
+
+  Steps Folowed inside the project: 
+
+    1. We created a entity for user, named `UserEntity` in the file `/src/domain/entity/UserEntity.ts`
+
+        (This is to define the field names / shape of the data that our system needs)
+
+    2. Defined interface `IUserRepository` in the file `/src/application/interfaces/repository/IUserRepository.ts`. This is for the repository to store / read the user data to the DB.
+
+        (This inteface explains what the class for `UserRepository` should have. It defines the methods need. It doesn't have  the logic to handle the methods)
+    
+    3. Defined interface `ISignupUserUseCase` in the file `/src/application/interfaces/repository/ISignupUserUseCase.ts`. This is for the use case to handle actions done to / with the user entity. 
+    
+        (Other usecase examples may be SignupUserUseCase, LoginUserUseCase, VerifyUserUseCase.)
+
+        3.1. The use case interface has a method named "execute". The execute method takes the request DTO as argument and returns result DTO. (We define the DTO for the use case in seperate file `/src/application/dto/auth/SignupDTO.ts`) 
+    
+    4. Next we need to write the class for UserRepository and SignupUserUseCase. But we have a problem. 
+        - The SignupUserUseCase needs UserRepository. UserRepository needs Mongoose and connection to mongo db databas.
+        - So the we need to first set up infrastructre for mongo db.
+
+
+        4.1. Created file `/src/infrastructuire/database/ConnectMongo.ts` and created a fucntion to connect with mongodb. Exported it. and called it in server.ts
+
+        4.2. Create a mongodb collection for "User" using the mongoose model for user
