@@ -2,6 +2,7 @@ import type { UserEntity } from "../../../domain/entities/UserEntity.js";
 import { MongoUserRepository } from "../../../infrastructure/repository/MongoUserRepository.js";
 import type { SignUpUserRequestDto, SignUpUserResultDTO } from "../../dto/auth/SignUpDTO.js";
 import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
+import type { IHashingService } from "../../interfaces/services/IhashingService.js";
 import type { ISignUpUserUsercase } from "../../interfaces/use-case/auth/ISignUpUserUsecase.js";
 
 
@@ -12,19 +13,27 @@ import type { ISignUpUserUsercase } from "../../interfaces/use-case/auth/ISignUp
  */
 export  class SignUpUserUseCase implements ISignUpUserUsercase{
     private _userRepo : IUserRepository
-    constructor(userRepo : IUserRepository){ 
+    private _hashService : IHashingService
+    constructor(userRepo : IUserRepository,hashServ : IHashingService){ 
         this._userRepo = userRepo
+        this._hashService = hashServ;
     }
+
 
     async execute(dto: SignUpUserRequestDto): Promise<SignUpUserResultDTO> {
         
+    if(dto.ConfirmPassword!==dto.Password) throw new Error(" The passwords do not match. ")
+    const hashedPassword = await this._hashService.hash(dto.Password)
+    
+    
+
         const newUser : Omit<UserEntity, "id">  = {
             firstName : dto.firstName,
             lastName : dto.lastName,
             email : dto.email,
             isVerified : false,
             isBlocked : false,
-            hashedPassword : dto.Password  // later we will hash it .
+            hashedPassword : hashedPassword 
         }
 
 
