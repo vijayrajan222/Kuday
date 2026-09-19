@@ -6,7 +6,9 @@ import type { IAuthController } from "../intreface/IAuthController.js";
 export function createAuthRouter(authController : IAuthController){
     const router = Router()
 
-    router.use("/signUp",async (req:Request,res:Response)=>{
+    router.post("/signUp",async (req:Request,res:Response)=>{
         return await authController.signUp(req,res)
     })
+
+    return router
 }

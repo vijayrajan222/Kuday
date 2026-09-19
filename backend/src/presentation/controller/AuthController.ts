@@ -13,6 +13,7 @@ export class AuthController implements IAuthController {
 
     async signUp(req: Request, res: Response): Promise<void> {
         let value = SignUpUserRequestSchema.parse(req.body)
+        console.log("Valuewwww", value)
        const result =  this._signUpUsecase.execute(value)
        
        res.status(200).json({
