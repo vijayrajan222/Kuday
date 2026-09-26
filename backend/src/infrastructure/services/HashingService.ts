@@ -12,7 +12,7 @@ export class HashService implements IHashingService{
         return hashedPassword 
     }
 
-    async compareHashes(hashedValue: string, plainValue: string): Promise<boolean> {
-        return await bcrypt.compare(hashedValue,plainValue)
+    async compareHashes(plainValue: string, hashedPassword: string): Promise<boolean> {
+        return await bcrypt.compare(plainValue,hashedPassword)
     }
 }

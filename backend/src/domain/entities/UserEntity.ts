@@ -1,6 +1,7 @@
 
 
-// this is the shape of the user that interacts with the business this entity intreface defines the data of the user .
+// this is the shape of the user that interacts with the business 
+// this entity intreface defines the data of the user.
 
 
 export interface UserEntity{

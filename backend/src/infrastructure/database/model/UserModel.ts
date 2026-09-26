@@ -1,10 +1,14 @@
 import mongoose from "mongoose";
+import { lowercase } from "zod";
 
 const userSchema = new mongoose.Schema({
 
     email:{
         type : String,
         required : true,
+        unique : true,
+        trim : true ,
+        lowercase : true 
     },
     firstName :{
         type : String,

@@ -33,5 +33,32 @@ export class MongoUserRepository implements IUserRepository {
 
        }
     }
-}
 
+    async findByEmail(email: string): Promise<UserEntity | null> {
+        /**
+         * this methord is initiated in the IuserRepository for conforming wether 
+         * the user already exisit or not if there is a user with the same email 
+         * it should not get saved so we check wether the person with same email 
+         * exist or not and as we are implementing the same methord in here so 
+         * we should write the methrod over here 
+         * @param email : the entered email id by the user
+         * @returns the user details if the user is there or else returning null;
+         */
+
+        let doc = await this.user.findOne({email});
+        if(!doc) return null;
+        return {
+            id : doc._id.toString(),
+            email : doc.email,
+            firstName : doc.firstName,
+            lastName : doc.lastName,
+            hashedPassword : doc.hashedPassword,
+            isVerified : doc.isVerified,
+            isBlocked : doc.isBlocked
+        }
+    }
+
+    async updateVerificationStatus(email: string, isVerified: boolean): Promise<void> {
+        await this.user.updateOne({email},{isVerified})
+    }
+}

@@ -6,6 +6,10 @@ import { SignUpUserRequestSchema } from "./presentation/utils/validators/zod/Aut
 import { SignUpUserUseCase } from "./application/use-case/auth/SignUpUserUseCase.js";
 import { MongoUserRepository } from "./infrastructure/repository/MongoUserRepository.js";
 import { HashService } from "./infrastructure/services/HashingService.js";
+import { MongoOtpRepository } from "./infrastructure/repository/MongoOtpRepository.js";
+import { OtpService } from "./infrastructure/services/OtpServices.js";
+import { NodemailerMailService } from "./infrastructure/services/NodemailerService.js";
+import { VerifyOptUseCase } from "./application/use-case/auth/VerifyOtpUseCase.js";
 
 
 
@@ -17,7 +21,7 @@ async function startServer() {
     let PORT = process.env.PORT||3000
     let app = express()
     app.use(express.json())
-    app.use(express.urlencoded())
+    app.use(express.urlencoded({extended :true}))
     console.log("this is the server")
 
 
@@ -27,8 +31,13 @@ async function startServer() {
         // dependancy injection. 
         const userrepo = new MongoUserRepository()
         const hasher = new HashService()
-        const signUpUsecase = new SignUpUserUseCase(userrepo,hasher)
-        const authcontroller = new AuthController(signUpUsecase)
+        const otprepo = new MongoOtpRepository()
+        const otpservice = new OtpService()
+        const mailer = new NodemailerMailService()
+
+        const signUpUsecase = new SignUpUserUseCase(userrepo,hasher,otprepo,otpservice,mailer)
+         const verifyOtpUseCase = new VerifyOptUseCase(userrepo, otprepo);
+        const authcontroller = new AuthController(signUpUsecase,verifyOtpUseCase)
         const authRouter = createAuthRouter(authcontroller)
         app.use("/auth",authRouter)
 

@@ -2,21 +2,21 @@ import * as z from "zod";
 
 export const SignUpUserRequestSchema = z
   .object({
-    email: z.email(),
+    email: z.string().email("Invalid email format"),
     // we can add .optional() to keep the input value as optional
 
     firstName: z
-    
+
       .string()
       .min(2, "First name must be at least 2 characters")
       .regex(/^[A-Za-z]+$/, "First name can contain only letters"),
-    
+
     lastName: z
       .string()
       .min(2, "Last name must be at least 2 characters")
       .regex(/^[A-Za-z]+$/, "Last name can contain only letters"),
 
-    Password: z
+    password: z
       .string()
       .min(8, "Password must be at least 8 characters")
       .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
@@ -27,9 +27,9 @@ export const SignUpUserRequestSchema = z
         "Password must contain at least one special character"
       ),
 
-    ConfirmPassword: z.string(),
+    confirmPassword: z.string(),
   })
-  .refine((data) => data.Password === data.ConfirmPassword, {
+  .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["ConfirmPassword"],
   });

@@ -1,29 +1,82 @@
-    first we created a server, 
-    we installed the git and npm nad we configured tsc 
-    and we started codeing and created the server and then we learned about the 4 layers and create the first layer 
-  
+# Project 2.0 Backend - Architecture & Development Flow Guide
 
-  Steps Folowed inside the project: 
+First, we set up the development environment by installing Git, NPM, configuring TypeScript (`tsconfig.json`), installing dependencies (`express`, `mongoose`, `bcrypt`, `zod`, `dotenv`, `nodemailer`), and creating the server entry point `server.ts`. 
 
-    1. We created a entity for user, named `UserEntity` in the file `/src/domain/entity/UserEntity.ts`
+We structured the project following **Clean Architecture** (4 layers: Domain, Application, Infrastructure, Presentation) and **SOLID Principles** (Single Responsibility, Dependency Inversion, Interface Segregation).
 
-        (This is to define the field names / shape of the data that our system needs)
+---
 
-    2. Defined interface `IUserRepository` in the file `/src/application/interfaces/repository/IUserRepository.ts`. This is for the repository to store / read the user data to the DB.
+## Complete Steps Followed in the Project
 
-        (This inteface explains what the class for `UserRepository` should have. It defines the methods need. It doesn't have  the logic to handle the methods)
-    
-    3. Defined interface `ISignupUserUseCase` in the file `/src/application/interfaces/repository/ISignupUserUseCase.ts`. This is for the use case to handle actions done to / with the user entity. 
-    
-        (Other usecase examples may be SignupUserUseCase, LoginUserUseCase, VerifyUserUseCase.)
+### 1. Domain Layer (`/src/domain`)
+- **`UserEntity.ts`** (`/src/domain/entities/UserEntity.ts`):
+  - Defines the core business shape and attributes of a User (`id`, `firstName`, `lastName`, `email`, `hashedPassword`, `isVerified`, `isBlocked`).
+- **`OtpEntity.ts`** (`/src/domain/entities/OtpEntity.ts`):
+  - Defines the core business shape of OTP verification records (`id`, `email`, `otp`, `expiresAt`, `createdAt`).
 
-        3.1. The use case interface has a method named "execute". The execute method takes the request DTO as argument and returns result DTO. (We define the DTO for the use case in seperate file `/src/application/dto/auth/SignupDTO.ts`) 
-    
-    4. Next we need to write the class for UserRepository and SignupUserUseCase. But we have a problem. 
-        - The SignupUserUseCase needs UserRepository. UserRepository needs Mongoose and connection to mongo db databas.
-        - So the we need to first set up infrastructre for mongo db.
+---
 
+### 2. Application Layer Interfaces & DTOs (`/src/application`)
+- **Repository Interfaces**:
+  - `IUserRepository.ts`: Contract for user database persistence (`save`, `findByEmail`).
+  - `IOtpRepository.ts`: Contract for OTP database persistence (`save`, `findLatestByEmail`, `deleteByEmail`).
+- **Service Interfaces**:
+  - `IHashingService.ts`: Contract for password hashing (`hash`) and string comparison (`compareHashes`).
+  - `IOtpService.ts`: Contract for generating numeric OTP codes (`generateOtp`).
+  - `IMailService.ts`: Contract for dispatching verification emails (`sendOtpEmail`).
+- **DTOs (Data Transfer Objects)**:
+  - `SignUpDTO.ts`: Defines `SignUpUserRequestDto` (input fields) and `SignUpUserResultDTO` (output fields).
+- **Use Case Interface**:
+  - `ISignUpUserUseCase.ts`: Contract defining the `execute` method signature for the signup process.
 
-        4.1. Created file `/src/infrastructuire/database/ConnectMongo.ts` and created a fucntion to connect with mongodb. Exported it. and called it in server.ts
+---
 
-        4.2. Create a mongodb collection for "User" using the mongoose model for user
+### 3. Infrastructure Layer Setup (`/src/infrastructure`)
+- **Database Connection**:
+  - `ConnectMongoDB.ts`: Connects to MongoDB Atlas using Mongoose and loads environment variables via `dotenv`.
+- **Database Models (Mongoose Schemas)**:
+  - `UserModel.ts`: Mongoose schema for `user` collection with email indexing, lowercasing, and trim rules.
+  - `OtpModel.ts`: Mongoose schema for `Otp` collection with automatic TTL (Time-To-Live) index that auto-deletes expired OTP documents after 10 minutes.
+- **Repository Implementations**:
+  - `MongoUserRepository.ts`: Implements `IUserRepository` using Mongoose `userModel`.
+  - `MongoOtpRepository.ts`: Implements `IOtpRepository` using Mongoose `otpModel`.
+- **Service Implementations**:
+  - `HashingService.ts`: Implements `IHashingService` using `bcrypt` (salt rounds = 10).
+  - `OtpServices.ts`: Implements `IOtpService` using Node.js native `crypto.randomInt` for cryptographically secure 6-digit OTP generation.
+  - `NodemailerService.ts`: Implements `IMailService` using `nodemailer` transport connected to Gmail SMTP via `.env` credentials (`EMAIL_USER`, `EMAIL_PASS`).
+
+---
+
+### 4. Application Use Case Implementation (`/src/application/use-case`)
+- **`SignUpUserUseCase.ts`**:
+  - Implements `ISignUpUserUseCase`.
+  - Injects all 5 required abstractions (`_userRepo`, `_hashService`, `_otpRepo`, `_otpService`, `_mailService`) in constructor via parameter properties.
+  - **Complete Execution Workflow**:
+    1. Validates `confirmPassword === password`.
+    2. Sanitizes input email (`trim().toLowerCase()`).
+    3. Checks `_userRepo.findByEmail(cleanedEmail)`:
+       - If user exists and `isVerified === true`, throws an error ("User already exists").
+       - If user exists and `isVerified === false`, reuses existing user ID and cleans up old OTPs via `_otpRepo.deleteByEmail`.
+       - If new user, creates unverified user record and saves via `_userRepo.save`.
+    4. Hashes password using `_hashService.hash`.
+    5. Generates 6-digit OTP using `_otpService.generateOtp(6)`.
+    6. Calculates 10-minute expiry time (`Date.now() + 10 * 60 * 1000`).
+    7. Saves OTP to database via `_otpRepo.save`.
+    8. Dispatches styled HTML verification email via `_mailService.sendOtpEmail`.
+    9. Returns `SignUpUserResultDTO` containing `{ id, email }`.
+
+---
+
+### 5. Presentation Layer & Composition Root (`/src/presentation` & `server.ts`)
+- **`AuthSchema.ts`**:
+  - Validates incoming HTTP body using Zod schema (email format, min name lengths, password uppercase/lowercase/number/special char regex, and password matching refine check).
+- **`AuthController.ts`**:
+  - Implements `IAuthController`.
+  - Parses HTTP request body using `AuthSchema`, awaits `_signUpUseCase.execute(value)`, and sends HTTP 201 response.
+- **`AuthRouter.ts`**:
+  - Express Router creating `POST /auth/signUp` route.
+- **`server.ts` (Composition Root)**:
+  - Connects to MongoDB.
+  - Instantiates concrete infrastructure services (`userRepo`, `hasher`, `otprepo`, `otpservice`, `mailer`).
+  - Injects dependencies into `SignUpUserUseCase` and `AuthController`.
+  - Mounts auth router under `/auth` path and listens on port 3000.

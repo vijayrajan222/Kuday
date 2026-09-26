@@ -11,11 +11,15 @@ import type { UserEntity } from "../../../domain/entities/UserEntity.js";
 export interface IUserRepository{
 
     save(newUser:Omit<UserEntity,"id">) : Promise<UserEntity>
-    /** this methords saves the userdata to the database .  we are giving the userEntity 
+    /** this methords saves the userdata to the database . 
+     *  we are giving the userEntity 
      * @param the data of the new user in the user enity 
-     * @return the user data saved in the db which is again the userEnity 
+     * @return the user data saved in the db 
+     * which is again the userEnity 
     */
-    
 
+    findByEmail(email:string) : Promise<UserEntity|null>;
+
+    updateVerificationStatus(email:string,isVerified:boolean) : Promise<void>
 
 }

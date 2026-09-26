@@ -3,8 +3,8 @@ export interface SignUpUserRequestDto{
     email: string,
     firstName: string 
     lastName : string 
-    Password : string 
-    ConfirmPassword : string
+    password : string 
+    confirmPassword : string
 }
 
 export interface SignUpUserResultDTO{
