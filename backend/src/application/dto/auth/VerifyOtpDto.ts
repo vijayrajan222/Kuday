@@ -12,4 +12,6 @@ export interface VerifyOtpRequestDto {
 export interface VerifyOtpResultDto {
     message: string;
     isVerified: boolean;
+    token?:string; //JWT access token returned upon successfull verification.
 }
+

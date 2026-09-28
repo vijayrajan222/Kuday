@@ -11,41 +11,47 @@ import { OtpService } from "./infrastructure/services/OtpServices.js";
 import { NodemailerMailService } from "./infrastructure/services/NodemailerService.js";
 import { VerifyOptUseCase } from "./application/use-case/auth/VerifyOtpUseCase.js";
 
-
+import cors from "cors";
+import { JwtService } from "./infrastructure/services/JwtServices.js";
 
 
 async function startServer() {
     console.log("waiting for the connection...w")
     await connectMongo()
-
-    let PORT = process.env.PORT||3000
+    
+    let PORT = process.env.PORT || 3000
     let app = express()
-    app.use(express.json())
-    app.use(express.urlencoded({extended :true}))
+    // Enable CORS for frontend requests
+    app.use(cors({
+        origin: ["http://localhost:5173", "http://localhost:3000"], // Allows React/Vite dev server
+        credentials: true,
+    }));
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }))
     console.log("this is the server")
-
-
+    
     
     //--------------------------------------------------------------------
-        // this is where we do wireup everyting togater and do the 
-        // dependancy injection. 
-        const userrepo = new MongoUserRepository()
-        const hasher = new HashService()
-        const otprepo = new MongoOtpRepository()
-        const otpservice = new OtpService()
-        const mailer = new NodemailerMailService()
+    // this is where we do wireup everyting togater and do the 
+    // dependancy injection. 
+    const userrepo = new MongoUserRepository()
+    const hasher = new HashService()
+    const otprepo = new MongoOtpRepository()
+    const otpservice = new OtpService()
+    const mailer = new NodemailerMailService()
+    const jwtService = new JwtService(); // New JWT Service
 
-        const signUpUsecase = new SignUpUserUseCase(userrepo,hasher,otprepo,otpservice,mailer)
-         const verifyOtpUseCase = new VerifyOptUseCase(userrepo, otprepo);
-        const authcontroller = new AuthController(signUpUsecase,verifyOtpUseCase)
-        const authRouter = createAuthRouter(authcontroller)
-        app.use("/auth",authRouter)
+    const signUpUsecase = new SignUpUserUseCase(userrepo, hasher, otprepo, otpservice, mailer)
+    const verifyOtpUseCase = new VerifyOptUseCase(userrepo, otprepo,jwtService);
+    const authcontroller = new AuthController(signUpUsecase, verifyOtpUseCase)
+    const authRouter = createAuthRouter(authcontroller)
+    app.use("/auth", authRouter)
+    
+    //--------------------------------------------------------------------
+    
+    
 
-        //--------------------------------------------------------------------
-
-
-
-
+    
     app.listen(PORT, () =>
         console.log("server isrunnig in 3000")
     )

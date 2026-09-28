@@ -80,3 +80,8 @@ We structured the project following **Clean Architecture** (4 layers: Domain, Ap
   - Instantiates concrete infrastructure services (`userRepo`, `hasher`, `otprepo`, `otpservice`, `mailer`).
   - Injects dependencies into `SignUpUserUseCase` and `AuthController`.
   - Mounts auth router under `/auth` path and listens on port 3000.
+
+
+
+after this we are setting up cors to connect the frontend and the backend after the setup of signup flow and otp conformation 
+and we are installing jwt inside the verifyotp usecase.
