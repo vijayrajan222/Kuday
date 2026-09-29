@@ -28,9 +28,11 @@ We structured the project following **Clean Architecture** (4 layers: Domain, Ap
 - **DTOs (Data Transfer Objects)**:
   - `SignUpDTO.ts`: Defines `SignUpUserRequestDto` (input) and `SignUpUserResultDTO` (output).
   - `VerifyOtpDTO.ts`: Defines `VerifyOtpRequestDto` (`email`, `otp`) and `VerifyOtpResultDto` (`message`, `isVerified`, `token`).
+  - `LoginDTO.ts`: Defines `loginRequestDto` (`email`, `password`) and `loginResponseDto` (`id`, `email`, `firstName`, `lastName`, `token`, `message`).
 - **Use Case Interfaces**:
   - `ISignUpUserUseCase.ts`: Contract for `SignUpUserUseCase` (`execute`).
   - `IVerifyOtpUseCase.ts`: Contract for `VerifyOtpUseCase` (`execute`).
+  - `ILoginUserUseCase.ts`: Contract for `LoginUserUseCase` (`execute`).
 
 ---
 
@@ -44,7 +46,7 @@ We structured the project following **Clean Architecture** (4 layers: Domain, Ap
   - `MongoUserRepository.ts`: Implements `IUserRepository` using Mongoose `userModel`.
   - `MongoOtpRepository.ts`: Implements `IOtpRepository` using Mongoose `otpModel`.
 - **Service Implementations**:
-  - `HashingService.ts`: Implements `IHashingService` using `bcrypt` (salt rounds = 10).
+  - `HashingService.ts`: Implements `IHashingService` using `bcrypt` (salt rounds = 10, comparing plain passwords with hashes via `compareHashes`).
   - `OtpServices.ts`: Implements `IOtpService` using Node.js native `crypto.randomInt` for 6-digit OTP generation.
   - `NodemailerService.ts`: Implements `IMailService` using `nodemailer` transport connected to Gmail SMTP via `.env` credentials (`EMAIL_USER`, `EMAIL_PASS`).
   - `JwtService.ts`: Implements `IJwtService` using `jsonwebtoken` to generate 7-day access tokens.
@@ -60,19 +62,25 @@ We structured the project following **Clean Architecture** (4 layers: Domain, Ap
   - Implements `IVerifyOtpUseCase`.
   - Injects `_userRepo`, `_otpRepo`, `_jwtService`.
   - Workflow: Sanitizes email ➔ Finds user in DB ➔ Checks if user already verified (if verified: return token immediately) ➔ Fetches latest OTP from DB ➔ Validates expiration (`expiresAt > Date.now()`) ➔ Compares OTP code ➔ Updates `isVerified = true` in DB ➔ Deletes used OTPs ➔ Generates & returns JWT access token.
+- **`LoginUserUseCase.ts`**:
+  - Implements `ILoginUserUseCase`.
+  - Injects `_userRepo`, `_hashService`, `_jwtService`.
+  - Workflow: Sanitizes input email ➔ Finds user in DB via `_userRepo.findByEmail(cleanedEmail)` ➔ Checks if user exists (throws "Invalid email or password" if not found) ➔ Checks if email is verified (`isVerified === true`, throws "Please verify your email address before logging in" if false) ➔ Checks if account is blocked (`isBlocked === false`) ➔ Verifies password match via `_hashService.compareHashes(dto.password, existingUser.hashedPassword)` ➔ Generates 7-day JWT Access Token via `_jwtService.generateToken({ userId, email })` ➔ Returns `loginResponseDto` containing `{ id, email, firstName, lastName, token, message }`.
 
 ---
 
 ### 5. Presentation Layer & Composition Root (`/src/presentation` & `server.ts`)
 - **Validation Schemas (`/src/presentation/utils/validators/zod`)**:
-  - `AuthSchema.ts`: Zod schema for signup body validation.
-  - `VerifyOtpRequestSchema.ts`: Zod schema for OTP verification body validation.
+  - `AuthSchema.ts`: Zod schemas for signup (`SignUpUserRequestSchema`), OTP verification (`VerifyOtpRequestSchema`), and login (`LoginRequestSchema`).
 - **Controller**:
-  - `IAuthController.ts` & `AuthController.ts`: Implements `signUp` and `verifyOtp` methods with Zod parsing, UseCase execution, try/catch error handling, and JSON responses.
+  - `IAuthController.ts` & `AuthController.ts`: Implements `signUp`, `verifyOtp`, and `login` methods with Zod parsing, UseCase execution, try/catch error handling, and JSON responses.
 - **Router**:
-  - `AuthRouter.ts`: Express Router creating `POST /auth/signUp` and `POST /auth/verify-otp` endpoints.
+  - `AuthRouter.ts`: Express Router creating endpoints for:
+    - `POST /auth/signUp`
+    - `POST /auth/verify-otp`
+    - `POST /auth/login`
 - **CORS & Composition Root (`server.ts`)**:
-  - Configured CORS middleware allowing frontend origin (`http://localhost:5173`).
+  - Configured CORS middleware allowing frontend origins (`http://localhost:5173`).
   - Instantiates concrete infrastructure services (`userrepo`, `hasher`, `otprepo`, `otpservice`, `mailer`, `jwtService`).
-  - Injects dependencies into `SignUpUserUseCase`, `VerifyOtpUseCase`, and `AuthController`.
+  - Injects dependencies into `SignUpUserUseCase`, `VerifyOtpUseCase`, `LoginUserUseCase`, and `AuthController`.
   - Mounts auth router under `/auth` path and listens on port 3000.
