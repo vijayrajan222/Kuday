@@ -35,6 +35,25 @@ export interface ResendOtpRequest {
   email: string;
 }
 
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResult {
+  id?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  token?: string;
+  message?: string;
+}
+
+export interface LoginResponse extends LoginResult {
+  message?: string;
+  data?: LoginResult;
+}
+
 export interface AuthUser {
   email: string;
   firstName: string;

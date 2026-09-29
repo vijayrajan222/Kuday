@@ -19,9 +19,16 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-white">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-8">
         <BrandLogo />
-        <Link to={ctaTo} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
-          {isAuthenticated ? 'Dashboard' : 'Get started'}
-        </Link>
+        <div className="flex items-center gap-3">
+          {!isAuthenticated && (
+            <Link to={ROUTES.LOGIN} className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-emerald-600">
+              Log in
+            </Link>
+          )}
+          <Link to={ctaTo} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+            {isAuthenticated ? 'Dashboard' : 'Get started'}
+          </Link>
+        </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 sm:px-8">

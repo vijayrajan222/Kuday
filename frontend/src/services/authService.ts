@@ -1,6 +1,9 @@
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import { api } from '@/services/api';
 import type {
+  LoginRequest,
+  LoginResponse,
+  LoginResult,
   ResendOtpRequest,
   SignUpRequest,
   SignUpResponse,
@@ -11,6 +14,11 @@ import type {
 } from '@/types';
 
 export const authService = {
+  async login(payload: LoginRequest): Promise<LoginResult> {
+    const { data } = await api.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, payload);
+    return (data as any).payload ?? data.data ?? data;
+  },
+
   async signUp(payload: SignUpRequest): Promise<SignUpResult> {
     const { data } = await api.post<SignUpResponse>(API_ENDPOINTS.AUTH.SIGN_UP, payload);
     return (data as any).payload ?? data.data ?? data;

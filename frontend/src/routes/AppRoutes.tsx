@@ -9,6 +9,7 @@ import { ROUTES } from '@/constants/routes';
 const LandingPage = lazy(() => import('@/pages/common/LandingPage'));
 const NotFound = lazy(() => import('@/pages/common/NotFound'));
 const CustomerSignup = lazy(() => import('@/pages/customer/CustomerSignup'));
+const Login = lazy(() => import('@/pages/customer/Login'));
 const Otp = lazy(() => import('@/pages/customer/Otp'));
 const CustomerDashboard = lazy(() => import('@/pages/customer/CustomerDashboard'));
 
@@ -20,6 +21,7 @@ export function AppRoutes() {
 
         <Route element={<GuestRoute />}>
           <Route path={ROUTES.SIGN_UP} element={<CustomerSignup />} />
+          <Route path={ROUTES.LOGIN} element={<Login />} />
           <Route path={ROUTES.OTP} element={<Otp />} />
         </Route>
 
