@@ -1,24 +1,26 @@
 import type { Request, Response } from "express";
 import type { IAuthController } from "../interface/IAuthController.js";
-import { SignUpUserUseCase } from "../../application/use-case/auth/SignUpUserUseCase.js";
 import type { ISignUpUserUsercase } from "../../application/interfaces/use-case/auth/ISignUpUserUsecase.js";
 import { SignUpUserRequestSchema } from "../utils/validators/zod/AuthSchema.js";
-import { success } from "zod";
-import { VerifyOptUseCase } from "../../application/use-case/auth/VerifyOtpUseCase.js";
 import type { IVerifyOtpUseCase } from "../../application/interfaces/use-case/auth/IVerifyOtpUseCase.js";
-import { MongoOtpRepository } from "../../infrastructure/repository/MongoOtpRepository.js";
 import { VerifyOtpRequestSchema } from "../utils/validators/zod/VerifyOtpRequestSchema.js";
+import type { ILoginUserUseCase } from "../../application/interfaces/use-case/auth/ILoginUserUseCase.js";
+import { LoginRequestSchema } from "../utils/validators/zod/LoginSchema.js";
 
 export class AuthController implements IAuthController {
     private readonly _signUpUsecase: ISignUpUserUsercase
     private readonly _verifyOtpUseCase: IVerifyOtpUseCase
+    private readonly _loginUseCase: ILoginUserUseCase
 
 
     constructor(signUpUsecase: ISignUpUserUsercase,
-        verifyOtpUseCase: IVerifyOtpUseCase
+        verifyOtpUseCase: IVerifyOtpUseCase,
+        loginUseCase: ILoginUserUseCase
+
     ) {
         this._signUpUsecase = signUpUsecase
         this._verifyOtpUseCase = verifyOtpUseCase
+        this._loginUseCase = loginUseCase
 
     }
 
@@ -48,6 +50,25 @@ export class AuthController implements IAuthController {
             res.status(400).json({
                 success: false,
                 message: error.message || "OTP verification failed."
+            })
+        }
+    }
+    async login(req: Request, res: Response): Promise<void> {
+        try {
+            const value = LoginRequestSchema.parse(req.body)
+            const result = await this._loginUseCase.exicute(value)
+            res.status(200).json({
+                success: true,
+                message: result.message,
+                payload: result,
+            })
+
+        } catch (error: unknown) {
+            res.status(400).json({
+                success: false,
+                message: error instanceof Error
+                    ? error.message
+                    : "Login failed",
             })
         }
     }

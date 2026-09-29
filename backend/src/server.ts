@@ -10,6 +10,7 @@ import { MongoOtpRepository } from "./infrastructure/repository/MongoOtpReposito
 import { OtpService } from "./infrastructure/services/OtpServices.js";
 import { NodemailerMailService } from "./infrastructure/services/NodemailerService.js";
 import { VerifyOptUseCase } from "./application/use-case/auth/VerifyOtpUseCase.js";
+import { LoginUserUseCase } from "./application/use-case/auth/LoginUserUseCase.js";
 
 import cors from "cors";
 import { JwtService } from "./infrastructure/services/JwtServices.js";
@@ -43,7 +44,8 @@ async function startServer() {
 
     const signUpUsecase = new SignUpUserUseCase(userrepo, hasher, otprepo, otpservice, mailer)
     const verifyOtpUseCase = new VerifyOptUseCase(userrepo, otprepo,jwtService);
-    const authcontroller = new AuthController(signUpUsecase, verifyOtpUseCase)
+    const loginUseCase = new LoginUserUseCase(userrepo, hasher, jwtService);
+    const authcontroller = new AuthController(signUpUsecase, verifyOtpUseCase , loginUseCase)
     const authRouter = createAuthRouter(authcontroller)
     app.use("/auth", authRouter)
     
