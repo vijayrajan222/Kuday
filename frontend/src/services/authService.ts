@@ -1,6 +1,9 @@
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import { api } from '@/services/api';
 import type {
+  GoogleAuthRequest,
+  GoogleAuthResponse,
+  GoogleAuthResult,
   LoginRequest,
   LoginResponse,
   LoginResult,
@@ -14,6 +17,11 @@ import type {
 } from '@/types';
 
 export const authService = {
+  async googleAuth(payload: GoogleAuthRequest): Promise<GoogleAuthResult> {
+    const { data } = await api.post<GoogleAuthResponse>(API_ENDPOINTS.AUTH.GOOGLE, payload);
+    return (data as any).payload ?? data.data ?? data;
+  },
+
   async login(payload: LoginRequest): Promise<LoginResult> {
     const { data } = await api.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, payload);
     return (data as any).payload ?? data.data ?? data;

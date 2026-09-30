@@ -7,5 +7,6 @@ export const MESSAGES = {
   OTP_INCOMPLETE: 'Enter the 6-digit code.',
   OTP_NO_TOKEN: 'Verification succeeded but no session was returned. Please try again.',
   LOGIN_SUCCESS: 'Logged in successfully!',
+  GOOGLE_AUTH_SUCCESS: 'Signed in with Google successfully!',
   LOGOUT_SUCCESS: 'You have been signed out.',
 } as const;

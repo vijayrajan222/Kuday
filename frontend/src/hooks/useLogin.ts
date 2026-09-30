@@ -10,7 +10,7 @@ import { getErrorMessage } from '@/utils/errorHandler';
 
 export function useLogin() {
   const navigate = useNavigate();
-  const { loginSuccess } = useAuth();
+  const { loginSuccess, setPendingSignup } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const login = useCallback(
@@ -29,12 +29,17 @@ export function useLogin() {
           toast.error(MESSAGES.OTP_NO_TOKEN);
         }
       } catch (error) {
-        toast.error(getErrorMessage(error));
+        const message = getErrorMessage(error);
+        toast.error(message);
+        if (message.toLowerCase().includes('verify your email')) {
+          setPendingSignup({ email: values.email, firstName: 'User' });
+          navigate(ROUTES.OTP, { replace: true });
+        }
       } finally {
         setIsLoading(false);
       }
     },
-    [loginSuccess, navigate],
+    [loginSuccess, setPendingSignup, navigate],
   );
 
   return { login, isLoading };

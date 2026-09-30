@@ -3,6 +3,7 @@ import { Mail } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { AuthLayout } from '@/components/auth/AuthLayout';
+import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
@@ -36,29 +37,40 @@ export default function Login() {
         </p>
       }
     >
-      <form onSubmit={handleSubmit(login)} noValidate className="space-y-5">
-        <Input
-          label="Email Address"
-          type="email"
-          placeholder="Email Address"
-          autoComplete="email"
-          leftIcon={<Mail className="h-4 w-4" />}
-          error={errors.email?.message}
-          {...register('email')}
-        />
+      <div className="space-y-5">
+        <GoogleAuthButton label="Log in with Google" />
 
-        <PasswordInput
-          label="Password"
-          placeholder="Password"
-          autoComplete="current-password"
-          error={errors.password?.message}
-          {...register('password')}
-        />
+        <div className="relative flex items-center justify-center">
+          <div className="w-full border-t border-slate-200" />
+          <span className="absolute bg-white px-3 text-xs uppercase font-medium text-slate-400">
+            Or continue with email
+          </span>
+        </div>
 
-        <Button type="submit" size="lg" fullWidth isLoading={isLoading}>
-          {isLoading ? 'Logging in...' : 'Log In'}
-        </Button>
-      </form>
+        <form onSubmit={handleSubmit(login)} noValidate className="space-y-4">
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="Email Address"
+            autoComplete="email"
+            leftIcon={<Mail className="h-4 w-4" />}
+            error={errors.email?.message}
+            {...register('email')}
+          />
+
+          <PasswordInput
+            label="Password"
+            placeholder="Password"
+            autoComplete="current-password"
+            error={errors.password?.message}
+            {...register('password')}
+          />
+
+          <Button type="submit" size="lg" fullWidth isLoading={isLoading}>
+            {isLoading ? 'Logging in...' : 'Log In'}
+          </Button>
+        </form>
+      </div>
     </AuthLayout>
   );
 }

@@ -2,7 +2,6 @@ import { connectMongo } from "./infrastructure/database/ConnectMongoDB.js";
 import express from "express";
 import { createAuthRouter } from "./presentation/router/AuthRouter.js";
 import { AuthController } from "./presentation/controller/AuthController.js";
-import { SignUpUserRequestSchema } from "./presentation/utils/validators/zod/AuthSchema.js";
 import { SignUpUserUseCase } from "./application/use-case/auth/SignUpUserUseCase.js";
 import { MongoUserRepository } from "./infrastructure/repository/MongoUserRepository.js";
 import { HashService } from "./infrastructure/services/HashingService.js";
@@ -14,10 +13,11 @@ import { LoginUserUseCase } from "./application/use-case/auth/LoginUserUseCase.j
 
 import cors from "cors";
 import { JwtService } from "./infrastructure/services/JwtServices.js";
+import { GoogleAuthUseCase } from "./application/use-case/auth/GoogleAuthUseCase.js";
 
 
 async function startServer() {
-    console.log("waiting for the connection...w")
+    console.log("waiting for the connection...")
     await connectMongo()
     
     let PORT = process.env.PORT || 3000
@@ -33,29 +33,25 @@ async function startServer() {
     
     
     //--------------------------------------------------------------------
-    // this is where we do wireup everyting togater and do the 
-    // dependancy injection. 
+    // this is where we do wireup everything together and do dependency injection
     const userrepo = new MongoUserRepository()
     const hasher = new HashService()
     const otprepo = new MongoOtpRepository()
     const otpservice = new OtpService()
     const mailer = new NodemailerMailService()
-    const jwtService = new JwtService(); // New JWT Service
-
+    const jwtService = new JwtService();
+    const googleAuthUseCase = new GoogleAuthUseCase(userrepo, jwtService);
     const signUpUsecase = new SignUpUserUseCase(userrepo, hasher, otprepo, otpservice, mailer)
-    const verifyOtpUseCase = new VerifyOptUseCase(userrepo, otprepo,jwtService);
+    const verifyOtpUseCase = new VerifyOptUseCase(userrepo, otprepo, jwtService);
     const loginUseCase = new LoginUserUseCase(userrepo, hasher, jwtService);
-    const authcontroller = new AuthController(signUpUsecase, verifyOtpUseCase , loginUseCase)
+    const authcontroller = new AuthController(signUpUsecase, verifyOtpUseCase, loginUseCase, googleAuthUseCase)
     const authRouter = createAuthRouter(authcontroller)
     app.use("/auth", authRouter)
     
     //--------------------------------------------------------------------
-    
-    
 
-    
     app.listen(PORT, () =>
-        console.log("server isrunnig in 3000")
+        console.log("server is running on port 3000")
     )
 }
 startServer().catch((err) => {

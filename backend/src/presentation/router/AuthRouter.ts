@@ -17,6 +17,10 @@ export function createAuthRouter(authController: IAuthController) {
     router.post("/login", async (req: Request, res: Response) => {
         return await authController.login(req, res);
     });
+
+    router.post("/google", async (req: Request, res: Response) => {
+        return await authController.googleAuth(req, res);
+    });
     
     return router
 }

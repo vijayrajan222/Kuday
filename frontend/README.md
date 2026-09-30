@@ -21,7 +21,8 @@ frontend/
 │   ├── components/               # UI & Layout Components
 │   │   ├── auth/                 # Auth Layouts & Route Protection
 │   │   │   ├── AuthLayout.tsx    # Responsive Auth Card Layout with KUDAY Branding
-│   │   │   └── AuthProtectedRoute.tsx # Route Guards (GuestRoute & AuthProtectedRoute)
+│   │   │   ├── AuthProtectedRoute.tsx # Route Guards (GuestRoute & AuthProtectedRoute)
+│   │   │   └── GoogleAuthButton.tsx   # "Continue with Google" OAuth Button Component
 │   │   ├── common/               # General Purpose Shared UI
 │   │   │   ├── BrandLogo.tsx     # KUDAY Logo & Badge
 │   │   │   ├── ErrorBoundary.tsx # React Error Catching Component
@@ -48,7 +49,7 @@ frontend/
 │   ├── config/                   # App Navigation Configurations
 │   │   └── navigation.ts         # Sidebar & Header Links
 │   ├── constants/                # App-Wide Immutable Constants
-│   │   ├── apiEndpoints.ts       # API Route URLs (/auth/signUp, /auth/login, /auth/verify-otp)
+│   │   ├── apiEndpoints.ts       # API Route URLs (/auth/signUp, /auth/login, /auth/google, /auth/verify-otp)
 │   │   ├── events.ts             # Global Custom Events (AUTH_UNAUTHORIZED_EVENT)
 │   │   ├── messages.ts           # Centralized Success & Error Notification Strings
 │   │   └── routes.ts             # App Route Constants (SIGN_UP, LOGIN, OTP, DASHBOARD)
@@ -62,6 +63,7 @@ frontend/
 │   ├── hooks/                    # Custom React Hooks
 │   │   ├── useAuth.ts            # Hook to access global AuthContext
 │   │   ├── useCountdown.ts       # Hook for 60-Second OTP Timer
+│   │   ├── useGoogleAuth.ts      # Hook managing Google Auth API & Session activation
 │   │   ├── useLogin.ts           # Hook managing Login API & Session trigger logic
 │   │   ├── useSignUp.ts          # Hook managing Signup submission logic
 │   │   ├── useToast.ts           # Hook for triggering Toast notifications
@@ -79,7 +81,7 @@ frontend/
 │   │
 │   ├── services/                 # API Service Layer
 │   │   ├── api.ts                # Axios Instance with Request/Response Interceptors
-│   │   └── authService.ts        # Auth API Functions (login, signUp, verifyOtp, resendOtp)
+│   │   └── authService.ts        # Auth API Functions (googleAuth, login, signUp, verifyOtp, resendOtp)
 │   │
 │   ├── shared/                   # Shared Schemas & Enums
 │   │   ├── enums/
@@ -91,7 +93,7 @@ frontend/
 │   │           └── VerifyOtpSchema.ts    # Zod Schema for 6-Digit OTP Code
 │   │
 │   ├── types/                    # TypeScript Definitions
-│   │   ├── auth.types.ts         # Login, SignUp & VerifyOTP Payload / Response Types
+│   │   ├── auth.types.ts         # GoogleAuth, Login, SignUp & VerifyOTP Payload / Response Types
 │   │   └── index.ts              # Unified Type Exports
 │   │
 │   └── utils/                    # Utility Functions
@@ -116,32 +118,11 @@ frontend/
 ## 3. "What Does What" - Comprehensive Feature & Component Breakdown
 
 ### A. Authentication & Session Management
-- **`src/pages/customer/Login.tsx`**: The customer login page built using `AuthLayout`. Renders email input with icon and `PasswordInput` with eye toggle. Uses React Hook Form with Zod validation (`mode: 'onTouched'`) so error messages appear cleanly without flashing on initial page load.
-- **`src/hooks/useLogin.ts`**: Dedicated hook encapsulating login submission logic. Invokes `authService.login()`, updates session state via `loginSuccess(token, user)`, displays a success toast notification, and navigates to `/dashboard`.
-- **`src/shared/schema/auth/LoginUserSchema.ts`**: Zod validation schema ensuring the user inputs a valid, non-empty email address and a password before firing HTTP requests.
-- **`src/context/AuthProvider.tsx`**: Manages active user authentication state (`user`, `token`, `isAuthenticated`, `pendingSignup`). When a user logs in or verifies their OTP, `loginSuccess(token, user)` persists the JWT token and user details to `localStorage` via `storage.ts` and updates React state.
-- **`src/utils/storage.ts`**: Encapsulates `localStorage` reads and writes. Prevents raw `localStorage` calls across components.
-- **`src/components/auth/AuthProtectedRoute.tsx`**:
-  - `GuestRoute`: Guard restricting routes (`/signUp`, `/login`, `/otp`) to unauthenticated visitors.
-  - `AuthProtectedRoute`: Guard restricting `/dashboard` to logged-in users with valid tokens.
-
-### B. Custom Hooks (Business Logic Extraction)
-- **`useLogin.ts`**: Connects `Login.tsx` to `authService.login`. Stores active JWT token and user info, then redirects to `/dashboard`.
-- **`useSignUp.ts`**: Connects `CustomerSignup.tsx` to `authService.signUp`. Saves `pendingSignup` info in state and redirects to `/otp`.
-- **`useVerifyOtp.ts`**: Connects `Otp.tsx` to `authService.verifyOtp`. Manages OTP verification submission, extracts the returned JWT token, updates `AuthProvider` session, and redirects to `/dashboard`.
-- **`useCountdown.ts`**: Manages a 60-second countdown timer for resending OTP codes.
-
-### C. Services & Axios Interceptors
-- **`src/services/api.ts`**: Pre-configured Axios client.
-  - **Request Interceptor**: Reads token from `storage.ts` and attaches `Authorization: Bearer <token>` to headers.
-  - **Response Interceptor**: Catches `401 Unauthorized` responses and dispatches `AUTH_UNAUTHORIZED_EVENT` to trigger automatic logout.
-- **`src/services/authService.ts`**: Service object executing HTTP requests (`login`, `signUp`, `verifyOtp`, `resendOtp`). Unwraps the backend `payload` property cleanly (`(data as any).payload ?? data.data ?? data`).
-
-### D. UI Primitives & Components
-- **`PasswordInput.tsx`**: Password input field with toggleable eye icon (`Eye` / `EyeOff`) to show or hide plain text password.
-- **`PasswordStrength.tsx`**: Evaluates password length, uppercase, lowercase, numbers, and special characters, rendering a color-coded strength bar (Weak / Fair / Strong).
-- **`input-otp.tsx`**: 6-box OTP input supporting paste auto-distribution, arrow navigation, and countdown timer.
-- **`button.tsx`**: Reusable button component supporting loading spinner states (`loader.tsx`) and full-width styling.
+- **`src/components/auth/GoogleAuthButton.tsx`**: Renders an accessible button with the official Google logo SVG ("Continue with Google"). Handles Google Identity Services (`google.accounts.id`) popup integration when `VITE_GOOGLE_CLIENT_ID` is present, with fallback dev prompt support.
+- **`src/hooks/useGoogleAuth.ts`**: Dedicated hook encapsulating Google authentication submission. Calls `authService.googleAuth()`, stores returned JWT token via `loginSuccess(token, user)`, notifies user with toast, and navigates to `/dashboard`.
+- **`src/pages/customer/Login.tsx`**: Renders `GoogleAuthButton`, an "Or continue with email" divider, and the email/password form with Zod validation (`mode: 'onTouched'`).
+- **`src/pages/customer/CustomerSignup.tsx`**: Renders `GoogleAuthButton`, divider, registration fields, password strength indicator, and link to login.
+- **`src/context/AuthProvider.tsx`**: Manages active user authentication state (`user`, `token`, `isAuthenticated`, `pendingSignup`). When a user logs in (via email or Google) or verifies OTP, `loginSuccess(token, user)` persists JWT token and user info to `localStorage` via `storage.ts`.
 
 ---
 
@@ -149,68 +130,43 @@ frontend/
 
 | Question | Architectural Rationale & Solution | File Location |
 | :--- | :--- | :--- |
-| **Why use `mode: 'onTouched'` in React Hook Form?** | Prevents red error messages from displaying before the user has touched or typed in the input fields, maintaining clean UX. | `src/pages/customer/Login.tsx`<br>`src/pages/customer/CustomerSignup.tsx` |
-| **Why unwrap `payload` in `authService.ts`?** | The Express backend wraps all successful JSON API responses in `{ success: true, message: "...", payload: { ... } }`. Standardizing unwrapping in `authService` keeps components clean. | `src/services/authService.ts` |
-| **Why use Context API (`AuthProvider.tsx`) + `storage.ts`?** | Centrally manages user session state across all pages without prop-drilling. Encapsulating `localStorage` in `storage.ts` prevents key mismatch errors and allows easy storage swapping. | `src/context/AuthProvider.tsx`<br>`src/utils/storage.ts` |
-| **Why extract logic into Custom Hooks (`useLogin`, `useSignUp`, `useVerifyOtp`)?** | Separates UI presentation (JSX rendering) from business logic (API calls, timer state, navigation). Makes components clean, readable, and easy to maintain. | `src/hooks/useLogin.ts`<br>`src/hooks/useSignUp.ts`<br>`src/hooks/useVerifyOtp.ts` |
-| **Why centralized Axios Interceptors?** | Automatically attaches JWT tokens to outgoing headers and handles global HTTP errors (401, 500) without duplicating header code in every single API call. | `src/services/api.ts` |
-| **Why separate Zod Schemas in `shared/schema/`?** | Decouples form validation rules from React component files so schemas can be reused or updated independently. | `src/shared/schema/auth/LoginUserSchema.ts`<br>`src/shared/schema/auth/RegisterUserSchema.ts` |
+| **Why integrate `GoogleAuthButton` in both Login & Signup?** | Provides frictionless single-click authentication for new and returning users without requiring separate signup vs login Google flows. | `src/components/auth/GoogleAuthButton.tsx`<br>`src/pages/customer/Login.tsx`<br>`src/pages/customer/CustomerSignup.tsx` |
+| **Why handle Google JWT decoding in `GoogleAuthButton.tsx`?** | Extracts verified Google claims (`email`, `given_name`, `family_name`, `sub`) to send clean DTO payload to `POST /auth/google`. | `src/components/auth/GoogleAuthButton.tsx` |
+| **Why use `useGoogleAuth` hook?** | Keeps business logic (API dispatch, session activation, toast, navigation) separated from UI presentation. | `src/hooks/useGoogleAuth.ts` |
 
 ---
 
 ## 5. End-to-End Data & Execution Trace
 
-### Phase 1: User Login Flow
+### Phase 1: Google Authentication Flow
 ```
-User Fills Login Form (Login.tsx)
+User Clicks "Continue with Google" (GoogleAuthButton.tsx)
              │
              ▼
-Zod Form Validation (LoginUserSchema.ts)
+Google Popup / GIS Callback decodes claims
              │
              ▼
-useLogin Hook (useLogin.ts)
+useGoogleAuth Hook (useGoogleAuth.ts)
              │
              ▼
-authService.login(payload) (authService.ts)
+authService.googleAuth(payload) (authService.ts)
              │
              ▼
-Axios Request Interceptor (services/api.ts) ──► HTTP POST /auth/login
+Axios Request Interceptor (services/api.ts) ──► HTTP POST /auth/google
              │
              ▼
-Express Backend (LoginUserUseCase.ts)
-             ├── Fetches User by Email from MongoDB
-             ├── Checks Account Status (isVerified, isBlocked)
-             ├── Compares Password Hash (Bcrypt)
+Express Backend (GoogleAuthUseCase.ts)
+             ├── Finds User by Email in MongoDB
+             ├── If User exists: checks block status & auto-verifies email
+             ├── If New User: creates user marked as isVerified = true
              └── Generates JWT Access Token (JwtService)
              │
              ▼
 Returns Response { success: true, payload: { id, email, firstName, token, message } }
              │
              ▼
-authService.ts unwraps response payload & extracts token & user info
-             │
-             ▼
 loginSuccess(token, user) in AuthProvider saves token & user info to storage.ts
              │
              ▼
 Redirects to /dashboard with active user session! 🎉
-```
-
----
-
-### Phase 2: User Registration & OTP Flow
-```
-User Fills Signup Form (CustomerSignup.tsx) ──► Zod Validation ──► POST /auth/signUp
-             │
-             ▼
-Express Backend hashes password, creates unverified user, sends 6-digit OTP email
-             │
-             ▼
-User enters 6-digit OTP in Otp.tsx ──► Zod OTP Validation ──► POST /auth/verify-otp
-             │
-             ▼
-Express Backend validates OTP, marks user verified, returns JWT access token
-             │
-             ▼
-loginSuccess(token, user) activates session and redirects to /dashboard 🎉
 ```

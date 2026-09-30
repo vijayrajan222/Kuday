@@ -54,6 +54,28 @@ export interface LoginResponse extends LoginResult {
   data?: LoginResult;
 }
 
+export interface GoogleAuthRequest {
+  email: string;
+  firstName: string;
+  lastName: string;
+  googleId?: string;
+  picture?: string;
+}
+
+export interface GoogleAuthResult {
+  id?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  token?: string;
+  message?: string;
+}
+
+export interface GoogleAuthResponse extends GoogleAuthResult {
+  message?: string;
+  data?: GoogleAuthResult;
+}
+
 export interface AuthUser {
   email: string;
   firstName: string;
