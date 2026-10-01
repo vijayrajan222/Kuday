@@ -76,6 +76,50 @@ export interface GoogleAuthResponse extends GoogleAuthResult {
   data?: GoogleAuthResult;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResult {
+  email?: string;
+  message?: string;
+}
+
+export interface ForgotPasswordResponse extends ForgotPasswordResult {
+  data?: ForgotPasswordResult;
+}
+
+export interface VerifyResetOtpRequest {
+  email: string;
+  otp: string;
+}
+
+export interface VerifyResetOtpResult {
+  email?: string;
+  isVerified?: boolean;
+  token?: string;
+  message?: string;
+}
+
+export interface VerifyResetOtpResponse extends VerifyResetOtpResult {
+  data?: VerifyResetOtpResult;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ResetPasswordResult {
+  email?: string;
+  message?: string;
+}
+
+export interface ResetPasswordResponse extends ResetPasswordResult {
+  data?: ResetPasswordResult;
+}
+
 export interface AuthUser {
   email: string;
   firstName: string;

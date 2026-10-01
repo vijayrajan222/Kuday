@@ -8,5 +8,8 @@ export const MESSAGES = {
   OTP_NO_TOKEN: 'Verification succeeded but no session was returned. Please try again.',
   LOGIN_SUCCESS: 'Logged in successfully!',
   GOOGLE_AUTH_SUCCESS: 'Signed in with Google successfully!',
+  FORGOT_PASSWORD_SUCCESS: 'Reset code sent to your email address.',
+  RESET_OTP_SUCCESS: 'OTP verified. Please set your new password.',
+  RESET_PASSWORD_SUCCESS: 'Password updated successfully! Please log in.',
   LOGOUT_SUCCESS: 'You have been signed out.',
 } as const;

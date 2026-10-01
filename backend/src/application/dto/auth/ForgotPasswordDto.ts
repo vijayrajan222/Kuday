@@ -1,8 +1,8 @@
-export interface ForgotPasswordRequestDto   {
-    email : string
+export interface ForgotPasswordRequestDto {
+    email: string;
 }
 
-export interface ForgotPasswordResposeDto {
-    email: string
-    message : string
+export interface ForgotPasswordResponseDto {
+    email: string;
+    message: string;
 }

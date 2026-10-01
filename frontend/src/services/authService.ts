@@ -1,6 +1,9 @@
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import { api } from '@/services/api';
 import type {
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
+  ForgotPasswordResult,
   GoogleAuthRequest,
   GoogleAuthResponse,
   GoogleAuthResult,
@@ -8,18 +11,52 @@ import type {
   LoginResponse,
   LoginResult,
   ResendOtpRequest,
+  ResetPasswordRequest,
+  ResetPasswordResponse,
+  ResetPasswordResult,
   SignUpRequest,
   SignUpResponse,
   SignUpResult,
   VerifyOtpRequest,
   VerifyOtpResponse,
   VerifyOtpResult,
+  VerifyResetOtpRequest,
+  VerifyResetOtpResponse,
+  VerifyResetOtpResult,
 } from '@/types';
 
 export const authService = {
+  async forgotPassword(payload: ForgotPasswordRequest): Promise<ForgotPasswordResult> {
+    const { data } = await api.post<ForgotPasswordResponse>(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, payload);
+    return (data as any).payload ?? data.data ?? data;
+  },
+
+  async verifyResetOtp(payload: VerifyResetOtpRequest): Promise<VerifyResetOtpResult> {
+    const { data } = await api.post<VerifyResetOtpResponse>(API_ENDPOINTS.AUTH.VERIFY_RESET_OTP, payload);
+    return (data as any).payload ?? data.data ?? data;
+  },
+
+  async resetPassword(payload: ResetPasswordRequest): Promise<ResetPasswordResult> {
+    const { data } = await api.post<ResetPasswordResponse>(API_ENDPOINTS.AUTH.RESET_PASSWORD, payload);
+    return (data as any).payload ?? data.data ?? data;
+  },
+
   async googleAuth(payload: GoogleAuthRequest): Promise<GoogleAuthResult> {
     const { data } = await api.post<GoogleAuthResponse>(API_ENDPOINTS.AUTH.GOOGLE, payload);
     return (data as any).payload ?? data.data ?? data;
+  },
+
+  async refreshToken(): Promise<{ token: string }> {
+    const { data } = await api.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, {}, { withCredentials: true });
+    return (data as any).payload ?? data.data ?? data;
+  },
+
+  async logout(): Promise<void> {
+    try {
+      await api.post(API_ENDPOINTS.AUTH.LOGOUT, {}, { withCredentials: true });
+    } catch {
+      // Ignore network / logout errors
+    }
   },
 
   async login(payload: LoginRequest): Promise<LoginResult> {

@@ -11,6 +11,9 @@ const NotFound = lazy(() => import('@/pages/common/NotFound'));
 const CustomerSignup = lazy(() => import('@/pages/customer/CustomerSignup'));
 const Login = lazy(() => import('@/pages/customer/Login'));
 const Otp = lazy(() => import('@/pages/customer/Otp'));
+const ForgotPassword = lazy(() => import('@/pages/customer/ForgotPassword'));
+const VerifyResetOtp = lazy(() => import('@/pages/customer/VerifyResetOtp'));
+const ResetPassword = lazy(() => import('@/pages/customer/ResetPassword'));
 const CustomerDashboard = lazy(() => import('@/pages/customer/CustomerDashboard'));
 
 export function AppRoutes() {
@@ -23,6 +26,9 @@ export function AppRoutes() {
           <Route path={ROUTES.SIGN_UP} element={<CustomerSignup />} />
           <Route path={ROUTES.LOGIN} element={<Login />} />
           <Route path={ROUTES.OTP} element={<Otp />} />
+          <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+          <Route path={ROUTES.VERIFY_RESET_OTP} element={<VerifyResetOtp />} />
+          <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
         </Route>
 
         <Route element={<AuthProtectedRoute />}>

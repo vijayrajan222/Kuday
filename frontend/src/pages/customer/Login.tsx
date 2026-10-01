@@ -58,13 +58,20 @@ export default function Login() {
             {...register('email')}
           />
 
-          <PasswordInput
-            label="Password"
-            placeholder="Password"
-            autoComplete="current-password"
-            error={errors.password?.message}
-            {...register('password')}
-          />
+          <div className="space-y-1.5">
+            <PasswordInput
+              label="Password"
+              placeholder="Password"
+              autoComplete="current-password"
+              error={errors.password?.message}
+              {...register('password')}
+            />
+            <div className="flex justify-end">
+              <Link to={ROUTES.FORGOT_PASSWORD} className="text-xs font-semibold text-emerald-600 hover:underline">
+                Forgot Password?
+              </Link>
+            </div>
+          </div>
 
           <Button type="submit" size="lg" fullWidth isLoading={isLoading}>
             {isLoading ? 'Logging in...' : 'Log In'}

@@ -14,6 +14,9 @@ import { LoginUserUseCase } from "./application/use-case/auth/LoginUserUseCase.j
 import cors from "cors";
 import { JwtService } from "./infrastructure/services/JwtServices.js";
 import { GoogleAuthUseCase } from "./application/use-case/auth/GoogleAuthUseCase.js";
+import { ForgotPasswordUseCase } from "./application/use-case/auth/ForgotPasswordUseCase.js";
+import { VerifyResetOtpUseCase } from "./application/use-case/auth/VerifyResetOtpUseCase.js";
+import { ResetPasswordUseCase } from "./application/use-case/auth/ResetPasswordUseCase.js";
 
 
 async function startServer() {
@@ -34,19 +37,35 @@ async function startServer() {
     
     //--------------------------------------------------------------------
     // this is where we do wireup everything together and do dependency injection
-    const userrepo = new MongoUserRepository()
-    const hasher = new HashService()
-    const otprepo = new MongoOtpRepository()
-    const otpservice = new OtpService()
-    const mailer = new NodemailerMailService()
+    const userrepo = new MongoUserRepository();
+    const hasher = new HashService();
+    const otprepo = new MongoOtpRepository();
+    const otpservice = new OtpService();
+    const mailer = new NodemailerMailService();
     const jwtService = new JwtService();
+
     const googleAuthUseCase = new GoogleAuthUseCase(userrepo, jwtService);
-    const signUpUsecase = new SignUpUserUseCase(userrepo, hasher, otprepo, otpservice, mailer)
+    const signUpUsecase = new SignUpUserUseCase(userrepo, hasher, otprepo, otpservice, mailer);
     const verifyOtpUseCase = new VerifyOptUseCase(userrepo, otprepo, jwtService);
     const loginUseCase = new LoginUserUseCase(userrepo, hasher, jwtService);
-    const authcontroller = new AuthController(signUpUsecase, verifyOtpUseCase, loginUseCase, googleAuthUseCase)
-    const authRouter = createAuthRouter(authcontroller)
-    app.use("/auth", authRouter)
+
+    const forgotPasswordUseCase = new ForgotPasswordUseCase(userrepo, otpservice, otprepo, mailer);
+    const verifyResetOtpUseCase = new VerifyResetOtpUseCase(userrepo, otprepo, jwtService);
+    const resetPasswordUseCase = new ResetPasswordUseCase(userrepo, hasher);
+
+    const authcontroller = new AuthController(
+        signUpUsecase,
+        verifyOtpUseCase,
+        loginUseCase,
+        googleAuthUseCase,
+        forgotPasswordUseCase,
+        verifyResetOtpUseCase,
+        resetPasswordUseCase,
+        jwtService
+    );
+
+    const authRouter = createAuthRouter(authcontroller);
+    app.use("/auth", authRouter);
     
     //--------------------------------------------------------------------
 

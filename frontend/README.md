@@ -8,6 +8,7 @@
 - **Core Mission**: KUDAY connects homeowners who own a house and want to list empty rooms with individuals searching for their ideal roommate.
 - **Tech Stack**: React 18/19, TypeScript, Vite, Tailwind CSS, Lucide Icons, Zod, React Hook Form, Axios, Context API.
 - **Backend Connection**: Communicates with the Express + Node.js + Clean Architecture backend running on `http://localhost:3000`.
+- **Level 1 Status**: 🎉 **100% COMPLETE** (Sign Up, Email OTP Verification, Login, Google Auth, Forgot Password, Reset OTP, Reset Password, Refresh Token, Logout).
 
 ---
 
@@ -49,10 +50,10 @@ frontend/
 │   ├── config/                   # App Navigation Configurations
 │   │   └── navigation.ts         # Sidebar & Header Links
 │   ├── constants/                # App-Wide Immutable Constants
-│   │   ├── apiEndpoints.ts       # API Route URLs (/auth/signUp, /auth/login, /auth/google, /auth/verify-otp)
+│   │   ├── apiEndpoints.ts       # API Route URLs (/auth/signUp, /auth/login, /auth/google, /auth/verify-otp, /auth/forgot-password, /auth/verify-reset-otp, /auth/reset-password, /auth/refresh-token, /auth/logout)
 │   │   ├── events.ts             # Global Custom Events (AUTH_UNAUTHORIZED_EVENT)
 │   │   ├── messages.ts           # Centralized Success & Error Notification Strings
-│   │   └── routes.ts             # App Route Constants (SIGN_UP, LOGIN, OTP, DASHBOARD)
+│   │   └── routes.ts             # App Route Constants (SIGN_UP, LOGIN, OTP, FORGOT_PASSWORD, VERIFY_RESET_OTP, RESET_PASSWORD, DASHBOARD)
 │   │
 │   ├── context/                  # Global Session State
 │   │   ├── authContext.ts        # Auth React Context Definition
@@ -63,37 +64,42 @@ frontend/
 │   ├── hooks/                    # Custom React Hooks
 │   │   ├── useAuth.ts            # Hook to access global AuthContext
 │   │   ├── useCountdown.ts       # Hook for 60-Second OTP Timer
+│   │   ├── useForgotPassword.ts   # Hook managing Forgot Password submission
 │   │   ├── useGoogleAuth.ts      # Hook managing Google Auth API & Session activation
 │   │   ├── useLogin.ts           # Hook managing Login API & Session trigger logic
+│   │   ├── useResetPassword.ts     # Hook managing Password Reset submission
 │   │   ├── useSignUp.ts          # Hook managing Signup submission logic
 │   │   ├── useToast.ts           # Hook for triggering Toast notifications
-│   │   └── useVerifyOtp.ts       # Hook managing OTP verification & resend logic
+│   │   ├── useVerifyOtp.ts       # Hook managing OTP verification & resend logic
+│   │   └── useVerifyResetOtp.ts   # Hook managing Reset OTP verification
 │   │
 │   ├── lib/                      # Helper Libraries
 │   │   └── utils.ts              # cn() dynamic Tailwind class merger (clsx + twMerge)
 │   │
 │   ├── pages/                    # Main Page Views
 │   │   ├── common/               # LandingPage.tsx, NotFound.tsx
-│   │   └── customer/             # CustomerSignup.tsx, Login.tsx, Otp.tsx, CustomerDashboard.tsx
+│   │   └── customer/             # CustomerSignup.tsx, Login.tsx, Otp.tsx, ForgotPassword.tsx, VerifyResetOtp.tsx, ResetPassword.tsx, CustomerDashboard.tsx
 │   │
 │   ├── routes/                   # Router Setup
 │   │   └── AppRoutes.tsx         # React Router v7 Route Map (Lazy loaded routes)
 │   │
 │   ├── services/                 # API Service Layer
-│   │   ├── api.ts                # Axios Instance with Request/Response Interceptors
-│   │   └── authService.ts        # Auth API Functions (googleAuth, login, signUp, verifyOtp, resendOtp)
+│   │   ├── api.ts                # Axios Instance with Request/Response Interceptors & Automatic 401 Refresh Token Retry
+│   │   └── authService.ts        # Auth API Functions (googleAuth, login, signUp, verifyOtp, resendOtp, forgotPassword, verifyResetOtp, resetPassword, refreshToken, logout)
 │   │
 │   ├── shared/                   # Shared Schemas & Enums
 │   │   ├── enums/
 │   │   │   └── HttpStatusCodes.ts  # HTTP Status Code Enum (200, 201, 400, 401, 404, 500)
 │   │   └── schema/
 │   │       └── auth/
+│   │           ├── ForgotPasswordSchema.ts # Zod Schema for Forgot Password
 │   │           ├── LoginUserSchema.ts    # Zod Schema for User Login Validation
 │   │           ├── RegisterUserSchema.ts # Zod Schema for Registration Validation
+│   │           ├── ResetPasswordSchema.ts # Zod Schema for Setting New Password
 │   │           └── VerifyOtpSchema.ts    # Zod Schema for 6-Digit OTP Code
 │   │
 │   ├── types/                    # TypeScript Definitions
-│   │   ├── auth.types.ts         # GoogleAuth, Login, SignUp & VerifyOTP Payload / Response Types
+│   │   ├── auth.types.ts         # GoogleAuth, Login, SignUp, VerifyOTP, ResetPassword Payload / Response Types
 │   │   └── index.ts              # Unified Type Exports
 │   │
 │   └── utils/                    # Utility Functions
@@ -115,58 +121,30 @@ frontend/
 
 ---
 
-## 3. "What Does What" - Comprehensive Feature & Component Breakdown
+## 3. "What Does What" - Level 1 Feature & Component Breakdown
 
 ### A. Authentication & Session Management
-- **`src/components/auth/GoogleAuthButton.tsx`**: Renders an accessible button with the official Google logo SVG ("Continue with Google"). Handles Google Identity Services (`google.accounts.id`) popup integration when `VITE_GOOGLE_CLIENT_ID` is present, with fallback dev prompt support.
-- **`src/hooks/useGoogleAuth.ts`**: Dedicated hook encapsulating Google authentication submission. Calls `authService.googleAuth()`, stores returned JWT token via `loginSuccess(token, user)`, notifies user with toast, and navigates to `/dashboard`.
-- **`src/pages/customer/Login.tsx`**: Renders `GoogleAuthButton`, an "Or continue with email" divider, and the email/password form with Zod validation (`mode: 'onTouched'`).
-- **`src/pages/customer/CustomerSignup.tsx`**: Renders `GoogleAuthButton`, divider, registration fields, password strength indicator, and link to login.
-- **`src/context/AuthProvider.tsx`**: Manages active user authentication state (`user`, `token`, `isAuthenticated`, `pendingSignup`). When a user logs in (via email or Google) or verifies OTP, `loginSuccess(token, user)` persists JWT token and user info to `localStorage` via `storage.ts`.
+- **`src/services/api.ts`**: Axios instance with automatic 401 Unauthorized handling. When an access token expires, it silently requests a fresh access token from `POST /auth/refresh-token` using the `httpOnly` cookie and retries the original request seamlessly.
+- **`src/services/authService.ts`**: Clean API service layer handling `googleAuth`, `login`, `signUp`, `verifyOtp`, `forgotPassword`, `verifyResetOtp`, `resetPassword`, `refreshToken`, and `logout`.
+- **`src/context/AuthProvider.tsx`**: Manages global session state (`user`, `token`, `isAuthenticated`, `pendingSignup`). Listens for `AUTH_UNAUTHORIZED_EVENT` to automatically log out users when session refresh fails.
 
 ---
 
-## 4. "Why & Where" - Key Architectural Rationale
+## 4. End-to-End Execution Traces
 
-| Question | Architectural Rationale & Solution | File Location |
-| :--- | :--- | :--- |
-| **Why integrate `GoogleAuthButton` in both Login & Signup?** | Provides frictionless single-click authentication for new and returning users without requiring separate signup vs login Google flows. | `src/components/auth/GoogleAuthButton.tsx`<br>`src/pages/customer/Login.tsx`<br>`src/pages/customer/CustomerSignup.tsx` |
-| **Why handle Google JWT decoding in `GoogleAuthButton.tsx`?** | Extracts verified Google claims (`email`, `given_name`, `family_name`, `sub`) to send clean DTO payload to `POST /auth/google`. | `src/components/auth/GoogleAuthButton.tsx` |
-| **Why use `useGoogleAuth` hook?** | Keeps business logic (API dispatch, session activation, toast, navigation) separated from UI presentation. | `src/hooks/useGoogleAuth.ts` |
-
----
-
-## 5. End-to-End Data & Execution Trace
-
-### Phase 1: Google Authentication Flow
+### Phase 1: Refresh Token Flow (Silent Auto-Renewal)
 ```
-User Clicks "Continue with Google" (GoogleAuthButton.tsx)
+API Request returns HTTP 401 Unauthorized
              │
              ▼
-Google Popup / GIS Callback decodes claims
+Axios Response Interceptor catches 401 (services/api.ts)
              │
              ▼
-useGoogleAuth Hook (useGoogleAuth.ts)
+Dispatches HTTP POST /auth/refresh-token with httpOnly Cookie
              │
              ▼
-authService.googleAuth(payload) (authService.ts)
+Express Backend verifies refreshToken cookie & issues new Access Token
              │
              ▼
-Axios Request Interceptor (services/api.ts) ──► HTTP POST /auth/google
-             │
-             ▼
-Express Backend (GoogleAuthUseCase.ts)
-             ├── Finds User by Email in MongoDB
-             ├── If User exists: checks block status & auto-verifies email
-             ├── If New User: creates user marked as isVerified = true
-             └── Generates JWT Access Token (JwtService)
-             │
-             ▼
-Returns Response { success: true, payload: { id, email, firstName, token, message } }
-             │
-             ▼
-loginSuccess(token, user) in AuthProvider saves token & user info to storage.ts
-             │
-             ▼
-Redirects to /dashboard with active user session! 🎉
+Frontend stores new token & retries original failed API call seamlessly! 🎉
 ```
