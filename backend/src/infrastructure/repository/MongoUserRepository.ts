@@ -36,4 +36,8 @@ export class MongoUserRepository implements IUserRepository {
     async updateVerificationStatus(email: string, isVerified: boolean): Promise<void> {
         await this.user.updateOne({ email }, { isVerified });
     }
+
+    async updatenewPassword(email: string, hashedPassword: string): Promise<void> {
+        await this.user.updateOne({ email }, { hashedPassword });
+    }
 }

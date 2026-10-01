@@ -22,4 +22,6 @@ export interface IUserRepository{
 
     updateVerificationStatus(email:string,isVerified:boolean) : Promise<void>
 
+    updatenewPassword(email:string,password:string):Promise<void>
+
 }
