@@ -1,0 +1,1 @@
+import{l as e,r as t}from"./index-Zh2ApfGd.js";function n(n,r=e.GENERIC_ERROR){if(t.isAxiosError(n)){if(!n.response)return e.NETWORK_ERROR;let{message:t,error:i}=n.response.data??{};return t??i??r}return n instanceof Error?n.message:r}export{n as t};

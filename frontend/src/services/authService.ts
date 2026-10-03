@@ -25,30 +25,35 @@ import type {
   VerifyResetOtpResult,
 } from '@/types';
 
+function extractPayload<T>(data: unknown): T {
+  const obj = data as { payload?: T; data?: T };
+  return obj.payload ?? obj.data ?? (data as T);
+}
+
 export const authService = {
   async forgotPassword(payload: ForgotPasswordRequest): Promise<ForgotPasswordResult> {
     const { data } = await api.post<ForgotPasswordResponse>(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, payload);
-    return (data as any).payload ?? data.data ?? data;
+    return extractPayload<ForgotPasswordResult>(data);
   },
 
   async verifyResetOtp(payload: VerifyResetOtpRequest): Promise<VerifyResetOtpResult> {
     const { data } = await api.post<VerifyResetOtpResponse>(API_ENDPOINTS.AUTH.VERIFY_RESET_OTP, payload);
-    return (data as any).payload ?? data.data ?? data;
+    return extractPayload<VerifyResetOtpResult>(data);
   },
 
   async resetPassword(payload: ResetPasswordRequest): Promise<ResetPasswordResult> {
     const { data } = await api.post<ResetPasswordResponse>(API_ENDPOINTS.AUTH.RESET_PASSWORD, payload);
-    return (data as any).payload ?? data.data ?? data;
+    return extractPayload<ResetPasswordResult>(data);
   },
 
   async googleAuth(payload: GoogleAuthRequest): Promise<GoogleAuthResult> {
     const { data } = await api.post<GoogleAuthResponse>(API_ENDPOINTS.AUTH.GOOGLE, payload);
-    return (data as any).payload ?? data.data ?? data;
+    return extractPayload<GoogleAuthResult>(data);
   },
 
   async refreshToken(): Promise<{ token: string }> {
     const { data } = await api.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, {}, { withCredentials: true });
-    return (data as any).payload ?? data.data ?? data;
+    return extractPayload<{ token: string }>(data);
   },
 
   async logout(): Promise<void> {
@@ -61,17 +66,17 @@ export const authService = {
 
   async login(payload: LoginRequest): Promise<LoginResult> {
     const { data } = await api.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, payload);
-    return (data as any).payload ?? data.data ?? data;
+    return extractPayload<LoginResult>(data);
   },
 
   async signUp(payload: SignUpRequest): Promise<SignUpResult> {
     const { data } = await api.post<SignUpResponse>(API_ENDPOINTS.AUTH.SIGN_UP, payload);
-    return (data as any).payload ?? data.data ?? data;
+    return extractPayload<SignUpResult>(data);
   },
 
   async verifyOtp(payload: VerifyOtpRequest): Promise<VerifyOtpResult> {
     const { data } = await api.post<VerifyOtpResponse>(API_ENDPOINTS.AUTH.VERIFY_OTP, payload);
-    return (data as any).payload ?? data.data ?? data; // Extract from backend payload wrapper
+    return extractPayload<VerifyOtpResult>(data);
   },
 
   async resendOtp(payload: ResendOtpRequest): Promise<void> {

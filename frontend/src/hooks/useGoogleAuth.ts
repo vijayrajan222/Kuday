@@ -23,9 +23,18 @@ export function useGoogleAuth() {
             id: result.id,
             email: result.email ?? payload.email,
             firstName: result.firstName ?? payload.firstName ?? 'User',
+            lastName: result.lastName,
+            isOnboarded: result.isOnboarded,
+            role: result.role,
+            identityVerified: result.identityVerified,
           });
           toast.success(result.message || MESSAGES.GOOGLE_AUTH_SUCCESS);
-          navigate(ROUTES.ONBOARDING_PROFILE, { replace: true });
+
+          if (result.isOnboarded) {
+            navigate(ROUTES.DASHBOARD, { replace: true });
+          } else {
+            navigate(ROUTES.ONBOARDING_PROFILE, { replace: true });
+          }
         } else {
           toast.error(MESSAGES.OTP_NO_TOKEN);
         }

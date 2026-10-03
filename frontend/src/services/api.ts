@@ -68,7 +68,8 @@ api.interceptors.response.use(
           {},
           { withCredentials: true },
         );
-        const newToken = (data as any).payload?.token ?? data.data?.token ?? data.token;
+        const responseData = data as { payload?: { token?: string }; data?: { token?: string }; token?: string };
+        const newToken = responseData.payload?.token ?? responseData.data?.token ?? responseData.token;
 
         if (newToken) {
           storage.setToken(newToken);

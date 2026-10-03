@@ -3,7 +3,6 @@ import {
   Heart,
   LayoutDashboard,
   MessageSquare,
-  UserCircle,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -23,5 +22,4 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'My Listings', to: '/listings', icon: Building2, disabled: true },
   { label: 'Messages', to: '/messages', icon: MessageSquare, disabled: true },
   { label: 'Saved', to: '/saved', icon: Heart, disabled: true },
-  { label: 'Profile & Onboarding', to: ROUTES.ONBOARDING_PROFILE, icon: UserCircle },
 ];

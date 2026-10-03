@@ -16,8 +16,8 @@ export class CloudinaryService {
                 resource_type: "auto",
             });
             return result.secure_url;
-        } catch (error: any) {
-            throw new Error(`Cloudinary upload failed: ${error.message || error}`);
+        } catch (error: unknown) {
+            throw new Error(`Cloudinary upload failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }

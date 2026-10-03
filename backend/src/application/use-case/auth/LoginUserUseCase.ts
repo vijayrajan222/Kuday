@@ -9,12 +9,9 @@ export class LoginUserUseCase implements ILoginUserUseCase {
         private readonly _userRepo: IUserRepository,
         private readonly _hashService: IHashingService,
         private readonly _jwtService: IJwtService
-
-
-    ) { }
+    ) {}
 
     async exicute(dto: loginRequestDto): Promise<loginResponseDto> {
-
         const cleanedEmail = dto.email.trim().toLowerCase();
 
         const existingUser = await this._userRepo.findByEmail(cleanedEmail);
@@ -48,6 +45,9 @@ export class LoginUserUseCase implements ILoginUserUseCase {
             lastName: existingUser.lastName,
             token: token,
             message: "User logged in successfully.",
+            isOnboarded: existingUser.isOnboarded,
+            role: existingUser.role,
+            identityVerified: existingUser.identityVerified,
         };
     }
 }

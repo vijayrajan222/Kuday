@@ -20,33 +20,54 @@ import { ResetPasswordUseCase } from "./application/use-case/auth/ResetPasswordU
 
 import { MongoLifestyleRepository } from "./infrastructure/repository/MongoLifestyleRepository.js";
 import { UpdateProfileUseCase } from "./application/use-case/user/UpdateProfileUseCase.js";
+import { UpdateRoleUseCase } from "./application/use-case/user/UpdateRoleUseCase.js";
 import { CreateLifestyleUseCase } from "./application/use-case/lifestyle/CreateLifestyleUseCase.js";
+import { GetLifestyleUseCase } from "./application/use-case/lifestyle/GetLifestyleUseCase.js";
 import { CloudinaryService } from "./infrastructure/services/CloudinaryService.js";
 import { UploadIdentityUseCase } from "./application/use-case/user/UploadIdentityUseCase.js";
+
+import { MongoRoomRepository } from "./infrastructure/repository/MongoRoomRepository.js";
+import { CreateRoomUseCase } from "./application/use-case/room/CreateRoomUseCase.js";
+import { GetRoomsUseCase } from "./application/use-case/room/GetRoomsUseCase.js";
+import { RoomController } from "./presentation/controller/RoomController.js";
+import { createRoomRouter } from "./presentation/router/RoomRouter.js";
+
+import { MongoSeekerPreferenceRepository } from "./infrastructure/repository/MongoSeekerPreferenceRepository.js";
+import { CreateSeekerPreferenceUseCase } from "./application/use-case/seeker/CreateSeekerPreferenceUseCase.js";
+import { GetSeekerPreferencesUseCase } from "./application/use-case/seeker/GetSeekerPreferencesUseCase.js";
+import { SeekerPreferenceController } from "./presentation/controller/SeekerPreferenceController.js";
+import { createSeekerPreferenceRouter } from "./presentation/router/SeekerPreferenceRouter.js";
+
 import { UserController } from "./presentation/controller/UserController.js";
 import { LifestyleController } from "./presentation/controller/LifestyleController.js";
 import { createUserRouter } from "./presentation/router/UserRouter.js";
 import { createLifestyleRouter } from "./presentation/router/LifestyleRouter.js";
 
 async function startServer() {
-    console.log("waiting for the connection...")
-    await connectMongo()
-    
-    let PORT = process.env.PORT || 3000
-    let app = express()
+    console.log("waiting for the connection...");
+    await connectMongo();
+
+    const PORT = process.env.PORT || 3000;
+    const app = express();
+
     // Enable CORS for frontend requests
-    app.use(cors({
-        origin: ["http://localhost:5173", "http://localhost:3000"], // Allows React/Vite dev server
-        credentials: true,
-    }));
+    app.use(
+        cors({
+            origin: ["http://localhost:5173", "http://localhost:3000"], // Allows React/Vite dev server
+            credentials: true,
+        })
+    );
     app.use(express.json({ limit: "50mb" }));
-    app.use(express.urlencoded({ extended: true, limit: "50mb" }))
-    console.log("this is the server")
-    
+    app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+    console.log("this is the server");
+
     //--------------------------------------------------------------------
     // Dependency Injection & Wiring
     const userrepo = new MongoUserRepository();
     const lifestylerepo = new MongoLifestyleRepository();
+    const roomrepo = new MongoRoomRepository();
+    const seekerrepo = new MongoSeekerPreferenceRepository();
+
     const hasher = new HashService();
     const otprepo = new MongoOtpRepository();
     const otpservice = new OtpService();
@@ -63,9 +84,17 @@ async function startServer() {
     const verifyResetOtpUseCase = new VerifyResetOtpUseCase(userrepo, otprepo, jwtService);
     const resetPasswordUseCase = new ResetPasswordUseCase(userrepo, hasher);
 
-    const updateProfileUseCase = new UpdateProfileUseCase(userrepo);
+    const updateProfileUseCase = new UpdateProfileUseCase(userrepo, cloudinaryService);
+    const updateRoleUseCase = new UpdateRoleUseCase(userrepo);
     const createLifestyleUseCase = new CreateLifestyleUseCase(lifestylerepo, userrepo);
+    const getLifestyleUseCase = new GetLifestyleUseCase(lifestylerepo);
     const uploadIdentityUseCase = new UploadIdentityUseCase(userrepo, cloudinaryService);
+
+    const createRoomUseCase = new CreateRoomUseCase(roomrepo, userrepo, cloudinaryService);
+    const getRoomsUseCase = new GetRoomsUseCase(roomrepo);
+
+    const createSeekerPreferenceUseCase = new CreateSeekerPreferenceUseCase(seekerrepo, userrepo);
+    const getSeekerPreferencesUseCase = new GetSeekerPreferencesUseCase(seekerrepo);
 
     const authcontroller = new AuthController(
         signUpUsecase,
@@ -78,23 +107,39 @@ async function startServer() {
         jwtService
     );
 
-    const userController = new UserController(updateProfileUseCase, uploadIdentityUseCase, userrepo);
-    const lifestyleController = new LifestyleController(createLifestyleUseCase);
+    const userController = new UserController(
+        updateProfileUseCase,
+        uploadIdentityUseCase,
+        updateRoleUseCase,
+        userrepo
+    );
+    const lifestyleController = new LifestyleController(
+        createLifestyleUseCase,
+        getLifestyleUseCase
+    );
+    const roomController = new RoomController(createRoomUseCase, getRoomsUseCase);
+    const seekerController = new SeekerPreferenceController(
+        createSeekerPreferenceUseCase,
+        getSeekerPreferencesUseCase
+    );
 
     const authRouter = createAuthRouter(authcontroller);
     const userRouter = createUserRouter(userController);
     const lifestyleRouter = createLifestyleRouter(lifestyleController);
+    const roomRouter = createRoomRouter(roomController);
+    const seekerRouter = createSeekerPreferenceRouter(seekerController);
 
     app.use("/auth", authRouter);
     app.use("/users", userRouter);
     app.use("/lifestyles", lifestyleRouter);
-    
+    app.use("/rooms", roomRouter);
+    app.use("/seeker-preferences", seekerRouter);
+
     //--------------------------------------------------------------------
 
-    app.listen(PORT, () =>
-        console.log("server is running on port 3000")
-    )
+    app.listen(PORT, () => console.log("server is running on port 3000"));
 }
+
 startServer().catch((err) => {
-    console.log(err)
-})
+    console.log(err);
+});

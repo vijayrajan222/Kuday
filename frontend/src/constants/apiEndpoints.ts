@@ -13,10 +13,20 @@ export const API_ENDPOINTS = {
   },
   USER: {
     UPDATE_PROFILE: (userId: string) => `/users/${userId}/profile`,
+    UPDATE_ROLE: (userId: string) => `/users/${userId}/role`,
     UPLOAD_IDENTITY: (userId: string) => `/users/${userId}/identity`,
     GET_USER: (userId: string) => `/users/${userId}`,
   },
   LIFESTYLE: {
     SAVE: '/lifestyles',
+    GET: (userId: string) => `/lifestyles/${userId}`,
+  },
+  ROOM: {
+    CREATE: '/rooms',
+    GET_ALL: '/rooms',
+  },
+  SEEKER: {
+    SAVE_PREFERENCES: '/seeker-preferences',
+    GET_ALL: '/seeker-preferences',
   },
 } as const;

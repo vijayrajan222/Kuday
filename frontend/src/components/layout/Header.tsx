@@ -1,8 +1,10 @@
 import { memo } from 'react';
 import { LogOut, Menu } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { ROUTES } from '@/constants/routes';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -21,10 +23,14 @@ export const Header = memo(function Header({ onMenuClick, onLogout }: HeaderProp
 
       <div className="flex items-center gap-3">
         {user && (
-          <div className="flex items-center gap-2">
-            <Avatar name={user.firstName} size="sm" />
-            <span className="hidden text-sm font-medium text-slate-700 sm:block">{user.firstName}</span>
-          </div>
+          <Link
+            to={ROUTES.PROFILE}
+            className="flex items-center gap-2 rounded-full p-1.5 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 transition-all cursor-pointer"
+            title="View Profile"
+          >
+            <Avatar name={user.firstName || 'User'} size="sm" />
+            <span className="hidden text-sm font-semibold sm:block">{user.firstName}</span>
+          </Link>
         )}
         <Button variant="outline" size="sm" leftIcon={<LogOut className="h-4 w-4" />} onClick={onLogout}>
           Logout

@@ -13,4 +13,7 @@ export interface GoogleAuthResponseDto {
   lastName: string;
   token: string;
   message: string;
+  isOnboarded?: boolean | undefined;
+  role?: string | undefined;
+  identityVerified?: boolean | undefined;
 }

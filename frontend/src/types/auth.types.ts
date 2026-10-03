@@ -26,6 +26,9 @@ export interface VerifyOtpResult {
   message?: string;
   isVerified?: boolean;
   token?: string;
+  isOnboarded?: boolean;
+  role?: 'host' | 'seeker' | 'none';
+  identityVerified?: boolean;
 }
 
 export interface VerifyOtpResponse extends VerifyOtpResult {
@@ -48,6 +51,9 @@ export interface LoginResult {
   lastName?: string;
   token?: string;
   message?: string;
+  isOnboarded?: boolean;
+  role?: 'host' | 'seeker' | 'none';
+  identityVerified?: boolean;
 }
 
 export interface LoginResponse extends LoginResult {
@@ -70,6 +76,9 @@ export interface GoogleAuthResult {
   lastName?: string;
   token?: string;
   message?: string;
+  isOnboarded?: boolean;
+  role?: 'host' | 'seeker' | 'none';
+  identityVerified?: boolean;
 }
 
 export interface GoogleAuthResponse extends GoogleAuthResult {
@@ -125,8 +134,16 @@ export interface AuthUser {
   id?: string;
   email: string;
   firstName: string;
-  isOnboarded?: boolean;
+  lastName?: string;
+  dob?: string;
+  gender?: string;
+  occupation?: string;
+  bio?: string;
   role?: 'host' | 'seeker' | 'none';
+  isOnboarded?: boolean;
+  identityVerified?: boolean;
+  selfieUrl?: string;
+  idCardUrl?: string;
 }
 
 export interface PendingSignup {

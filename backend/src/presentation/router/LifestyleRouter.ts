@@ -4,5 +4,6 @@ import type { LifestyleController } from "../controller/LifestyleController.js";
 export const createLifestyleRouter = (lifestyleController: LifestyleController): Router => {
     const router = Router();
     router.post("/", (req, res) => lifestyleController.saveLifestyle(req, res));
+    router.get("/:userId", (req, res) => lifestyleController.getLifestyle(req, res));
     return router;
 };

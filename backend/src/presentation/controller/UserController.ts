@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import type { IUpdateProfileUseCase } from "../../application/interfaces/use-case/user/IUpdateProfileUseCase.js";
 import type { IUploadIdentityUseCase } from "../../application/interfaces/use-case/user/IUploadIdentityUseCase.js";
+import type { IUpdateRoleUseCase } from "../../application/interfaces/use-case/user/IUpdateRoleUseCase.js";
 import type { IUserRepository } from "../../application/interfaces/repository/IUserRepository.js";
 import { UpdateProfileSchema } from "../utils/validators/zod/UpdateProfileSchema.js";
 
@@ -8,6 +9,7 @@ export class UserController {
     constructor(
         private updateProfileUseCase: IUpdateProfileUseCase,
         private uploadIdentityUseCase: IUploadIdentityUseCase,
+        private updateRoleUseCase: IUpdateRoleUseCase,
         private userRepository: IUserRepository
     ) {}
 
@@ -18,18 +20,46 @@ export class UserController {
 
             const user = await this.updateProfileUseCase.execute({
                 userId,
-                ...validatedData
+                ...validatedData,
             });
 
             res.status(200).json({
                 success: true,
                 message: "Profile updated successfully",
-                data: user
+                data: user,
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             res.status(400).json({
                 success: false,
-                message: error.message || "Failed to update profile"
+                message: error instanceof Error ? error.message : "Failed to update profile",
+            });
+        }
+    }
+
+    async updateRole(req: Request, res: Response): Promise<void> {
+        try {
+            const userId = req.params.userId as string;
+            const { role } = req.body;
+
+            if (!role || (role !== "host" && role !== "seeker")) {
+                res.status(400).json({
+                    success: false,
+                    message: "Valid role ('host' or 'seeker') is required",
+                });
+                return;
+            }
+
+            const user = await this.updateRoleUseCase.execute({ userId, role });
+
+            res.status(200).json({
+                success: true,
+                message: "Role updated successfully",
+                data: user,
+            });
+        } catch (error: unknown) {
+            res.status(400).json({
+                success: false,
+                message: error instanceof Error ? error.message : "Failed to update role",
             });
         }
     }
@@ -42,7 +72,7 @@ export class UserController {
             if (!idCardBase64 || !selfieBase64) {
                 res.status(400).json({
                     success: false,
-                    message: "Both ID Card image and Selfie image are required."
+                    message: "Both ID Card image and Selfie image are required.",
                 });
                 return;
             }
@@ -55,13 +85,13 @@ export class UserController {
 
             res.status(200).json({
                 success: true,
-                message: "Identity verification and onboarding completed successfully",
-                data: user
+                message: "Identity verification documents uploaded successfully",
+                data: user,
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             res.status(400).json({
                 success: false,
-                message: error.message || "Failed to upload identity verification documents"
+                message: error instanceof Error ? error.message : "Failed to upload identity verification documents",
             });
         }
     }
@@ -78,12 +108,12 @@ export class UserController {
 
             res.status(200).json({
                 success: true,
-                data: user
+                data: user,
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             res.status(400).json({
                 success: false,
-                message: error.message || "Failed to fetch user profile"
+                message: error instanceof Error ? error.message : "Failed to fetch user profile",
             });
         }
     }

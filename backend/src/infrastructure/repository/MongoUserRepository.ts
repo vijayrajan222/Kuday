@@ -2,28 +2,47 @@ import type { IUserRepository } from "../../application/interfaces/repository/IU
 import type { UserEntity } from "../../domain/entities/UserEntity.js";
 import { userModel } from "../database/model/UserModel.js";
 
+interface UserDoc {
+    _id: { toString(): string } | string;
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    hashedPassword?: string | null;
+    isVerified?: boolean | null;
+    isBlocked?: boolean | null;
+    dob?: string | null;
+    gender?: string | null;
+    occupation?: string | null;
+    bio?: string | null;
+    role?: string | null;
+    isOnboarded?: boolean | null;
+    idCardUrl?: string | null;
+    selfieUrl?: string | null;
+    identityVerified?: boolean | null;
+}
+
 export class MongoUserRepository implements IUserRepository {
     private readonly user = userModel;
     constructor() {}
 
-    private mapUserDoc(doc: any): UserEntity {
+    private mapUserDoc(doc: UserDoc): UserEntity {
         return {
-            id: doc._id.toString(),
-            email: doc.email,
-            firstName: doc.firstName,
+            id: typeof doc._id === 'string' ? doc._id : doc._id.toString(),
+            email: doc.email ?? "",
+            firstName: doc.firstName ?? "",
             lastName: doc.lastName ?? "",
             hashedPassword: doc.hashedPassword ?? "",
-            isVerified: doc.isVerified,
-            isBlocked: doc.isBlocked,
+            isVerified: Boolean(doc.isVerified),
+            isBlocked: Boolean(doc.isBlocked),
             dob: doc.dob ?? "",
             gender: doc.gender ?? "",
             occupation: doc.occupation ?? "",
             bio: doc.bio ?? "",
-            role: doc.role as 'host' | 'seeker' | 'none',
-            isOnboarded: doc.isOnboarded ?? false,
+            role: (doc.role as 'host' | 'seeker' | 'none') ?? 'none',
+            isOnboarded: Boolean(doc.isOnboarded),
             idCardUrl: doc.idCardUrl ?? "",
             selfieUrl: doc.selfieUrl ?? "",
-            identityVerified: doc.identityVerified ?? false,
+            identityVerified: Boolean(doc.identityVerified),
         };
     }
 

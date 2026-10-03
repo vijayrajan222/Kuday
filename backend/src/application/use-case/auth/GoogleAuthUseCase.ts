@@ -48,6 +48,9 @@ export class GoogleAuthUseCase implements IGoogleAuthUseCase {
       lastName: user.lastName,
       token,
       message: "Google authentication successful.",
+      isOnboarded: user.isOnboarded,
+      role: user.role,
+      identityVerified: user.identityVerified,
     };
   }
 }

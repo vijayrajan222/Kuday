@@ -25,9 +25,23 @@ export function useVerifyOtp() {
       try {
         const result = await authService.verifyOtp({ email: pending.email, otp });
         if (!result.token) return MESSAGES.OTP_NO_TOKEN;
-        loginSuccess(result.token, { id: result.id, email: pending.email, firstName: pending.firstName });
+
+        loginSuccess(result.token, {
+          id: result.id,
+          email: pending.email,
+          firstName: pending.firstName,
+          isOnboarded: result.isOnboarded,
+          role: result.role,
+          identityVerified: result.identityVerified,
+        });
+
         toast.success(MESSAGES.OTP_SUCCESS);
-        navigate(ROUTES.ONBOARDING_PROFILE, { replace: true });
+
+        if (result.isOnboarded) {
+          navigate(ROUTES.DASHBOARD, { replace: true });
+        } else {
+          navigate(ROUTES.ONBOARDING_PROFILE, { replace: true });
+        }
         return null;
       } catch (error) {
         return getErrorMessage(error);

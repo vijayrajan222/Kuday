@@ -76,8 +76,8 @@ export class SignUpUserUseCase implements ISignUpUserUsercase {
 
         try {
             await this._mailService.sendOtpEmail(cleanedEmail, otpCode);
-        } catch (mailError: any) {
-            console.error("Failed to send OTP email via Nodemailer:", mailError.message || mailError);
+        } catch (mailError: unknown) {
+            console.error("Failed to send OTP email via Nodemailer:", mailError instanceof Error ? mailError.message : mailError);
         }
 
         // 8. Return result DTO
