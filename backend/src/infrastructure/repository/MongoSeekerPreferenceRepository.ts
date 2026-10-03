@@ -9,6 +9,7 @@ interface SeekerPreferenceDoc {
     maxBudget: number;
     roomTypePreference: string;
     requiredAmenities?: string[] | null;
+    isActive?: boolean | null;
     createdAt?: Date | string | null;
     updatedAt?: Date | string | null;
 }
@@ -22,6 +23,7 @@ export class MongoSeekerPreferenceRepository implements ISeekerPreferenceReposit
             maxBudget: doc.maxBudget,
             roomTypePreference: doc.roomTypePreference,
             requiredAmenities: doc.requiredAmenities ?? [],
+            isActive: doc.isActive ?? true,
             createdAt: doc.createdAt ? String(doc.createdAt) : undefined,
             updatedAt: doc.updatedAt ? String(doc.updatedAt) : undefined,
         };
@@ -30,10 +32,14 @@ export class MongoSeekerPreferenceRepository implements ISeekerPreferenceReposit
     async save(preferenceData: Omit<SeekerPreferenceEntity, "id">): Promise<SeekerPreferenceEntity> {
         const doc = await SeekerPreferenceModel.findOneAndUpdate(
             { userId: preferenceData.userId },
-            preferenceData,
+            { ...preferenceData, isActive: preferenceData.isActive ?? true },
             { upsert: true, new: true }
         ).exec();
         return this.mapToEntity(doc);
+    }
+
+    async updateStatusByUserId(userId: string, isActive: boolean): Promise<void> {
+        await SeekerPreferenceModel.updateMany({ userId }, { $set: { isActive } }).exec();
     }
 
     async findByUserId(userId: string): Promise<SeekerPreferenceEntity | null> {

@@ -6,6 +6,7 @@ export interface ISeekerPreferenceDocument extends Document {
     maxBudget: number;
     roomTypePreference: string;
     requiredAmenities: string[];
+    isActive?: boolean;
 }
 
 const SeekerPreferenceSchema = new Schema<ISeekerPreferenceDocument>(
@@ -15,6 +16,7 @@ const SeekerPreferenceSchema = new Schema<ISeekerPreferenceDocument>(
         maxBudget: { type: Number, required: true },
         roomTypePreference: { type: String, required: true },
         requiredAmenities: [{ type: String }],
+        isActive: { type: Boolean, default: true },
     },
     { timestamps: true }
 );

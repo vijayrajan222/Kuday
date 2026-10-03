@@ -5,6 +5,7 @@ export interface SeekerPreferenceEntity {
     maxBudget: number;
     roomTypePreference: string;
     requiredAmenities: string[];
+    isActive?: boolean | undefined;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
 }

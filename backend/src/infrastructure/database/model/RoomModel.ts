@@ -11,6 +11,7 @@ export interface IRoomDocument extends Document {
     amenities: string[];
     images: string[];
     description?: string;
+    isActive?: boolean;
 }
 
 const RoomSchema = new Schema<IRoomDocument>(
@@ -25,6 +26,7 @@ const RoomSchema = new Schema<IRoomDocument>(
         amenities: [{ type: String }],
         images: [{ type: String }],
         description: { type: String },
+        isActive: { type: Boolean, default: true },
     },
     { timestamps: true }
 );

@@ -38,6 +38,13 @@ import { GetSeekerPreferencesUseCase } from "./application/use-case/seeker/GetSe
 import { SeekerPreferenceController } from "./presentation/controller/SeekerPreferenceController.js";
 import { createSeekerPreferenceRouter } from "./presentation/router/SeekerPreferenceRouter.js";
 
+import { MongoNotificationRepository } from "./infrastructure/repository/MongoNotificationRepository.js";
+import { GetNotificationsUseCase } from "./application/use-case/notification/GetNotificationsUseCase.js";
+import { CreateNotificationUseCase } from "./application/use-case/notification/CreateNotificationUseCase.js";
+import { MarkNotificationReadUseCase } from "./application/use-case/notification/MarkNotificationReadUseCase.js";
+import { NotificationController } from "./presentation/controller/NotificationController.js";
+import { createNotificationRouter } from "./presentation/router/NotificationRouter.js";
+
 import { UserController } from "./presentation/controller/UserController.js";
 import { LifestyleController } from "./presentation/controller/LifestyleController.js";
 import { createUserRouter } from "./presentation/router/UserRouter.js";
@@ -67,6 +74,7 @@ async function startServer() {
     const lifestylerepo = new MongoLifestyleRepository();
     const roomrepo = new MongoRoomRepository();
     const seekerrepo = new MongoSeekerPreferenceRepository();
+    const notificationrepo = new MongoNotificationRepository();
 
     const hasher = new HashService();
     const otprepo = new MongoOtpRepository();
@@ -85,16 +93,20 @@ async function startServer() {
     const resetPasswordUseCase = new ResetPasswordUseCase(userrepo, hasher);
 
     const updateProfileUseCase = new UpdateProfileUseCase(userrepo, cloudinaryService);
-    const updateRoleUseCase = new UpdateRoleUseCase(userrepo);
+    const updateRoleUseCase = new UpdateRoleUseCase(userrepo, roomrepo, seekerrepo);
     const createLifestyleUseCase = new CreateLifestyleUseCase(lifestylerepo, userrepo);
     const getLifestyleUseCase = new GetLifestyleUseCase(lifestylerepo);
-    const uploadIdentityUseCase = new UploadIdentityUseCase(userrepo, cloudinaryService);
+    const uploadIdentityUseCase = new UploadIdentityUseCase(userrepo, cloudinaryService, notificationrepo);
 
     const createRoomUseCase = new CreateRoomUseCase(roomrepo, userrepo, cloudinaryService);
     const getRoomsUseCase = new GetRoomsUseCase(roomrepo);
 
     const createSeekerPreferenceUseCase = new CreateSeekerPreferenceUseCase(seekerrepo, userrepo);
     const getSeekerPreferencesUseCase = new GetSeekerPreferencesUseCase(seekerrepo);
+
+    const getNotificationsUseCase = new GetNotificationsUseCase(notificationrepo);
+    const createNotificationUseCase = new CreateNotificationUseCase(notificationrepo);
+    const markNotificationReadUseCase = new MarkNotificationReadUseCase(notificationrepo);
 
     const authcontroller = new AuthController(
         signUpUsecase,
@@ -122,18 +134,25 @@ async function startServer() {
         createSeekerPreferenceUseCase,
         getSeekerPreferencesUseCase
     );
+    const notificationController = new NotificationController(
+        getNotificationsUseCase,
+        createNotificationUseCase,
+        markNotificationReadUseCase
+    );
 
     const authRouter = createAuthRouter(authcontroller);
     const userRouter = createUserRouter(userController);
     const lifestyleRouter = createLifestyleRouter(lifestyleController);
     const roomRouter = createRoomRouter(roomController);
     const seekerRouter = createSeekerPreferenceRouter(seekerController);
+    const notificationRouter = createNotificationRouter(notificationController);
 
     app.use("/auth", authRouter);
     app.use("/users", userRouter);
     app.use("/lifestyles", lifestyleRouter);
     app.use("/rooms", roomRouter);
     app.use("/seeker-preferences", seekerRouter);
+    app.use("/notifications", notificationRouter);
 
     //--------------------------------------------------------------------
 

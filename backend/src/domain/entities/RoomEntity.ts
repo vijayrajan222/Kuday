@@ -10,6 +10,7 @@ export interface RoomEntity {
     amenities: string[];
     images: string[];
     description?: string | undefined;
+    isActive?: boolean | undefined;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
 }

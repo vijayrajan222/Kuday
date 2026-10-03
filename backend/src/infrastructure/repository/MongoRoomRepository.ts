@@ -14,6 +14,7 @@ interface RoomDoc {
     amenities?: string[] | null;
     images?: string[] | null;
     description?: string | null;
+    isActive?: boolean | null;
     createdAt?: Date | string | null;
     updatedAt?: Date | string | null;
 }
@@ -32,6 +33,7 @@ export class MongoRoomRepository implements IRoomRepository {
             amenities: doc.amenities ?? [],
             images: doc.images ?? [],
             description: doc.description ?? undefined,
+            isActive: doc.isActive ?? true,
             createdAt: doc.createdAt ? String(doc.createdAt) : undefined,
             updatedAt: doc.updatedAt ? String(doc.updatedAt) : undefined,
         };
@@ -49,6 +51,7 @@ export class MongoRoomRepository implements IRoomRepository {
             images: roomData.images,
             title: roomData.title || "",
             description: roomData.description || "",
+            isActive: roomData.isActive ?? true,
         };
         const doc = await RoomModel.create(payload);
         return this.mapToEntity(doc);
@@ -61,6 +64,10 @@ export class MongoRoomRepository implements IRoomRepository {
             { new: true }
         ).exec();
         return doc ? this.mapToEntity(doc) : null;
+    }
+
+    async updateStatusByHostId(hostId: string, isActive: boolean): Promise<void> {
+        await RoomModel.updateMany({ hostId }, { $set: { isActive } }).exec();
     }
 
     async findByHostId(hostId: string): Promise<RoomEntity[]> {

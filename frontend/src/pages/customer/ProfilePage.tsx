@@ -671,11 +671,22 @@ export default function ProfilePage() {
             <Card className="p-6 space-y-6 border border-slate-200 shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                    <Home className="h-5 w-5 text-emerald-600" />
-                    Host Room Listing Details
-                  </h2>
-                  <p className="text-xs text-slate-500">Property information visible to potential room seekers</p>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                      <Home className="h-5 w-5 text-emerald-600" />
+                      Host Room Listing Details
+                    </h2>
+                    {userProfile.role === 'host' ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                        🟢 Active Listing
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">
+                        🔴 Listing Inactive (Disabled)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">Property information visible to potential room seekers</p>
                 </div>
 
                 <Button size="sm" variant="outline" leftIcon={<Edit3 className="h-4 w-4" />} onClick={openEditRoom}>
@@ -949,11 +960,22 @@ export default function ProfilePage() {
             <Card className="p-6 space-y-5 border border-slate-200 shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                    <UserCheck className="h-5 w-5 text-emerald-600" />
-                    Home Search Preferences
-                  </h2>
-                  <p className="text-xs text-slate-500">Your desired location, room budget, and required amenities</p>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                      <UserCheck className="h-5 w-5 text-emerald-600" />
+                      Home Search Preferences
+                    </h2>
+                    {userProfile.role === 'seeker' ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                        🟢 Active Seeking Post
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">
+                        🔴 Post Inactive (Disabled)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">Your desired location, room budget, and required amenities</p>
                 </div>
 
                 <Button size="sm" variant="outline" leftIcon={<Edit3 className="h-4 w-4" />} onClick={openEditSeeker}>

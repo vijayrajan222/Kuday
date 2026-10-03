@@ -6,6 +6,7 @@ export interface UserEntity {
     hashedPassword?: string;
     isVerified: boolean;
     isBlocked: boolean;
+    isAdmin?: boolean;
     otp?: number;
 
     // Profile Fields
@@ -13,11 +14,13 @@ export interface UserEntity {
     gender?: string;
     occupation?: string;
     bio?: string;
-    role?: 'host' | 'seeker' | 'none';
+    role?: 'host' | 'seeker' | 'admin' | 'none';
     isOnboarded?: boolean;
 
     // Identity Verification Fields
     idCardUrl?: string;
     selfieUrl?: string;
     identityVerified?: boolean;
+    identityStatus?: 'pending' | 'verified' | 'rejected' | 'none';
+    rejectionReason?: string;
 }

@@ -29,4 +29,10 @@ export const API_ENDPOINTS = {
     SAVE_PREFERENCES: '/seeker-preferences',
     GET_ALL: '/seeker-preferences',
   },
+  NOTIFICATION: {
+    GET: (userId: string) => `/notifications/${userId}`,
+    CREATE: '/notifications',
+    MARK_READ: (id: string) => `/notifications/${id}/read`,
+    MARK_ALL_READ: (userId: string) => `/notifications/${userId}/read-all`,
+  },
 } as const;
