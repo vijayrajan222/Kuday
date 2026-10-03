@@ -78,8 +78,16 @@ function compressImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 
 }
 
 export default function OnboardingProfilePage() {
-  const { user, loginSuccess } = useAuth();
+  const { user, loginSuccess, logout } = useAuth();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (!user || !user.id) {
+      toast.error("User session expired or not found. Please log in again.");
+      logout();
+      navigate(ROUTES.LOGIN, { replace: true });
+    }
+  }, [user, logout, navigate]);
 
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [selectedRole, setSelectedRole] = useState<'host' | 'seeker' | null>(null);

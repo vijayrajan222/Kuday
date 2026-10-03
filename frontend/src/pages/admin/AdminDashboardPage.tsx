@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Users,
   Building2,
-  Sparkles,
+  CheckCircle2,
   XCircle,
   Clock,
   ShieldCheck,
@@ -13,6 +13,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  FileCheck2,
 } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import type { AdminStats, AdminUser } from '@/types/admin.types';
@@ -91,8 +92,10 @@ export default function AdminDashboardPage() {
     try {
       setSubmittingId(userId);
       await adminService.verifyIdentity(userId, 'approve');
-      toast.success('User identity verified with Kuday Room AI successfully!');
-      if (inspectUser?.id === userId) setInspectUser(null);
+      toast.success('User identity approved and verified successfully!');
+      if (inspectUser?.id === userId) {
+        setInspectUser(null);
+      }
       await loadData();
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -133,7 +136,11 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const pendingUsers = users.filter((u) => u.identityStatus === 'pending');
+  // Non-approved candidates listed in Pending Identity Validations
+  const pendingUsers = users.filter(
+    (u) => !u.isAdmin && !u.identityVerified && (u.identityStatus === 'pending' || u.selfieUrl || u.idCardUrl)
+  );
+
   const totalVerificationPages = Math.ceil(pendingUsers.length / verificationPageSize) || 1;
   const paginatedPendingUsers = pendingUsers.slice(
     (verificationCurrentPage - 1) * verificationPageSize,
@@ -161,14 +168,14 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <span>Kuday Room Match AI Admin</span>
-            <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-              Room Control Engine
+            <span>Kuday Admin Control Dashboard</span>
+            <span className="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-bold text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-indigo-400" />
+              Identity Verification
             </span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Review property owner (host) and room seeker identities (Selfie & Government ID card) to enable room matching
+            Verify uploaded selfie photos and government ID cards for property hosts and room seekers
           </p>
         </div>
 
@@ -181,7 +188,7 @@ export default function AdminDashboardPage() {
             className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white text-xs"
             leftIcon={<RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />}
           >
-            Refresh Queue
+            Refresh Data
           </Button>
         </div>
       </div>
@@ -201,7 +208,7 @@ export default function AdminDashboardPage() {
             <span className="text-3xl font-extrabold text-emerald-400 tracking-tight">
               {stats?.hostsCount || 0}
             </span>
-            <p className="text-[11px] text-slate-400 mt-1">Registered Room Owners</p>
+            <p className="text-[11px] text-slate-400 mt-1">Registered Hosts</p>
           </div>
         </Card>
 
@@ -218,34 +225,34 @@ export default function AdminDashboardPage() {
             <span className="text-3xl font-extrabold text-teal-300 tracking-tight">
               {stats?.seekersCount || 0}
             </span>
-            <p className="text-[11px] text-slate-400 mt-1">Looking for Room Matches</p>
+            <p className="text-[11px] text-slate-400 mt-1">Registered Room Seekers</p>
           </div>
         </Card>
 
-        {/* Pending Identity Reviews */}
+        {/* Pending Identity Validations */}
         <Card className="p-5 border-slate-800 bg-slate-950/80 text-slate-100 shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 h-24 w-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all" />
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Pending Identity Reviews</span>
+            <span className="text-xs font-semibold text-slate-400">Pending Validations</span>
             <div className="rounded-xl bg-amber-500/10 p-2 text-amber-400 border border-amber-500/20">
               <Clock className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-4">
             <span className="text-3xl font-extrabold text-amber-400 tracking-tight">
-              {stats?.pendingVerifications || 0}
+              {pendingUsers.length}
             </span>
-            <p className="text-[11px] text-slate-400 mt-1">Selfie & ID Document Queue</p>
+            <p className="text-[11px] text-slate-400 mt-1">Awaiting Admin Approval</p>
           </div>
         </Card>
 
-        {/* Room AI Verified Members Count */}
+        {/* Verified Users Count */}
         <Card className="p-5 border-slate-800 bg-slate-950/80 text-slate-100 shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 h-24 w-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all" />
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Room AI Verified</span>
+            <span className="text-xs font-semibold text-slate-400">Verified Users</span>
             <div className="rounded-xl bg-indigo-500/10 p-2 text-indigo-400 border border-indigo-500/20">
-              <Sparkles className="h-5 w-5" />
+              <CheckCircle2 className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-4">
@@ -253,25 +260,25 @@ export default function AdminDashboardPage() {
               {stats?.verifiedUsers || 0}
             </span>
             <p className="text-[11px] text-slate-400 mt-1">
-              Verified Members ({stats?.totalUsers || 0} Total)
+              Approved Identity Members
             </p>
           </div>
         </Card>
       </div>
 
-      {/* Essential Navigation Tabs Bar */}
+      {/* Navigation Tabs Bar */}
       <div className="flex border-b border-slate-800">
         <button
           type="button"
           onClick={() => setActiveTab('verifications')}
           className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
             activeTab === 'verifications'
-              ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
+              ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10'
               : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
           }`}
         >
           <Clock className="h-4 w-4" />
-          <span>Pending Identity Verifications ({pendingUsers.length})</span>
+          <span>Pending Identity Validations ({pendingUsers.length})</span>
         </button>
 
         <button
@@ -288,15 +295,15 @@ export default function AdminDashboardPage() {
         </button>
       </div>
 
-      {/* TAB 1: PENDING IDENTITY VERIFICATION QUEUE */}
+      {/* TAB 1: PENDING IDENTITY VALIDATIONS QUEUE */}
       {activeTab === 'verifications' && (
         <div className="space-y-6" id="verifications">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-emerald-400" />
-              <span>Room Verification Queue</span>
+              <FileCheck2 className="h-5 w-5 text-indigo-400" />
+              <span>Pending Identity Validations</span>
               <span className="text-xs font-medium text-slate-400">
-                ({pendingUsers.length} user document submissions pending review)
+                ({pendingUsers.length} non-approved candidate document submissions pending review)
               </span>
             </h2>
           </div>
@@ -331,7 +338,7 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
 
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-300 border border-emerald-500/30 capitalize">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 px-2.5 py-1 text-[11px] font-bold text-indigo-300 border border-indigo-500/30 capitalize">
                         {userItem.role === 'host' ? 'Property Host' : 'Room Seeker'}
                       </span>
                     </div>
@@ -416,9 +423,9 @@ export default function AdminDashboardPage() {
                           onClick={() => handleApprove(userItem.id)}
                           disabled={submittingId === userItem.id}
                           className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
-                          leftIcon={<Sparkles className="w-3.5 h-3.5 text-emerald-300" />}
+                          leftIcon={<CheckCircle2 className="w-3.5 h-3.5" />}
                         >
-                          Approve & Room AI Verify
+                          Approve Verification
                         </Button>
                       </div>
                     </div>
@@ -441,7 +448,7 @@ export default function AdminDashboardPage() {
                         pendingUsers.length
                       )}
                     </strong>{' '}
-                    of <strong className="text-slate-200">{pendingUsers.length}</strong> pending reviews
+                    of <strong className="text-slate-200">{pendingUsers.length}</strong> pending validations
                   </span>
 
                   <div className="flex items-center gap-2">
@@ -480,12 +487,12 @@ export default function AdminDashboardPage() {
             </>
           ) : (
             <Card className="p-12 text-center border-slate-800 bg-slate-950/60 text-slate-400 space-y-3 rounded-2xl">
-              <Sparkles className="h-10 w-10 text-emerald-400 mx-auto" />
+              <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto" />
               <p className="text-sm font-semibold text-slate-200">
-                All pending room identity verification reviews are complete!
+                All pending identity validations are complete!
               </p>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                No user selfie or ID documents are currently waiting for admin verification.
+                No non-approved user selfie or ID documents are currently waiting for admin review.
               </p>
             </Card>
           )}
@@ -521,7 +528,7 @@ export default function AdminDashboardPage() {
                   <tr>
                     <th className="px-6 py-3.5 font-bold">User</th>
                     <th className="px-6 py-3.5 font-bold">Role</th>
-                    <th className="px-6 py-3.5 font-bold">Room AI Verification</th>
+                    <th className="px-6 py-3.5 font-bold">Identity Status</th>
                     <th className="px-6 py-3.5 font-bold">Account Status</th>
                     <th className="px-6 py-3.5 font-bold text-right">Actions</th>
                   </tr>
@@ -557,11 +564,11 @@ export default function AdminDashboardPage() {
                         <td className="px-6 py-4">
                           {u.identityVerified ? (
                             <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold text-[11px]">
-                              <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> Room AI Verified
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Verified User
                             </span>
-                          ) : u.identityStatus === 'pending' ? (
+                          ) : u.identityStatus === 'pending' || u.selfieUrl || u.idCardUrl ? (
                             <span className="inline-flex items-center gap-1 text-amber-400 font-bold text-[11px]">
-                              <Clock className="w-3.5 h-3.5 animate-pulse" /> Pending Review
+                              <Clock className="w-3.5 h-3.5 animate-pulse" /> Pending Validation
                             </span>
                           ) : u.identityStatus === 'rejected' ? (
                             <span className="inline-flex items-center gap-1 text-red-400 font-bold text-[11px]" title={u.rejectionReason}>
@@ -750,25 +757,33 @@ export default function AdminDashboardPage() {
               </Button>
 
               <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setRejectUser(inspectUser);
-                    setInspectUser(null);
-                  }}
-                  className="border-red-900/50 text-red-400 hover:bg-red-950/40 text-xs"
-                >
-                  Reject Documents
-                </Button>
+                {inspectUser.identityVerified ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/20 px-3.5 py-2 text-xs font-bold text-emerald-300 border border-emerald-500/40">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Identity Verified User
+                  </span>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setRejectUser(inspectUser);
+                        setInspectUser(null);
+                      }}
+                      className="border-red-900/50 text-red-400 hover:bg-red-950/40 text-xs"
+                    >
+                      Reject Documents
+                    </Button>
 
-                <Button
-                  onClick={() => handleApprove(inspectUser.id)}
-                  disabled={submittingId === inspectUser.id}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
-                  leftIcon={<Sparkles className="w-3.5 h-3.5 text-emerald-300" />}
-                >
-                  Approve & Room AI Verify
-                </Button>
+                    <Button
+                      onClick={() => handleApprove(inspectUser.id)}
+                      disabled={submittingId === inspectUser.id}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                      leftIcon={<CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                    >
+                      Approve Verification
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

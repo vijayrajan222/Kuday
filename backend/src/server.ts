@@ -57,6 +57,7 @@ import { VerifyUserIdentityUseCase } from "./application/use-case/admin/VerifyUs
 import { ToggleBlockUserUseCase } from "./application/use-case/admin/ToggleBlockUserUseCase.js";
 import { AdminController } from "./presentation/controller/AdminController.js";
 import { createAdminRouter } from "./presentation/router/AdminRouter.js";
+import { globalErrorHandler } from "./presentation/middleware/ErrorHandlerMiddleware.js";
 
 async function startServer() {
     console.log("waiting for the connection...");
@@ -177,6 +178,9 @@ async function startServer() {
     app.use("/seeker-preferences", seekerRouter);
     app.use("/notifications", notificationRouter);
     app.use("/admin", adminRouter);
+
+    // Global Error Handler Middleware
+    app.use(globalErrorHandler);
 
     //--------------------------------------------------------------------
 

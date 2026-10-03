@@ -5,9 +5,33 @@ import type { AuthUser, PendingSignup } from '@/types';
 import { storage } from '@/utils/storage';
 import { onboardingService } from '@/services/onboardingService';
 
+const getInitialToken = () => {
+  const t = storage.getToken();
+  const u = storage.getUser();
+  if (t && (!u || !u.id)) {
+    storage.setToken(null);
+    storage.setUser(null);
+    storage.setPending(null);
+    return null;
+  }
+  return t;
+};
+
+const getInitialUser = () => {
+  const t = storage.getToken();
+  const u = storage.getUser();
+  if (t && (!u || !u.id)) {
+    storage.setToken(null);
+    storage.setUser(null);
+    storage.setPending(null);
+    return null;
+  }
+  return u;
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState(() => storage.getToken());
-  const [user, setUser] = useState(() => storage.getUser());
+  const [token, setToken] = useState(getInitialToken);
+  const [user, setUser] = useState(getInitialUser);
   const [pendingSignup, setPending] = useState(() => storage.getPending());
 
   const setPendingSignup = useCallback((pending: PendingSignup) => {
@@ -33,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPending(null);
   }, []);
 
-  // Sync user profile from backend whenever user session is present
+  // Sync user profile from backend whenever valid user session is present
   useEffect(() => {
     if (user?.id && token) {
       onboardingService
@@ -68,9 +92,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
         })
-        .catch(() => {});
+        .catch((err) => {
+          // If session is invalid or user doc doesn't exist, clear session asynchronously
+          const status = err?.response?.status;
+          if (status === 401 || status === 404 || status === 403) {
+            logout();
+          }
+        });
     }
-  }, [user, token]);
+  }, [user, token, logout]);
 
   // axios interceptor fires this event on 401 -> log out
   useEffect(() => {
@@ -78,9 +108,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, logout);
   }, [logout]);
 
+  const isAuthenticated = Boolean(token && user?.id);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, token, isAuthenticated: Boolean(token), pendingSignup, setPendingSignup, loginSuccess, logout }),
-    [user, token, pendingSignup, setPendingSignup, loginSuccess, logout],
+    () => ({ user, token, isAuthenticated, pendingSignup, setPendingSignup, loginSuccess, logout }),
+    [user, token, isAuthenticated, pendingSignup, setPendingSignup, loginSuccess, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
