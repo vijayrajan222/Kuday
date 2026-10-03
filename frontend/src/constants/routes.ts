@@ -9,4 +9,6 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   PROFILE: '/profile',
   ONBOARDING_PROFILE: '/onboarding/profile',
+  ADMIN_LOGIN: '/admin/login',
+  ADMIN_DASHBOARD: '/admin',
 } as const;

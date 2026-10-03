@@ -50,6 +50,14 @@ import { LifestyleController } from "./presentation/controller/LifestyleControll
 import { createUserRouter } from "./presentation/router/UserRouter.js";
 import { createLifestyleRouter } from "./presentation/router/LifestyleRouter.js";
 
+import { AdminLoginUseCase } from "./application/use-case/admin/AdminLoginUseCase.js";
+import { GetAdminStatsUseCase } from "./application/use-case/admin/GetAdminStatsUseCase.js";
+import { GetAllUsersUseCase } from "./application/use-case/admin/GetAllUsersUseCase.js";
+import { VerifyUserIdentityUseCase } from "./application/use-case/admin/VerifyUserIdentityUseCase.js";
+import { ToggleBlockUserUseCase } from "./application/use-case/admin/ToggleBlockUserUseCase.js";
+import { AdminController } from "./presentation/controller/AdminController.js";
+import { createAdminRouter } from "./presentation/router/AdminRouter.js";
+
 async function startServer() {
     console.log("waiting for the connection...");
     await connectMongo();
@@ -108,6 +116,13 @@ async function startServer() {
     const createNotificationUseCase = new CreateNotificationUseCase(notificationrepo);
     const markNotificationReadUseCase = new MarkNotificationReadUseCase(notificationrepo);
 
+    // Admin Use Cases
+    const adminLoginUseCase = new AdminLoginUseCase(userrepo, hasher, jwtService);
+    const getAdminStatsUseCase = new GetAdminStatsUseCase(userrepo, roomrepo);
+    const getAllUsersUseCase = new GetAllUsersUseCase(userrepo);
+    const verifyUserIdentityUseCase = new VerifyUserIdentityUseCase(userrepo, notificationrepo);
+    const toggleBlockUserUseCase = new ToggleBlockUserUseCase(userrepo);
+
     const authcontroller = new AuthController(
         signUpUsecase,
         verifyOtpUseCase,
@@ -139,6 +154,13 @@ async function startServer() {
         createNotificationUseCase,
         markNotificationReadUseCase
     );
+    const adminController = new AdminController(
+        adminLoginUseCase,
+        getAdminStatsUseCase,
+        getAllUsersUseCase,
+        verifyUserIdentityUseCase,
+        toggleBlockUserUseCase
+    );
 
     const authRouter = createAuthRouter(authcontroller);
     const userRouter = createUserRouter(userController);
@@ -146,6 +168,7 @@ async function startServer() {
     const roomRouter = createRoomRouter(roomController);
     const seekerRouter = createSeekerPreferenceRouter(seekerController);
     const notificationRouter = createNotificationRouter(notificationController);
+    const adminRouter = createAdminRouter(adminController);
 
     app.use("/auth", authRouter);
     app.use("/users", userRouter);
@@ -153,6 +176,7 @@ async function startServer() {
     app.use("/rooms", roomRouter);
     app.use("/seeker-preferences", seekerRouter);
     app.use("/notifications", notificationRouter);
+    app.use("/admin", adminRouter);
 
     //--------------------------------------------------------------------
 

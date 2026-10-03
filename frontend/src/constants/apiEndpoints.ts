@@ -35,4 +35,11 @@ export const API_ENDPOINTS = {
     MARK_READ: (id: string) => `/notifications/${id}/read`,
     MARK_ALL_READ: (userId: string) => `/notifications/${userId}/read-all`,
   },
+  ADMIN: {
+    LOGIN: '/admin/login',
+    STATS: '/admin/stats',
+    USERS: '/admin/users',
+    VERIFY_IDENTITY: (userId: string) => `/admin/users/${userId}/verify-identity`,
+    TOGGLE_BLOCK: (userId: string) => `/admin/users/${userId}/toggle-block`,
+  },
 } as const;

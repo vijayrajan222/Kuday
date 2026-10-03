@@ -29,5 +29,7 @@ export interface IUserRepository{
  */
 
     updateProfile(userId: string, profileData: Partial<UserEntity>): Promise<UserEntity | null>;
+    updateUser(userId: string, userData: Partial<UserEntity>): Promise<UserEntity | null>;
     findById(id: string): Promise<UserEntity | null>;
+    findAll(): Promise<UserEntity[]>;
 }

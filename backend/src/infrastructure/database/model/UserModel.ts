@@ -39,11 +39,14 @@ const userSchema = new mongoose.Schema({
     gender: { type: String, default: "" },
     occupation: { type: String, default: "" },
     bio: { type: String, default: "" },
-    role: { type: String, enum: ["host", "seeker", "none"], default: "none" },
+    role: { type: String, enum: ["host", "seeker", "admin", "none"], default: "none" },
+    isAdmin: { type: Boolean, default: false },
     isOnboarded: { type: Boolean, default: false },
     idCardUrl: { type: String, default: "" },
     selfieUrl: { type: String, default: "" },
     identityVerified: { type: Boolean, default: false },
+    identityStatus: { type: String, enum: ["pending", "verified", "rejected", "none"], default: "none" },
+    rejectionReason: { type: String, default: "" },
 }, { timestamps: true });
 
 export const userModel = mongoose.model("user", userSchema);

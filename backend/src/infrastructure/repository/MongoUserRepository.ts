@@ -10,6 +10,7 @@ interface UserDoc {
     hashedPassword?: string | null;
     isVerified?: boolean | null;
     isBlocked?: boolean | null;
+    isAdmin?: boolean | null;
     dob?: string | null;
     gender?: string | null;
     occupation?: string | null;
@@ -19,6 +20,8 @@ interface UserDoc {
     idCardUrl?: string | null;
     selfieUrl?: string | null;
     identityVerified?: boolean | null;
+    identityStatus?: string | null;
+    rejectionReason?: string | null;
 }
 
 export class MongoUserRepository implements IUserRepository {
@@ -34,15 +37,18 @@ export class MongoUserRepository implements IUserRepository {
             hashedPassword: doc.hashedPassword ?? "",
             isVerified: Boolean(doc.isVerified),
             isBlocked: Boolean(doc.isBlocked),
+            isAdmin: Boolean(doc.isAdmin),
             dob: doc.dob ?? "",
             gender: doc.gender ?? "",
             occupation: doc.occupation ?? "",
             bio: doc.bio ?? "",
-            role: (doc.role as 'host' | 'seeker' | 'none') ?? 'none',
+            role: (doc.role as 'host' | 'seeker' | 'admin' | 'none') ?? 'none',
             isOnboarded: Boolean(doc.isOnboarded),
             idCardUrl: doc.idCardUrl ?? "",
             selfieUrl: doc.selfieUrl ?? "",
             identityVerified: Boolean(doc.identityVerified),
+            identityStatus: (doc.identityStatus as 'pending' | 'verified' | 'rejected' | 'none') ?? 'none',
+            rejectionReason: doc.rejectionReason ?? "",
         };
     }
 
@@ -63,6 +69,11 @@ export class MongoUserRepository implements IUserRepository {
         return this.mapUserDoc(doc);
     }
 
+    async findAll(): Promise<UserEntity[]> {
+        const docs = await this.user.find().exec();
+        return docs.map((doc) => this.mapUserDoc(doc));
+    }
+
     async updateVerificationStatus(email: string, isVerified: boolean): Promise<void> {
         await this.user.updateOne({ email }, { isVerified });
     }
@@ -75,5 +86,9 @@ export class MongoUserRepository implements IUserRepository {
         const doc = await this.user.findByIdAndUpdate(userId, { $set: profileData }, { new: true });
         if (!doc) return null;
         return this.mapUserDoc(doc);
+    }
+
+    async updateUser(userId: string, userData: Partial<UserEntity>): Promise<UserEntity | null> {
+        return this.updateProfile(userId, userData);
     }
 }

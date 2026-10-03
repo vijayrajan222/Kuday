@@ -5,8 +5,10 @@ import {
   GuestRoute,
   OnboardingRouteGuard,
 } from '@/components/auth/AuthProtectedRoute';
+import { AdminProtectedRoute, AdminGuestRoute } from '@/components/auth/AdminProtectedRoute';
 import { PageLoader } from '@/components/common/PageLoader';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AdminLayout } from '@/components/layout/AdminLayout';
 import { ROUTES } from '@/constants/routes';
 
 // Code-splitting: each page is downloaded only when visited
@@ -21,6 +23,10 @@ const ResetPassword = lazy(() => import('@/pages/customer/ResetPassword'));
 const CustomerDashboard = lazy(() => import('@/pages/customer/CustomerDashboard'));
 const OnboardingProfilePage = lazy(() => import('@/pages/onboarding/OnboardingProfilePage'));
 const ProfilePage = lazy(() => import('@/pages/customer/ProfilePage'));
+
+// Dedicated Admin Portal Lazy Imports
+const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
+const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
 
 export function AppRoutes() {
   return (
@@ -38,16 +44,28 @@ export function AppRoutes() {
           <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
         </Route>
 
+        {/* Admin Guest Route (Admin Login Page Only) */}
+        <Route element={<AdminGuestRoute />}>
+          <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
+        </Route>
+
         {/* Onboarding Guard: ONBOARDING CAN BE COMPLETED ONLY ONCE */}
         <Route element={<OnboardingRouteGuard />}>
           <Route path={ROUTES.ONBOARDING_PROFILE} element={<OnboardingProfilePage />} />
         </Route>
 
-        {/* Authenticated Protected Routes (Dashboard, Profile) */}
+        {/* Customer Authenticated Protected Routes (Dashboard, Profile) */}
         <Route element={<AuthProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.DASHBOARD} element={<CustomerDashboard />} />
             <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+          </Route>
+        </Route>
+
+        {/* Dedicated Admin Portal Protected Routes */}
+        <Route element={<AdminProtectedRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
           </Route>
         </Route>
 
