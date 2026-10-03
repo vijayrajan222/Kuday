@@ -7,4 +7,5 @@ export const ROUTES = {
   VERIFY_RESET_OTP: '/verify-reset-otp',
   RESET_PASSWORD: '/reset-password',
   DASHBOARD: '/dashboard',
+  ONBOARDING_PROFILE: '/onboarding/profile',
 } as const;

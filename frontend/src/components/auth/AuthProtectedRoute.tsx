@@ -10,8 +10,15 @@ export function AuthProtectedRoute() {
   return isAuthenticated ? <Outlet /> : <Navigate to={ROUTES.SIGN_UP} state={{ from: location }} replace />;
 }
 
-/** Signed-in users are bounced away from signup / OTP pages. */
+/** Signed-in users are routed to onboarding or dashboard. */
 export function GuestRoute() {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to={ROUTES.DASHBOARD} replace /> : <Outlet />;
+  const { isAuthenticated, user } = useAuth();
+  if (isAuthenticated) {
+    return user?.isOnboarded ? (
+      <Navigate to={ROUTES.DASHBOARD} replace />
+    ) : (
+      <Navigate to={ROUTES.ONBOARDING_PROFILE} replace />
+    );
+  }
+  return <Outlet />;
 }

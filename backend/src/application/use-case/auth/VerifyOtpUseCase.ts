@@ -50,10 +50,10 @@ export class VerifyOptUseCase implements IVerifyOtpUseCase {
         const token = this._jwtService.generateToken({ userId: user.id, email: user.email });
 
         return {
+            id: user.id,
             message: "Email verification Successfully",
             isVerified: true,
             token: token,
-
         }
     }
 

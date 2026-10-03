@@ -6,22 +6,7 @@ export class MongoUserRepository implements IUserRepository {
     private readonly user = userModel;
     constructor() {}
 
-    async save(newUser: Omit<UserEntity, "id">): Promise<UserEntity> {
-        const userDocument = await this.user.create(newUser);
-        return {
-            id: userDocument._id.toString(),
-            email: userDocument.email,
-            firstName: userDocument.firstName,
-            lastName: userDocument.lastName ?? "",
-            hashedPassword: userDocument.hashedPassword ?? "",
-            isVerified: userDocument.isVerified,
-            isBlocked: userDocument.isBlocked,
-        };
-    }
-
-    async findByEmail(email: string): Promise<UserEntity | null> {
-        let doc = await this.user.findOne({ email });
-        if (!doc) return null;
+    private mapUserDoc(doc: any): UserEntity {
         return {
             id: doc._id.toString(),
             email: doc.email,
@@ -30,7 +15,33 @@ export class MongoUserRepository implements IUserRepository {
             hashedPassword: doc.hashedPassword ?? "",
             isVerified: doc.isVerified,
             isBlocked: doc.isBlocked,
+            dob: doc.dob ?? "",
+            gender: doc.gender ?? "",
+            occupation: doc.occupation ?? "",
+            bio: doc.bio ?? "",
+            role: doc.role as 'host' | 'seeker' | 'none',
+            isOnboarded: doc.isOnboarded ?? false,
+            idCardUrl: doc.idCardUrl ?? "",
+            selfieUrl: doc.selfieUrl ?? "",
+            identityVerified: doc.identityVerified ?? false,
         };
+    }
+
+    async save(newUser: Omit<UserEntity, "id">): Promise<UserEntity> {
+        const userDocument = await this.user.create(newUser);
+        return this.mapUserDoc(userDocument);
+    }
+
+    async findByEmail(email: string): Promise<UserEntity | null> {
+        const doc = await this.user.findOne({ email });
+        if (!doc) return null;
+        return this.mapUserDoc(doc);
+    }
+
+    async findById(id: string): Promise<UserEntity | null> {
+        const doc = await this.user.findById(id);
+        if (!doc) return null;
+        return this.mapUserDoc(doc);
     }
 
     async updateVerificationStatus(email: string, isVerified: boolean): Promise<void> {
@@ -39,5 +50,11 @@ export class MongoUserRepository implements IUserRepository {
 
     async updatenewPassword(email: string, hashedPassword: string): Promise<void> {
         await this.user.updateOne({ email }, { hashedPassword });
+    }
+
+    async updateProfile(userId: string, profileData: Partial<UserEntity>): Promise<UserEntity | null> {
+        const doc = await this.user.findByIdAndUpdate(userId, { $set: profileData }, { new: true });
+        if (!doc) return null;
+        return this.mapUserDoc(doc);
     }
 }

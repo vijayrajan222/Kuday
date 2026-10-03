@@ -15,6 +15,7 @@ const ForgotPassword = lazy(() => import('@/pages/customer/ForgotPassword'));
 const VerifyResetOtp = lazy(() => import('@/pages/customer/VerifyResetOtp'));
 const ResetPassword = lazy(() => import('@/pages/customer/ResetPassword'));
 const CustomerDashboard = lazy(() => import('@/pages/customer/CustomerDashboard'));
+const OnboardingProfilePage = lazy(() => import('@/pages/onboarding/OnboardingProfilePage'));
 
 export function AppRoutes() {
   return (
@@ -32,6 +33,7 @@ export function AppRoutes() {
         </Route>
 
         <Route element={<AuthProtectedRoute />}>
+          <Route path={ROUTES.ONBOARDING_PROFILE} element={<OnboardingProfilePage />} />
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.DASHBOARD} element={<CustomerDashboard />} />
           </Route>

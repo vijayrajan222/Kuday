@@ -23,5 +23,11 @@ export interface IUserRepository{
     updateVerificationStatus(email:string,isVerified:boolean) : Promise<void>
 
     updatenewPassword(email:string,password:string):Promise<void>
+/**
+ * from here we are going to serve the data for the profile updation the authentication is compleated 
+ * now we are going to wirte the methrods to manipulate the profile details 
+ */
 
+    updateProfile(userId: string, profileData: Partial<UserEntity>): Promise<UserEntity | null>;
+    findById(id: string): Promise<UserEntity | null>;
 }

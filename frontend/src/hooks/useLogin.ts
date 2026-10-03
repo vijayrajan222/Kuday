@@ -20,6 +20,7 @@ export function useLogin() {
         const result = await authService.login(values);
         if (result.token) {
           loginSuccess(result.token, {
+            id: result.id,
             email: result.email ?? values.email,
             firstName: result.firstName ?? 'User',
           });

@@ -10,8 +10,9 @@ export interface VerifyOtpRequestDto {
  * Result DTO defines the data returned by the use case after verification finishes.
  */
 export interface VerifyOtpResultDto {
+    id?: string;
     message: string;
     isVerified: boolean;
-    token?:string; //JWT access token returned upon successfull verification.
+    token?: string; //JWT access token returned upon successfull verification.
 }
 

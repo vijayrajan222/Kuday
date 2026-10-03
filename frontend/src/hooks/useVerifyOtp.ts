@@ -25,9 +25,9 @@ export function useVerifyOtp() {
       try {
         const result = await authService.verifyOtp({ email: pending.email, otp });
         if (!result.token) return MESSAGES.OTP_NO_TOKEN;
-        loginSuccess(result.token, { email: pending.email, firstName: pending.firstName });
+        loginSuccess(result.token, { id: result.id, email: pending.email, firstName: pending.firstName });
         toast.success(MESSAGES.OTP_SUCCESS);
-        navigate(ROUTES.DASHBOARD, { replace: true });
+        navigate(ROUTES.ONBOARDING_PROFILE, { replace: true });
         return null;
       } catch (error) {
         return getErrorMessage(error);

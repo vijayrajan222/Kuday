@@ -20,11 +20,12 @@ export function useGoogleAuth() {
         const result = await authService.googleAuth(payload);
         if (result.token) {
           loginSuccess(result.token, {
+            id: result.id,
             email: result.email ?? payload.email,
             firstName: result.firstName ?? payload.firstName ?? 'User',
           });
           toast.success(result.message || MESSAGES.GOOGLE_AUTH_SUCCESS);
-          navigate(ROUTES.DASHBOARD, { replace: true });
+          navigate(ROUTES.ONBOARDING_PROFILE, { replace: true });
         } else {
           toast.error(MESSAGES.OTP_NO_TOKEN);
         }

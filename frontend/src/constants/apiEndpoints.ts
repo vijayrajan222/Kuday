@@ -11,4 +11,12 @@ export const API_ENDPOINTS = {
     LOGOUT: '/auth/logout',
     RESEND_OTP: '/auth/resend-otp',
   },
+  USER: {
+    UPDATE_PROFILE: (userId: string) => `/users/${userId}/profile`,
+    UPLOAD_IDENTITY: (userId: string) => `/users/${userId}/identity`,
+    GET_USER: (userId: string) => `/users/${userId}`,
+  },
+  LIFESTYLE: {
+    SAVE: '/lifestyles',
+  },
 } as const;

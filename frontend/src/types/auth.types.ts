@@ -22,6 +22,7 @@ export interface VerifyOtpRequest {
 }
 
 export interface VerifyOtpResult {
+  id?: string;
   message?: string;
   isVerified?: boolean;
   token?: string;
@@ -121,8 +122,11 @@ export interface ResetPasswordResponse extends ResetPasswordResult {
 }
 
 export interface AuthUser {
+  id?: string;
   email: string;
   firstName: string;
+  isOnboarded?: boolean;
+  role?: 'host' | 'seeker' | 'none';
 }
 
 export interface PendingSignup {

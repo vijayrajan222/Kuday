@@ -69,8 +69,16 @@ export class SignUpUserUseCase implements ISignUpUserUsercase {
             expiresAt: expiresAt,
         });
 
-        // 7. Dispatch real email via Nodemailer
-        await this._mailService.sendOtpEmail(cleanedEmail, otpCode);
+        // 7. Dispatch real email via Nodemailer & log in terminal for quick dev testing
+        console.log(`\n========================================`);
+        console.log(`🔑 [OTP DEBUG] Verification OTP Code for ${cleanedEmail}: ${otpCode}`);
+        console.log(`========================================\n`);
+
+        try {
+            await this._mailService.sendOtpEmail(cleanedEmail, otpCode);
+        } catch (mailError: any) {
+            console.error("Failed to send OTP email via Nodemailer:", mailError.message || mailError);
+        }
 
         // 8. Return result DTO
         return {
