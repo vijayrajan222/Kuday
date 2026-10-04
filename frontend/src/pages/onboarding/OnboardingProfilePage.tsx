@@ -216,6 +216,11 @@ export default function OnboardingProfilePage() {
       setError("User session not found. Please log in again.");
       return;
     }
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (profile.dob && profile.dob > todayStr) {
+      setError("Date of birth cannot be in the future.");
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -414,6 +419,7 @@ export default function OnboardingProfilePage() {
                 <Input
                   id="dob"
                   type="date"
+                  max={new Date().toISOString().split('T')[0]}
                   required
                   value={profile.dob}
                   onChange={(e) => setProfile({ ...profile, dob: e.target.value })}

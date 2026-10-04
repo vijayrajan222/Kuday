@@ -253,6 +253,11 @@ export default function ProfilePage() {
   const handleProfileUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (editProfileForm.dob && editProfileForm.dob > todayStr) {
+      toast.error("Date of birth cannot be in the future.");
+      return;
+    }
     try {
       setSubmitting(true);
       // Update User Profile fields
@@ -1111,6 +1116,7 @@ export default function ProfilePage() {
                   <Input
                     id="dob"
                     type="date"
+                    max={new Date().toISOString().split('T')[0]}
                     required
                     value={editProfileForm.dob}
                     onChange={(e) => setEditProfileForm({ ...editProfileForm, dob: e.target.value })}

@@ -325,7 +325,9 @@ export default function CustomerDashboard() {
                             onClick={() => setSelectedRoom(room)}
                           >
                             {room.images && room.images.length > 0 ? (
-                              <img src={room.images[0]} alt={room.roomType} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                              <img src={room.images[0]} alt={room.title || room.roomType} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                            ) : room.host?.selfieUrl ? (
+                              <img src={room.host.selfieUrl} alt={hostName} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center text-slate-400">
                                 <Home className="h-10 w-10" />
@@ -368,11 +370,15 @@ export default function CustomerDashboard() {
                               <p className="text-xs text-slate-600 line-clamp-2">{room.description}</p>
                             )}
 
-                            {/* Host Summary Snippet */}
+                            {/* Host Summary Snippet with Photo */}
                             <div className="rounded-xl bg-slate-50 p-2.5 text-xs border border-slate-100 flex items-center justify-between">
                               <span className="text-slate-500 font-medium">Host:</span>
-                              <span className="font-bold text-slate-800 flex items-center gap-1">
-                                <User className="w-3.5 h-3.5 text-emerald-600" />
+                              <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                                {room.host?.selfieUrl ? (
+                                  <img src={room.host.selfieUrl} alt={hostName} className="w-4 h-4 rounded-full object-cover border border-emerald-500" />
+                                ) : (
+                                  <User className="w-3.5 h-3.5 text-emerald-600" />
+                                )}
                                 {hostName}
                               </span>
                             </div>
@@ -432,65 +438,122 @@ export default function CustomerDashboard() {
                     const seekerName = seeker.seeker ? `${seeker.seeker.firstName} ${seeker.seeker.lastName || ''}`.trim() : 'Room Seeker';
 
                     return (
-                      <Card key={seeker.id} className="p-4 space-y-3 border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+                      <Card key={seeker.id} className="overflow-hidden border border-slate-200 p-0 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
                         <div>
-                          <div className="flex items-start justify-between cursor-pointer" onClick={() => setSelectedSeeker(seeker)}>
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-emerald-800">
-                                <UserCheck className="h-5 w-5" />
+                          {/* Seeker Main Image Header */}
+                          <div
+                            className="relative h-44 bg-slate-100 cursor-pointer group overflow-hidden"
+                            onClick={() => setSelectedSeeker(seeker)}
+                          >
+                            {seeker.seeker?.selfieUrl ? (
+                              <img
+                                src={seeker.seeker.selfieUrl}
+                                alt={seekerName}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-emerald-600 to-teal-800 text-white p-4">
+                                <div className="h-16 w-16 rounded-full bg-white/20 text-white font-extrabold text-2xl flex items-center justify-center mb-1">
+                                  {seekerName ? seekerName[0].toUpperCase() : 'S'}
+                                </div>
+                                <span className="text-xs font-semibold">{seekerName}</span>
                               </div>
+                            )}
+
+                            <span className="absolute top-3 left-3 rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-amber-300" />
+                              {matchPercent}% Match
+                            </span>
+
+                            {seeker.seeker?.identityVerified && (
+                              <span className="absolute top-3 right-3 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 text-[10px] font-bold shadow flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified Seeker
+                              </span>
+                            )}
+
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                              <Eye className="w-4 h-4" /> View Details & Seeker Profile
+                            </div>
+                          </div>
+
+                          {/* Seeker Card Details */}
+                          <div className="p-4 space-y-3">
+                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSelectedSeeker(seeker)}>
+                              {seeker.seeker?.selfieUrl ? (
+                                <img
+                                  src={seeker.seeker.selfieUrl}
+                                  alt={seekerName}
+                                  className="h-10 w-10 rounded-full object-cover border-2 border-emerald-500 shrink-0 shadow-sm"
+                                />
+                              ) : (
+                                <div className="h-10 w-10 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0">
+                                  {seekerName ? seekerName[0].toUpperCase() : 'S'}
+                                </div>
+                              )}
                               <div>
-                                <h3 className="font-bold text-slate-900 text-sm">{seekerName}</h3>
-                                <p className="flex items-center gap-1 text-xs text-slate-500">
-                                  <MapPin className="h-3 w-3 text-emerald-600" />
+                                <h3 className="font-bold text-slate-900 text-base">{seekerName}</h3>
+                                <p className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
+                                  <MapPin className="h-3.5 w-3.5 text-emerald-600" />
                                   {seeker.preferredLocation}
                                 </p>
                               </div>
                             </div>
-                            <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white flex items-center gap-1">
-                              <Sparkles className="w-3 h-3 text-amber-300" />
-                              {matchPercent}% Match
-                            </span>
-                          </div>
 
-                          <div className="rounded-xl bg-slate-50 p-2.5 text-xs space-y-1 mt-3 cursor-pointer" onClick={() => setSelectedSeeker(seeker)}>
-                            <p className="flex justify-between">
-                              <span className="text-slate-500">Max Budget:</span>
-                              <span className="font-bold text-slate-800">₹{seeker.maxBudget}/mo</span>
-                            </p>
-                            <p className="flex justify-between">
-                              <span className="text-slate-500">Room Pref:</span>
-                              <span className="font-semibold text-slate-800 capitalize">
-                                {seeker.roomTypePreference.replace('_', ' ')}
-                              </span>
-                            </p>
+                            <div className="rounded-xl bg-slate-50 p-2.5 text-xs space-y-1.5 border border-slate-100">
+                              <div className="flex justify-between">
+                                <span className="text-slate-500">Max Budget:</span>
+                                <span className="font-extrabold text-emerald-700">₹{seeker.maxBudget}/mo</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-500">Room Pref:</span>
+                                <span className="font-semibold text-slate-800 capitalize">
+                                  {seeker.roomTypePreference.replace('_', ' ')}
+                                </span>
+                              </div>
+                              {seeker.seeker?.occupation && (
+                                <div className="flex justify-between">
+                                  <span className="text-slate-500">Occupation:</span>
+                                  <span className="font-semibold text-slate-800 capitalize">
+                                    {seeker.seeker.occupation.replace('_', ' ')}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {seeker.seeker?.bio && (
+                              <p className="text-xs text-slate-600 italic line-clamp-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                &quot;{seeker.seeker.bio}&quot;
+                              </p>
+                            )}
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs border-slate-300 text-slate-700 hover:bg-slate-100"
-                            leftIcon={<Eye className="h-3.5 w-3.5" />}
-                            onClick={() => setSelectedSeeker(seeker)}
-                          >
-                            Details
-                          </Button>
+                        <div className="p-4 pt-0">
+                          <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs border-slate-300 text-slate-700 hover:bg-slate-100"
+                              leftIcon={<Eye className="h-3.5 w-3.5" />}
+                              onClick={() => setSelectedSeeker(seeker)}
+                            >
+                              Details
+                            </Button>
 
-                          <Button
-                            size="sm"
-                            disabled={isInterested || submittingInterest === seeker.id}
-                            className={`text-xs font-semibold ${
-                              isInterested
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                            }`}
-                            leftIcon={isInterested ? <Check className="h-3.5 w-3.5" /> : <Heart className="h-3.5 w-3.5" />}
-                            onClick={() => handleSendInterest(seeker.id, seekerName, seeker.userId)}
-                          >
-                            {isInterested ? 'Interest Sent' : 'Send Interest'}
-                          </Button>
+                            <Button
+                              size="sm"
+                              disabled={isInterested || submittingInterest === seeker.id}
+                              className={`text-xs font-semibold ${
+                                isInterested
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                              }`}
+                              leftIcon={isInterested ? <Check className="h-3.5 w-3.5" /> : <Heart className="h-3.5 w-3.5" />}
+                              onClick={() => handleSendInterest(seeker.id, seekerName, seeker.userId)}
+                            >
+                              {isInterested ? 'Interest Sent' : 'Send Interest'}
+                            </Button>
+                          </div>
                         </div>
                       </Card>
                     );
@@ -738,9 +801,17 @@ export default function CustomerDashboard() {
 
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-                  <UserCheck className="w-5 h-5" />
-                </div>
+                {selectedSeeker.seeker?.selfieUrl ? (
+                  <img
+                    src={selectedSeeker.seeker.selfieUrl}
+                    alt="Seeker Profile"
+                    className="h-12 w-12 rounded-full object-cover border-2 border-emerald-500 shadow-sm"
+                  />
+                ) : (
+                  <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                    <UserCheck className="w-6 h-6" />
+                  </div>
+                )}
                 <div>
                   <h3 className="text-xl font-bold text-slate-900">
                     {selectedSeeker.seeker ? `${selectedSeeker.seeker.firstName} ${selectedSeeker.seeker.lastName || ''}`.trim() : 'Room Seeker Profile'}
@@ -756,6 +827,22 @@ export default function CustomerDashboard() {
                 {selectedSeeker.matchPercentage ?? 85}% Match
               </span>
             </div>
+
+            {/* Seeker Profile Cover Image Header */}
+            {selectedSeeker.seeker?.selfieUrl && (
+              <div className="relative h-52 w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
+                <img
+                  src={selectedSeeker.seeker.selfieUrl}
+                  alt="Seeker Profile Photo"
+                  className="h-full w-full object-cover"
+                />
+                {selectedSeeker.seeker.identityVerified && (
+                  <span className="absolute top-3 right-3 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 text-xs font-bold shadow flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Admin Verified Seeker
+                  </span>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-4 rounded-2xl border border-slate-100">
               <div>

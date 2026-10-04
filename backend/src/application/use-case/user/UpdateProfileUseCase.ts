@@ -19,7 +19,17 @@ export class UpdateProfileUseCase implements IUpdateProfileUseCase {
         const profileUpdates: Partial<UserEntity> = {};
         if (dto.firstName !== undefined) profileUpdates.firstName = dto.firstName;
         if (dto.lastName !== undefined) profileUpdates.lastName = dto.lastName;
-        if (dto.dob !== undefined) profileUpdates.dob = dto.dob;
+        if (dto.dob !== undefined) {
+            if (dto.dob) {
+                const dobDate = new Date(dto.dob);
+                const today = new Date();
+                today.setHours(23, 59, 59, 999);
+                if (!isNaN(dobDate.getTime()) && dobDate > today) {
+                    throw new Error("Date of birth cannot be in the future");
+                }
+            }
+            profileUpdates.dob = dto.dob;
+        }
         if (dto.gender !== undefined) profileUpdates.gender = dto.gender;
         if (dto.occupation !== undefined) profileUpdates.occupation = dto.occupation;
         if (dto.bio !== undefined) profileUpdates.bio = dto.bio;
