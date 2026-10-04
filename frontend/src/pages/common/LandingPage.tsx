@@ -13,7 +13,7 @@ const FEATURES = [
 
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
-  const ctaTo = isAuthenticated ? ROUTES.DASHBOARD : ROUTES.SIGN_UP;
+  const ctaTo = isAuthenticated ? ROUTES.DASHBOARD : ROUTES.LOGIN;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-white">

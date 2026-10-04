@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import {
   AuthProtectedRoute,
   GuestRoute,
@@ -12,7 +13,6 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { ROUTES } from '@/constants/routes';
 
 // Code-splitting: each page is downloaded only when visited
-const LandingPage = lazy(() => import('@/pages/common/LandingPage'));
 const NotFound = lazy(() => import('@/pages/common/NotFound'));
 const CustomerSignup = lazy(() => import('@/pages/customer/CustomerSignup'));
 const Login = lazy(() => import('@/pages/customer/Login'));
@@ -28,11 +28,23 @@ const ProfilePage = lazy(() => import('@/pages/customer/ProfilePage'));
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
 
+function RootRedirect() {
+  const { isAuthenticated, user } = useAuth();
+  if (isAuthenticated) {
+    return user?.isOnboarded ? (
+      <Navigate to={ROUTES.DASHBOARD} replace />
+    ) : (
+      <Navigate to={ROUTES.ONBOARDING_PROFILE} replace />
+    );
+  }
+  return <Navigate to={ROUTES.LOGIN} replace />;
+}
+
 export function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        <Route path={ROUTES.HOME} element={<LandingPage />} />
+        <Route path={ROUTES.HOME} element={<RootRedirect />} />
 
         {/* Guest Routes (Login, Signup, OTP, Password Reset) */}
         <Route element={<GuestRoute />}>

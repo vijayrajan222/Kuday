@@ -11,7 +11,7 @@ export function AuthProtectedRoute() {
   const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to={ROUTES.SIGN_UP} state={{ from: location }} replace />;
+    return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
   }
 
   // If user is authenticated but not onboarded, enforce onboarding completion
@@ -33,7 +33,7 @@ export function OnboardingRouteGuard() {
   const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to={ROUTES.SIGN_UP} state={{ from: location }} replace />;
+    return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
   }
 
   // Once onboarding is completed, user cannot visit onboarding again

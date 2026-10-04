@@ -18,7 +18,7 @@ export function DashboardLayout() {
   const handleLogout = useCallback(() => {
     logout();
     toast.info(MESSAGES.LOGOUT_SUCCESS);
-    navigate(ROUTES.HOME, { replace: true });
+    navigate(ROUTES.LOGIN, { replace: true });
   }, [logout, navigate]);
 
   return (
