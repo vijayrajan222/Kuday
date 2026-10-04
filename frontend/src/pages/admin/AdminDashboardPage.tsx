@@ -136,9 +136,15 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Non-approved candidates listed in Pending Identity Validations
+  // Pending Identity Validations: ONLY users who submitted document images and are awaiting admin approval
   const pendingUsers = users.filter(
-    (u) => !u.isAdmin && !u.identityVerified && (u.identityStatus === 'pending' || u.selfieUrl || u.idCardUrl)
+    (u) =>
+      !u.isAdmin &&
+      u.role !== 'admin' &&
+      !u.identityVerified &&
+      (Boolean(u.selfieUrl && u.selfieUrl.trim() !== '') ||
+        Boolean(u.idCardUrl && u.idCardUrl.trim() !== '') ||
+        u.identityStatus === 'pending')
   );
 
   const totalVerificationPages = Math.ceil(pendingUsers.length / verificationPageSize) || 1;
@@ -303,7 +309,7 @@ export default function AdminDashboardPage() {
               <FileCheck2 className="h-5 w-5 text-indigo-400" />
               <span>Pending Identity Validations</span>
               <span className="text-xs font-medium text-slate-400">
-                ({pendingUsers.length} non-approved candidate document submissions pending review)
+                ({pendingUsers.length} user document submissions pending review)
               </span>
             </h2>
           </div>
@@ -423,7 +429,7 @@ export default function AdminDashboardPage() {
                           onClick={() => handleApprove(userItem.id)}
                           disabled={submittingId === userItem.id}
                           className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
-                          leftIcon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                          leftIcon={<CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                         >
                           Approve Verification
                         </Button>
@@ -492,7 +498,7 @@ export default function AdminDashboardPage() {
                 All pending identity validations are complete!
               </p>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                No non-approved user selfie or ID documents are currently waiting for admin review.
+                No user selfie or ID documents are currently waiting for admin review.
               </p>
             </Card>
           )}
@@ -593,7 +599,20 @@ export default function AdminDashboardPage() {
 
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {(u.selfieUrl || u.idCardUrl) && (
+                            {/* Inline Approve Button for Unverified Users with submitted documents */}
+                            {!u.isAdmin && !u.identityVerified && (Boolean(u.selfieUrl) || Boolean(u.idCardUrl)) && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleApprove(u.id)}
+                                disabled={submittingId === u.id}
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] h-7 px-2.5"
+                                leftIcon={<CheckCircle2 className="w-3 h-3" />}
+                              >
+                                Approve
+                              </Button>
+                            )}
+
+                            {!u.isAdmin && (Boolean(u.selfieUrl) || Boolean(u.idCardUrl)) && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -780,7 +799,7 @@ export default function AdminDashboardPage() {
                       className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
                       leftIcon={<CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                     >
-                      Approve Verification
+                      Approve & Verify Identity
                     </Button>
                   </>
                 )}

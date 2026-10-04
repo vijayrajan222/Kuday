@@ -3,7 +3,6 @@ import type { IUploadIdentityUseCase } from "../../interfaces/use-case/user/IUpl
 import type { UploadIdentityDto } from "../../dto/user/UploadIdentityDto.js";
 import type { UserEntity } from "../../../domain/entities/UserEntity.js";
 import type { CloudinaryService } from "../../../infrastructure/services/CloudinaryService.js";
-
 import type { INotificationRepository } from "../../interfaces/repository/INotificationRepository.js";
 
 export class UploadIdentityUseCase implements IUploadIdentityUseCase {
@@ -22,22 +21,23 @@ export class UploadIdentityUseCase implements IUploadIdentityUseCase {
         const idCardUrl = await this.cloudinaryService.uploadImage(dto.idCardBase64, "kuday_identity_cards");
         const selfieUrl = await this.cloudinaryService.uploadImage(dto.selfieBase64, "kuday_selfies");
 
+        // Set identityVerified to false and identityStatus to pending so Admin must review & approve
         const updatedUser = await this.userRepository.updateProfile(dto.userId, {
             idCardUrl,
             selfieUrl,
-            identityVerified: true,
-            isOnboarded: true,
+            identityVerified: false,
+            identityStatus: "pending",
         });
 
         if (!updatedUser) {
-            throw new Error("Failed to save identity verification");
+            throw new Error("Failed to save identity verification documents");
         }
 
         if (this.notificationRepository) {
             await this.notificationRepository.create({
                 userId: dto.userId,
-                title: "Identity Verified ✓",
-                message: "Congratulations! Your identity verification documents (ID Card & Selfie) have been verified by Admin.",
+                title: "Identity Documents Submitted 📄",
+                message: "Your identity verification documents (ID Card & Selfie) have been submitted and are pending admin review.",
                 type: "admin_verification",
                 isRead: false,
             });

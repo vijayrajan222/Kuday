@@ -123,7 +123,7 @@ export default function OnboardingProfilePage() {
     monthlyRent: '',
     location: '',
     capacity: '1',
-    availabilityNotes: 'Available on weekends for visits',
+    availabilityNotes: '',
     description: '',
     amenities: [] as string[],
     imagesBase64: [] as string[],
