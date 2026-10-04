@@ -1,11 +1,11 @@
 import type { Request, Response } from "express";
 import type { ICreateSeekerPreferenceUseCase } from "../../application/interfaces/use-case/seeker/ICreateSeekerPreferenceUseCase.js";
-import type { IGetSeekerPreferencesUseCase } from "../../application/interfaces/use-case/seeker/IGetSeekerPreferencesUseCase.js";
+import type { GetSeekerPreferencesUseCase } from "../../application/use-case/seeker/GetSeekerPreferencesUseCase.js";
 
 export class SeekerPreferenceController {
     constructor(
         private createSeekerPreferenceUseCase: ICreateSeekerPreferenceUseCase,
-        private getSeekerPreferencesUseCase: IGetSeekerPreferencesUseCase
+        private getSeekerPreferencesUseCase: GetSeekerPreferencesUseCase
     ) {}
 
     async createPreference(req: Request, res: Response): Promise<void> {
@@ -26,17 +26,9 @@ export class SeekerPreferenceController {
 
     async getPreferences(req: Request, res: Response): Promise<void> {
         try {
-            const userId = req.query.userId as string | undefined;
-            if (userId) {
-                const preference = await this.getSeekerPreferencesUseCase.getByUserId(userId);
-                res.status(200).json({
-                    success: true,
-                    data: preference,
-                });
-                return;
-            }
+            const hostUserId = (req.query.hostUserId || req.query.hostId || req.query.userId) as string | undefined;
 
-            const preferences = await this.getSeekerPreferencesUseCase.execute();
+            const preferences = await this.getSeekerPreferencesUseCase.execute(hostUserId);
             res.status(200).json({
                 success: true,
                 data: preferences,

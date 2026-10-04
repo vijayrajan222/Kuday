@@ -108,10 +108,10 @@ async function startServer() {
     const uploadIdentityUseCase = new UploadIdentityUseCase(userrepo, cloudinaryService, notificationrepo);
 
     const createRoomUseCase = new CreateRoomUseCase(roomrepo, userrepo, cloudinaryService);
-    const getRoomsUseCase = new GetRoomsUseCase(roomrepo);
+    const getRoomsUseCase = new GetRoomsUseCase(roomrepo, userrepo, lifestylerepo, seekerrepo);
 
     const createSeekerPreferenceUseCase = new CreateSeekerPreferenceUseCase(seekerrepo, userrepo);
-    const getSeekerPreferencesUseCase = new GetSeekerPreferencesUseCase(seekerrepo);
+    const getSeekerPreferencesUseCase = new GetSeekerPreferencesUseCase(seekerrepo, userrepo, lifestylerepo, roomrepo);
 
     const getNotificationsUseCase = new GetNotificationsUseCase(notificationrepo);
     const createNotificationUseCase = new CreateNotificationUseCase(notificationrepo);

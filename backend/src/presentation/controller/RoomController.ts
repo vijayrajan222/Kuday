@@ -1,11 +1,11 @@
 import type { Request, Response } from "express";
 import type { ICreateRoomUseCase } from "../../application/interfaces/use-case/room/ICreateRoomUseCase.js";
-import type { IGetRoomsUseCase } from "../../application/interfaces/use-case/room/IGetRoomsUseCase.js";
+import type { GetRoomsUseCase } from "../../application/use-case/room/GetRoomsUseCase.js";
 
 export class RoomController {
     constructor(
         private createRoomUseCase: ICreateRoomUseCase,
-        private getRoomsUseCase: IGetRoomsUseCase
+        private getRoomsUseCase: GetRoomsUseCase
     ) {}
 
     async createRoom(req: Request, res: Response): Promise<void> {
@@ -27,9 +27,11 @@ export class RoomController {
     async getRooms(req: Request, res: Response): Promise<void> {
         try {
             const hostId = req.query.hostId as string | undefined;
+            const seekerUserId = (req.query.seekerUserId || req.query.userId) as string | undefined;
+
             const rooms = hostId
                 ? await this.getRoomsUseCase.getByHostId(hostId)
-                : await this.getRoomsUseCase.execute();
+                : await this.getRoomsUseCase.execute(seekerUserId);
 
             res.status(200).json({
                 success: true,
