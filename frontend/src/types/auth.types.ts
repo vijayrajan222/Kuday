@@ -142,6 +142,7 @@ export interface AuthUser {
   role?: 'host' | 'seeker' | 'none';
   isOnboarded?: boolean;
   identityVerified?: boolean;
+  identityStatus?: 'none' | 'pending' | 'verified' | 'rejected' | string;
   selfieUrl?: string;
   idCardUrl?: string;
 }

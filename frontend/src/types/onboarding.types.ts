@@ -14,7 +14,7 @@ export interface LifestylePayload {
   smoking: string;
   drinking: string;
   sleepSchedule: string;
-  diet: string;
+  diet?: string;
   cleanliness: string;
   visitorPolicy: string;
   roommateGenderPref: string;
@@ -34,6 +34,21 @@ export interface RoomPayload {
   description?: string;
 }
 
+export interface HostProfile {
+  id: string;
+  firstName: string;
+  lastName?: string;
+  email: string;
+  gender?: string;
+  occupation?: string;
+  bio?: string;
+  selfieUrl?: string;
+  idCardUrl?: string;
+  identityVerified: boolean;
+  identityStatus?: string;
+  lifestyle?: LifestylePayload | null;
+}
+
 export interface RoomEntity {
   id: string;
   hostId: string;
@@ -48,6 +63,10 @@ export interface RoomEntity {
   description?: string;
   createdAt?: string;
   updatedAt?: string;
+
+  // Enriched Fields from Backend
+  host?: HostProfile;
+  matchPercentage?: number;
 }
 
 export interface SeekerPreferencePayload {
@@ -56,6 +75,21 @@ export interface SeekerPreferencePayload {
   maxBudget: number;
   roomTypePreference: string;
   requiredAmenities: string[];
+}
+
+export interface SeekerProfile {
+  id: string;
+  firstName: string;
+  lastName?: string;
+  email: string;
+  gender?: string;
+  occupation?: string;
+  bio?: string;
+  selfieUrl?: string;
+  idCardUrl?: string;
+  identityVerified: boolean;
+  identityStatus?: string;
+  lifestyle?: LifestylePayload | null;
 }
 
 export interface SeekerPreferenceEntity {
@@ -67,4 +101,8 @@ export interface SeekerPreferenceEntity {
   requiredAmenities: string[];
   createdAt?: string;
   updatedAt?: string;
+
+  // Enriched Fields from Backend
+  seeker?: SeekerProfile;
+  matchPercentage?: number;
 }

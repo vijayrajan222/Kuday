@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
-import { LogOut, Menu, Bell, ShieldCheck, Heart, Check, CheckCheck } from 'lucide-react';
+import { LogOut, Menu, Bell, ShieldCheck, Heart, Check, CheckCheck, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -188,7 +188,14 @@ export const Header = memo(function Header({ onMenuClick, onLogout }: HeaderProp
             title="View Profile"
           >
             <Avatar name={user.firstName || 'User'} size="sm" />
-            <span className="hidden text-sm font-semibold sm:block">{user.firstName}</span>
+            <span className="hidden text-sm font-semibold sm:flex items-center gap-1">
+              {user.firstName}
+              {user.identityVerified && (
+                <span title="Admin Verified User">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 inline-block" />
+                </span>
+              )}
+            </span>
           </Link>
         )}
         <Button variant="outline" size="sm" leftIcon={<LogOut className="h-4 w-4" />} onClick={onLogout}>

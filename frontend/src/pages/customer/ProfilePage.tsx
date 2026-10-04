@@ -25,6 +25,7 @@ import {
   Camera,
   Plus,
   Trash2,
+  ShieldAlert,
 } from 'lucide-react';
 import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.types';
 
@@ -209,7 +210,10 @@ export default function ProfilePage() {
         } else if (currentRole === 'seeker') {
           const seekerData = await onboardingService.getSeekerPreferences(userId);
           if (active && seekerData) {
-            setSeekerPref(seekerData);
+            const singlePref = Array.isArray(seekerData)
+              ? (seekerData.length > 0 ? seekerData[0] : null)
+              : seekerData;
+            setSeekerPref(singlePref);
           }
         }
       } catch (err) {
@@ -397,20 +401,26 @@ export default function ProfilePage() {
     }
   };
 
-  // Switch Role Handler
+  // Switch Role Confirmation Modal Handler
   const [switchingRole, setSwitchingRole] = useState(false);
+  const [isRoleSwitchModalOpen, setIsRoleSwitchModalOpen] = useState(false);
 
-  const handleSwitchRole = async () => {
+  const handleOpenRoleSwitchModal = () => {
+    setIsRoleSwitchModalOpen(true);
+  };
+
+  const executeRoleSwitch = async () => {
     if (!user?.id) return;
     const targetRole = userProfile.role === 'host' ? 'seeker' : 'host';
     try {
       setSwitchingRole(true);
-      toast.info(`Switching role to ${targetRole === 'host' ? 'Room Host' : 'Room Seeker'}...`);
+      setIsRoleSwitchModalOpen(false);
+      toast.info(`Switching active role to ${targetRole === 'host' ? 'Room Host' : 'Room Seeker'}...`);
       await onboardingService.updateRole(user.id, targetRole);
 
       setUserProfile((prev) => ({ ...prev, role: targetRole }));
       toast.success(
-        `Role switched to ${targetRole === 'host' ? 'Room Host' : 'Room Seeker'}!`
+        `Role switched to ${targetRole === 'host' ? 'Room Host' : 'Room Seeker'}! Your previous post has been hidden.`
       );
       fetchProfileData();
     } catch (err) {
@@ -496,7 +506,7 @@ export default function ProfilePage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleSwitchRole}
+            onClick={handleOpenRoleSwitchModal}
             disabled={switchingRole}
             leftIcon={
               userProfile.role === 'host' ? (
@@ -582,7 +592,7 @@ export default function ProfilePage() {
 
                 <button
                   type="button"
-                  onClick={handleSwitchRole}
+                  onClick={handleOpenRoleSwitchModal}
                   disabled={switchingRole}
                   className="inline-flex items-center gap-1 rounded-full bg-teal-50 hover:bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-800 border border-teal-200 capitalize transition cursor-pointer"
                   title="Click to switch role to Seeker"
@@ -618,7 +628,7 @@ export default function ProfilePage() {
                   <span className="text-slate-500 flex items-center gap-1.5">
                     <Briefcase className="h-3.5 w-3.5 text-slate-400" /> Occupation
                   </span>
-                  <span className="font-semibold text-slate-800 capitalize">{userProfile.occupation.replace('_', ' ') || 'Not specified'}</span>
+                  <span className="font-semibold text-slate-800 capitalize">{(userProfile.occupation || '').replace('_', ' ') || 'Not specified'}</span>
                 </div>
 
                 {userProfile.bio && (
@@ -640,27 +650,27 @@ export default function ProfilePage() {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[10px]">Smoking</span>
-                  <span className="font-semibold text-slate-800 capitalize">{lifestyle.smoking}</span>
+                  <span className="font-semibold text-slate-800 capitalize">{lifestyle.smoking || 'never'}</span>
                 </div>
                 <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[10px]">Drinking</span>
-                  <span className="font-semibold text-slate-800 capitalize">{lifestyle.drinking}</span>
+                  <span className="font-semibold text-slate-800 capitalize">{lifestyle.drinking || 'never'}</span>
                 </div>
                 <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[10px]">Sleep Schedule</span>
-                  <span className="font-semibold text-slate-800 capitalize">{lifestyle.sleepSchedule.replace('_', ' ')}</span>
+                  <span className="font-semibold text-slate-800 capitalize">{(lifestyle.sleepSchedule || '').replace('_', ' ') || 'flexible'}</span>
                 </div>
                 <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[10px]">Diet</span>
-                  <span className="font-semibold text-slate-800 capitalize">{lifestyle.diet.replace('_', ' ')}</span>
+                  <span className="font-semibold text-slate-800 capitalize">{(lifestyle.diet || '').replace('_', ' ') || 'anything'}</span>
                 </div>
                 <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[10px]">Cleanliness</span>
-                  <span className="font-semibold text-slate-800 capitalize">{lifestyle.cleanliness.replace('_', ' ')}</span>
+                  <span className="font-semibold text-slate-800 capitalize">{(lifestyle.cleanliness || '').replace('_', ' ') || 'very clean'}</span>
                 </div>
                 <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[10px]">Visitor Policy</span>
-                  <span className="font-semibold text-slate-800 capitalize">{lifestyle.visitorPolicy.replace('_', ' ')}</span>
+                  <span className="font-semibold text-slate-800 capitalize">{(lifestyle.visitorPolicy || '').replace('_', ' ') || 'flexible'}</span>
                 </div>
               </div>
             </Card>
@@ -761,7 +771,7 @@ export default function ProfilePage() {
                         <Home className="h-3.5 w-3.5 text-emerald-600" /> Room Type
                       </span>
                       <p className="font-bold text-slate-900 capitalize text-base">
-                        {room.roomType.replace('_', ' ')}
+                        {(room.roomType || '').replace('_', ' ') || 'Private Bedroom'}
                       </p>
                     </div>
 
@@ -905,7 +915,7 @@ export default function ProfilePage() {
 
                 <button
                   type="button"
-                  onClick={handleSwitchRole}
+                  onClick={handleOpenRoleSwitchModal}
                   disabled={switchingRole}
                   className="inline-flex items-center gap-1 rounded-full bg-emerald-50 hover:bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800 border border-emerald-200 capitalize transition cursor-pointer"
                   title="Click to switch role to Host"
@@ -940,7 +950,7 @@ export default function ProfilePage() {
                   <span className="text-slate-500 flex items-center gap-1.5">
                     <Briefcase className="h-3.5 w-3.5 text-slate-400" /> Occupation
                   </span>
-                  <span className="font-semibold text-slate-800 capitalize">{userProfile.occupation.replace('_', ' ') || 'Not specified'}</span>
+                  <span className="font-semibold text-slate-800 capitalize">{(userProfile.occupation || '').replace('_', ' ') || 'Not specified'}</span>
                 </div>
 
                 {userProfile.bio && (
@@ -1009,7 +1019,7 @@ export default function ProfilePage() {
                         <Home className="h-3.5 w-3.5 text-emerald-600" /> Room Type Pref
                       </span>
                       <p className="font-bold text-slate-900 capitalize text-sm">
-                        {seekerPref.roomTypePreference.replace('_', ' ')}
+                        {(seekerPref.roomTypePreference || '').replace('_', ' ') || 'Any'}
                       </p>
                     </div>
                   </div>
@@ -1024,7 +1034,7 @@ export default function ProfilePage() {
                             className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                            {a.replace('_', ' ')}
+                            {(a || '').replace('_', ' ')}
                           </span>
                         ))
                       ) : (
@@ -1051,27 +1061,27 @@ export default function ProfilePage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[10px] uppercase font-semibold">Smoking</span>
-                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{lifestyle.smoking}</span>
+                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{lifestyle.smoking || 'never'}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[10px] uppercase font-semibold">Drinking</span>
-                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{lifestyle.drinking}</span>
+                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{lifestyle.drinking || 'never'}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[10px] uppercase font-semibold">Sleep Schedule</span>
-                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{lifestyle.sleepSchedule.replace('_', ' ')}</span>
+                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{(lifestyle.sleepSchedule || '').replace('_', ' ') || 'flexible'}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[10px] uppercase font-semibold">Diet</span>
-                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{lifestyle.diet.replace('_', ' ')}</span>
+                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{(lifestyle.diet || '').replace('_', ' ') || 'anything'}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[10px] uppercase font-semibold">Cleanliness</span>
-                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{lifestyle.cleanliness.replace('_', ' ')}</span>
+                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{(lifestyle.cleanliness || '').replace('_', ' ') || 'very clean'}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[10px] uppercase font-semibold">Visitor Policy</span>
-                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{lifestyle.visitorPolicy.replace('_', ' ')}</span>
+                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{(lifestyle.visitorPolicy || '').replace('_', ' ') || 'flexible'}</span>
                 </div>
               </div>
             </Card>
@@ -1452,6 +1462,73 @@ export default function ProfilePage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM ROLE SWITCH MODAL */}
+      {isRoleSwitchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-5 relative">
+            <button
+              type="button"
+              onClick={() => setIsRoleSwitchModalOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  Confirm Role Switch
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Switching active role from <span className="font-bold text-slate-800 capitalize">{userProfile.role}</span> to{' '}
+                  <span className="font-bold text-emerald-700 capitalize">
+                    {userProfile.role === 'host' ? 'Room Seeker' : 'Room Host'}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-amber-50/80 border border-amber-200/80 p-4 text-xs text-amber-900 space-y-2 leading-relaxed">
+              <p className="font-semibold">
+                ⚠️ <strong>Notice:</strong> If you switch your role to{' '}
+                <strong className="underline decoration-amber-500">
+                  {userProfile.role === 'host' ? 'Room Seeker' : 'Room Host'}
+                </strong>
+                , your existing{' '}
+                <strong className="underline decoration-amber-500">
+                  {userProfile.role === 'host' ? 'Host Room Listing' : 'Room Seeker Search Preference'}
+                </strong>{' '}
+                post will be <strong className="text-red-700 font-extrabold">disabled and hidden</strong> from all other users until you switch your role back to{' '}
+                <strong className="capitalize">{userProfile.role}</strong>.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsRoleSwitchModalOpen(false)}
+                className="text-slate-600 border-slate-300 text-xs font-semibold"
+              >
+                Cancel
+              </Button>
+
+              <Button
+                size="sm"
+                disabled={switchingRole}
+                onClick={executeRoleSwitch}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md"
+              >
+                {switchingRole ? 'Switching Role...' : 'Confirm & Switch Role'}
+              </Button>
+            </div>
           </div>
         </div>
       )}
