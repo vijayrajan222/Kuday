@@ -1,86 +1,199 @@
-# Project 2.0 Backend - Architecture & Development Flow Guide
+# 📘 Project 2.0 Backend - Architecture & Development Guide
 
-First, we set up the development environment by installing Git, NPM, configuring TypeScript (`tsconfig.json`), installing dependencies (`express`, `mongoose`, `bcrypt`, `zod`, `dotenv`, `nodemailer`, `cors`, `jsonwebtoken`), and creating the server entry point `server.ts`. 
-
-We structured the project following **Clean Architecture** (4 layers: Domain, Application, Infrastructure, Presentation) and **SOLID Principles** (Single Responsibility, Dependency Inversion, Interface Segregation).
+This document is your complete, step-by-step technical guide to the Project 2.0 backend. It explains every layer, feature, database model, external service, and API endpoint implemented in the system.
 
 ---
 
-## Complete Steps Followed in the Project
+## 🏛️ System Architecture Overview
 
-### 1. Domain Layer (`/src/domain`)
-- **`UserEntity.ts`** (`/src/domain/entities/UserEntity.ts`):
-  - Defines the core business shape of a User (`id`, `firstName`, `lastName`, `email`, `hashedPassword`, `isVerified`, `isBlocked`).
-- **`OtpEntity.ts`** (`/src/domain/entities/OtpEntity.ts`):
-  - Defines the core business shape of OTP verification records (`id`, `email`, `otp`, `expiresAt`, `createdAt`).
+The backend is built using **Clean Architecture** (4 decoupled layers) and **SOLID Principles**:
 
----
-
-### 2. Application Layer Interfaces & DTOs (`/src/application`)
-- **Repository Interfaces**:
-  - `IUserRepository.ts`: Contract for user database persistence (`save`, `findByEmail`, `updateVerificationStatus`).
-  - `IOtpRepository.ts`: Contract for OTP database persistence (`save`, `findLatestByEmail`, `deleteByEmail`).
-- **Service Interfaces**:
-  - `IHashingService.ts`: Contract for password hashing (`hash`) and string comparison (`compareHashes`).
-  - `IOtpService.ts`: Contract for generating numeric OTP codes (`generateOtp`).
-  - `IMailService.ts`: Contract for dispatching verification emails (`sendOtpEmail`).
-  - `IJwtService.ts`: Contract for generating JSON Web Tokens (`generateToken`).
-- **DTOs (Data Transfer Objects)**:
-  - `SignUpDTO.ts`: Defines `SignUpUserRequestDto` (input) and `SignUpUserResultDTO` (output).
-  - `VerifyOtpDTO.ts`: Defines `VerifyOtpRequestDto` (`email`, `otp`) and `VerifyOtpResultDto` (`message`, `isVerified`, `token`).
-  - `LoginDTO.ts`: Defines `loginRequestDto` (`email`, `password`) and `loginResponseDto` (`id`, `email`, `firstName`, `lastName`, `token`, `message`).
-- **Use Case Interfaces**:
-  - `ISignUpUserUseCase.ts`: Contract for `SignUpUserUseCase` (`execute`).
-  - `IVerifyOtpUseCase.ts`: Contract for `VerifyOtpUseCase` (`execute`).
-  - `ILoginUserUseCase.ts`: Contract for `LoginUserUseCase` (`execute`).
+```
+src/
+├── domain/                  # 1. Core business entities & mathematical algorithms (Zero external dependencies)
+│   ├── entities/            # Pure TypeScript data structures (User, Room, Lifestyle, etc.)
+│   └── services/            # Pure domain algorithms (RoomMatchCalculatorService)
+├── application/             # 2. Business use cases & abstract interfaces
+│   ├── interfaces/          # Repository and service contracts (IRoomRepository, IJwtService)
+│   ├── dto/                 # Data Transfer Objects defining request/response structures
+│   └── use-case/            # Single-responsibility workflows (auth, user, room, admin, etc.)
+├── infrastructure/          # 3. External tools, database, and third-party integrations
+│   ├── database/            # MongoDB connection & Mongoose schemas
+│   ├── repository/          # Concrete database repositories implementing domain interfaces
+│   └── services/            # Cloudinary, Nodemailer, Bcrypt, JWT, and OTP generators
+└── presentation/            # 4. HTTP delivery layer (Web / API)
+    ├── controller/          # Request handlers reading req.body/params and sending JSON responses
+    ├── router/              # Express route definitions
+    ├── middleware/          # Authentication & Error Handling middlewares
+    └── utils/validators/    # Zod schema validation contracts
+```
 
 ---
 
-### 3. Infrastructure Layer Setup (`/src/infrastructure`)
-- **Database Connection**:
-  - `ConnectMongoDB.ts`: Connects to MongoDB Atlas using Mongoose and loads environment variables via `dotenv`.
-- **Database Models (Mongoose Schemas)**:
-  - `UserModel.ts`: Mongoose schema for `user` collection with email indexing (`unique: true`, `trim: true`, `lowercase: true`).
-  - `OtpModel.ts`: Mongoose schema for `Otp` collection with automatic TTL (Time-To-Live) index that auto-deletes expired OTP documents after 10 minutes.
-- **Repository Implementations**:
-  - `MongoUserRepository.ts`: Implements `IUserRepository` using Mongoose `userModel`.
-  - `MongoOtpRepository.ts`: Implements `IOtpRepository` using Mongoose `otpModel`.
-- **Service Implementations**:
-  - `HashingService.ts`: Implements `IHashingService` using `bcrypt` (salt rounds = 10, comparing plain passwords with hashes via `compareHashes`).
-  - `OtpServices.ts`: Implements `IOtpService` using Node.js native `crypto.randomInt` for 6-digit OTP generation.
-  - `NodemailerService.ts`: Implements `IMailService` using `nodemailer` transport connected to Gmail SMTP via `.env` credentials (`EMAIL_USER`, `EMAIL_PASS`).
-  - `JwtService.ts`: Implements `IJwtService` using `jsonwebtoken` to generate 7-day access tokens.
+## 🗄️ Database Models (`src/infrastructure/database/model`)
+
+All 6 models are implemented using **Modern Mongoose (`InferSchemaType` + `HydratedDocument`)** as a single source of truth:
+
+1. **`UserModel.ts`**:
+   - Fields: `email`, `firstName`, `lastName`, `hashedPassword`, `isVerified`, `isBlocked`, `role` (`"host"` | `"seeker"` | `"admin"` | `"none"`), `isAdmin`, `isOnboarded`, `dob`, `gender`, `occupation`, `bio`, `idCardUrl`, `selfieUrl`, `identityVerified`, `identityStatus` (`"pending"` | `"verified"` | `"rejected"` | `"none"`), `rejectionReason`.
+   - Feature: Enforces unique lowercase email indexing, timestamps.
+2. **`RoomModel.ts`**:
+   - Fields: `hostId`, `title`, `roomType`, `monthlyRent`, `location`, `capacity`, `availabilityNotes`, `amenities`, `images` (Cloudinary CDN URLs), `description`, `isActive`.
+3. **`SeekerPreferenceModel.ts`**:
+   - Fields: `userId`, `preferredLocation`, `maxBudget`, `roomTypePreference`, `requiredAmenities`, `isActive`.
+4. **`LifestyleModel.ts`**:
+   - Fields: `userId` (ref to User), `smoking`, `drinking`, `sleepSchedule`, `diet`, `cleanliness`, `visitorPolicy`, `roommateGenderPref`.
+5. **`NotificationModel.ts`**:
+   - Fields: `userId`, `title`, `message`, `type` (`"admin_verification"` | `"interest_request"` | `"system"`), `isRead`.
+6. **`OtpModel.ts`**:
+   - Fields: `email`, `otp`, `expiresAt`, `createdAt`.
+   - Feature: MongoDB **TTL index** (`expires: 600`) that automatically deletes expired OTP documents from database memory after 10 minutes.
 
 ---
 
-### 4. Application Use Cases (`/src/application/use-case`)
-- **`SignUpUserUseCase.ts`**:
-  - Implements `ISignUpUserUseCase`.
-  - Injects `_userRepo`, `_hashService`, `_otpRepo`, `_otpService`, `_mailService`.
-  - Workflow: Validates password match ➔ Sanitizes email ➔ Checks existing user (if verified: throw error; if unverified: clean old OTPs & reuse ID) ➔ Hashes password ➔ Saves user ➔ Generates 6-digit OTP ➔ Saves OTP with 10-min expiry ➔ Sends HTML email ➔ Returns `{ id, email }`.
-- **`VerifyOtpUseCase.ts`**:
-  - Implements `IVerifyOtpUseCase`.
-  - Injects `_userRepo`, `_otpRepo`, `_jwtService`.
-  - Workflow: Sanitizes email ➔ Finds user in DB ➔ Checks if user already verified (if verified: return token immediately) ➔ Fetches latest OTP from DB ➔ Validates expiration (`expiresAt > Date.now()`) ➔ Compares OTP code ➔ Updates `isVerified = true` in DB ➔ Deletes used OTPs ➔ Generates & returns JWT access token.
-- **`LoginUserUseCase.ts`**:
-  - Implements `ILoginUserUseCase`.
-  - Injects `_userRepo`, `_hashService`, `_jwtService`.
-  - Workflow: Sanitizes input email ➔ Finds user in DB via `_userRepo.findByEmail(cleanedEmail)` ➔ Checks if user exists (throws "Invalid email or password" if not found) ➔ Checks if email is verified (`isVerified === true`, throws "Please verify your email address before logging in" if false) ➔ Checks if account is blocked (`isBlocked === false`) ➔ Verifies password match via `_hashService.compareHashes(dto.password, existingUser.hashedPassword)` ➔ Generates 7-day JWT Access Token via `_jwtService.generateToken({ userId, email })` ➔ Returns `loginResponseDto` containing `{ id, email, firstName, lastName, token, message }`.
+## 🚀 Complete Feature Breakdown
+
+### 1. Authentication & Security Module (`src/application/use-case/auth/`)
+- **Sign Up (`SignUpUserUseCase.ts`)**:
+  - Checks if user exists. If unverified, resets old OTPs.
+  - Hashes passwords using `bcrypt` (10 salt rounds).
+  - Generates a 6-digit random OTP and stores it in MongoDB.
+  - Dispatches verification email via `nodemailer` (SMTP).
+- **OTP Verification (`VerifyOtpUseCase.ts`)**:
+  - Validates code and verifies expiration.
+  - Sets `isVerified = true` and deletes used OTP records.
+  - Issues a 7-day stateless JWT access token.
+- **Login (`LoginUserUseCase.ts`)**:
+  - Validates user credentials, checks blocked status, compares bcrypt hash, and returns JWT token + user profile.
+- **Forgot Password Flow (`ForgotPasswordUseCase.ts`, `VerifyResetOtpUseCase.ts`, `ResetPasswordUseCase.ts`)**:
+  - Sends reset OTP, validates OTP code, and safely updates new hashed password.
+- **Google OAuth (`GoogleAuthUseCase.ts`)**:
+  - Authenticates users signing in with Google.
+
+### 2. User Onboarding & Profile System (`src/application/use-case/user/`)
+- **Profile Details (`UpdateProfileUseCase.ts`)**:
+  - Updates personal info (gender, occupation, bio).
+  - **Date of Birth Validation**: Strictly enforces that date of birth cannot be in the future.
+- **Lifestyle Preferences (`CreateLifestyleUseCase.ts`, `GetLifestyleUseCase.ts`)**:
+  - Saves living habits (smoking, drinking, diet, sleep schedule, cleanliness, visitors).
+- **Identity Upload (`UploadIdentityUseCase.ts`)**:
+  - Accepts base64 encoded Government ID Card and Selfie photo.
+  - Uses `CloudinaryService` to upload photos to secure CDN storage (`kuday_id_cards`, `kuday_selfies`).
+  - Sets `identityStatus = "pending"` for Admin review.
+- **Dual-Role Switching (`UpdateRoleUseCase.ts`)**:
+  - Allows users to toggle between **Host** and **Seeker** roles.
+  - **Post Invalidation**: When user switches role, their existing post in the opposite role is automatically disabled (`isActive = false`) to prevent confusion.
+
+### 3. Property & Room Listings (`src/application/use-case/room/`)
+- **Room Creation (`CreateRoomUseCase.ts`)**:
+  - Host creates room listing with rent, capacity, location, notes, and amenities.
+  - Automatically uploads multiple property photos to Cloudinary CDN (`kuday_rooms`).
+- **Verified Room Discovery (`GetRoomsUseCase.ts`)**:
+  - Queries active rooms from **Admin-Verified hosts**.
+  - Fetches current seeker's preferences and lifestyle habits.
+  - Runs the **Compatibility Calculation Engine** for each room.
+  - Returns sorted rooms from highest match percentage to lowest.
+
+### 4. Roommate Seeker Preferences (`src/application/use-case/seeker/`)
+- **Preference Creation (`CreateSeekerPreferenceUseCase.ts`)**:
+  - Seeker specifies location, maximum budget, room type, and required amenities.
+- **Seeker Discovery for Hosts (`GetSeekerPreferencesUseCase.ts`)**:
+  - Hosts can browse verified room seekers.
+  - Evaluates match scores between host's room listing and seeker profiles.
+
+### 5. Domain Compatibility Match Engine (`src/domain/services/RoomMatchCalculatorService.ts`)
+A dedicated mathematical scoring algorithm calculating a 0% to 100% compatibility score:
+- **Location Match (25% weight)**: Substring matching between room location and seeker preferred location.
+- **Budget Match (25% weight)**: Full points if rent $\le$ seeker budget; partial points if within 10% budget flexibility.
+- **Room Type Match (15% weight)**: Exact type match or preference set to `"any"`.
+- **Amenities Match (15% weight)**: Overlap ratio between seeker's required amenities and room's provided amenities.
+- **Lifestyle Match (20% weight)**: Compatibility checks on smoking, drinking, cleanliness, and sleep schedule.
+
+### 6. Admin Portal & Verification Queue (`src/application/use-case/admin/`)
+- **Admin Authentication (`AdminLoginUseCase.ts`)**:
+  - Secure admin portal login.
+- **Identity Review Queue (`VerifyUserIdentityUseCase.ts`)**:
+  - Admin inspects submitted ID Card photos and selfie photos.
+  - Admin can **Approve** (sets `identityVerified = true`, `identityStatus = "verified"`) or **Reject** with a custom reason.
+  - Automatically dispatches in-app notification to the user informing them of admin's decision.
+- **User Management & Metrics (`GetAllUsersUseCase.ts`, `ToggleBlockUserUseCase.ts`, `GetAdminStatsUseCase.ts`)**:
+  - Block/unblock users, monitor system metrics (total users, verified hosts, active rooms).
+
+### 7. In-App Notification System (`src/application/use-case/notification/`)
+- **`CreateNotificationUseCase.ts`**:
+  - Dispatches notifications for Interest Requests (when a user clicks "Send Interest") and Admin Verification updates.
+- **`GetNotificationsUseCase.ts` & `MarkNotificationReadUseCase.ts`**:
+  - Fetches unread notifications and marks alerts as read.
 
 ---
 
-### 5. Presentation Layer & Composition Root (`/src/presentation` & `server.ts`)
-- **Validation Schemas (`/src/presentation/utils/validators/zod`)**:
-  - `AuthSchema.ts`: Zod schemas for signup (`SignUpUserRequestSchema`), OTP verification (`VerifyOtpRequestSchema`), and login (`LoginRequestSchema`).
-- **Controller**:
-  - `IAuthController.ts` & `AuthController.ts`: Implements `signUp`, `verifyOtp`, and `login` methods with Zod parsing, UseCase execution, try/catch error handling, and JSON responses.
-- **Router**:
-  - `AuthRouter.ts`: Express Router creating endpoints for:
-    - `POST /auth/signUp`
-    - `POST /auth/verify-otp`
-    - `POST /auth/login`
-- **CORS & Composition Root (`server.ts`)**:
-  - Configured CORS middleware allowing frontend origins (`http://localhost:5173`).
-  - Instantiates concrete infrastructure services (`userrepo`, `hasher`, `otprepo`, `otpservice`, `mailer`, `jwtService`).
-  - Injects dependencies into `SignUpUserUseCase`, `VerifyOtpUseCase`, `LoginUserUseCase`, and `AuthController`.
-  - Mounts auth router under `/auth` path and listens on port 3000.
+## 🔌 External Infrastructure Services (`src/infrastructure/services/`)
+
+| Service File | Technology | Purpose |
+|---|---|---|
+| `CloudinaryService.ts` | Cloudinary SDK v2 | Uploads base64 encoded images to cloud CDN and returns HTTPS URLs. Avoids storing multi-megabyte images inside MongoDB documents. |
+| `JwtServices.ts` | `jsonwebtoken` | Issues and verifies signed 7-day HMAC SHA-256 JWT access tokens for stateless authorization. |
+| `HashingService.ts` | `bcrypt` | Hashes passwords with 10 salt rounds and securely verifies password attempts. |
+| `NodemailerService.ts` | `nodemailer` (Gmail SMTP) | Connects to SMTP email service to send 6-digit OTP verification codes to real user inboxes. |
+| `OtpServices.ts` | Node.js `crypto` | Generates cryptographically secure 6-digit numeric OTP codes. |
+
+---
+
+## 📡 API Endpoints Reference
+
+### 1. Authentication (`/api/auth`)
+- `POST /api/auth/signUp` — Register a new account and dispatch OTP email.
+- `POST /api/auth/verify-otp` — Verify 6-digit OTP and issue JWT access token.
+- `POST /api/auth/login` — Login with email and password.
+- `POST /api/auth/forgot-password` — Send password reset OTP.
+- `POST /api/auth/verify-reset-otp` — Verify password reset OTP.
+- `POST /api/auth/reset-password` — Set new password.
+- `POST /api/auth/google` — Sign in / sign up with Google OAuth.
+
+### 2. User & Onboarding (`/api/users`)
+- `GET /api/users/profile/:userId` — Fetch user profile and verification status.
+- `PUT /api/users/profile` — Update personal details (DOB, gender, occupation, bio).
+- `PUT /api/users/role` — Switch role between Host and Seeker (auto-disables previous post).
+- `POST /api/users/upload-identity` — Upload ID Card & Selfie for admin verification.
+
+### 3. Lifestyle (`/api/lifestyle`)
+- `POST /api/lifestyle` — Create or update lifestyle habits.
+- `GET /api/lifestyle/:userId` — Fetch lifestyle habits for a user.
+
+### 4. Room Listings (`/api/rooms`)
+- `POST /api/rooms` — Create or update a host room listing with Cloudinary images.
+- `GET /api/rooms?userId=:userId` — Fetch verified room listings with dynamic match scores.
+- `GET /api/rooms/host/:hostId` — Fetch rooms created by a specific host.
+
+### 5. Seeker Preferences (`/api/seeker-preferences`)
+- `POST /api/seeker-preferences` — Save seeker home search preferences.
+- `GET /api/seeker-preferences?userId=:userId` — Fetch verified room seekers with compatibility scores.
+- `GET /api/seeker-preferences/user/:userId` — Fetch preferences for a specific seeker.
+
+### 6. Notifications (`/api/notifications`)
+- `POST /api/notifications` — Create an interest request or system alert.
+- `GET /api/notifications/:userId` — Fetch all notifications for a user.
+- `PATCH /api/notifications/:id/read` — Mark single notification as read.
+- `PATCH /api/notifications/user/:userId/read-all` — Mark all notifications as read.
+
+### 7. Admin (`/api/admin`)
+- `POST /api/admin/login` — Admin login.
+- `GET /api/admin/stats` — Fetch dashboard system stats.
+- `GET /api/admin/users` — Fetch all registered users with filter/search.
+- `PATCH /api/admin/users/:userId/block` — Toggle block/unblock status.
+- `PATCH /api/admin/users/:userId/verify-identity` — Approve or reject user ID documents.
+
+---
+
+## 🧪 Testing & Code Verification
+
+To verify that the entire backend compiles without TypeScript errors:
+```bash
+cd backend
+npx tsc --noEmit
+```
+
+To run the development server:
+```bash
+npm run dev
+```
