@@ -24,8 +24,22 @@ export class UpdateProfileUseCase implements IUpdateProfileUseCase {
                 const dobDate = new Date(dto.dob);
                 const today = new Date();
                 today.setHours(23, 59, 59, 999);
-                if (!isNaN(dobDate.getTime()) && dobDate > today) {
+                if (isNaN(dobDate.getTime())) {
+                    throw new Error("Invalid date of birth format");
+                }
+                if (dobDate > today) {
                     throw new Error("Date of birth cannot be in the future");
+                }
+                const eighteenYearsAgo = new Date();
+                eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+                eighteenYearsAgo.setHours(23, 59, 59, 999);
+                if (dobDate > eighteenYearsAgo) {
+                    throw new Error("You must be at least 18 years old to use this platform");
+                }
+                const hundredYearsAgo = new Date();
+                hundredYearsAgo.setFullYear(hundredYearsAgo.getFullYear() - 100);
+                if (dobDate < hundredYearsAgo) {
+                    throw new Error("Please enter a valid date of birth within the last 100 years");
                 }
             }
             profileUpdates.dob = dto.dob;

@@ -28,6 +28,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.types';
+import { MAX_DOB, MIN_DOB, validateDob } from '../onboarding/OnboardingProfilePage';
 
 // Available Amenities for Host/Seeker checklists
 const AMENITY_OPTIONS = [
@@ -121,6 +122,7 @@ export default function ProfilePage() {
   const [isEditRoomOpen, setIsEditRoomOpen] = useState(false);
   const [isEditSeekerOpen, setIsEditSeekerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [profileDobError, setProfileDobError] = useState<string | null>(null);
 
   // Edit Form Inputs
   const [editProfileForm, setEditProfileForm] = useState({
@@ -232,6 +234,7 @@ export default function ProfilePage() {
 
   // Open Profile Edit Modal
   const openEditProfile = () => {
+    setProfileDobError(null);
     setEditProfileForm({
       firstName: userProfile.firstName,
       lastName: userProfile.lastName,
@@ -253,10 +256,13 @@ export default function ProfilePage() {
   const handleProfileUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (editProfileForm.dob && editProfileForm.dob > todayStr) {
-      toast.error("Date of birth cannot be in the future.");
-      return;
+    if (editProfileForm.dob) {
+      const dobErr = validateDob(editProfileForm.dob);
+      if (dobErr) {
+        setProfileDobError(dobErr);
+        toast.error(dobErr);
+        return;
+      }
     }
     try {
       setSubmitting(true);
@@ -310,14 +316,28 @@ export default function ProfilePage() {
   const handleRoomUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
+    if (!editRoomForm.location.trim() || editRoomForm.location.trim().length < 2) {
+      toast.error("City / Location must be at least 2 characters.");
+      return;
+    }
+    const rent = Number(editRoomForm.monthlyRent);
+    if (isNaN(rent) || rent < 500) {
+      toast.error("Monthly rent must be at least ₹500.");
+      return;
+    }
+    const capacity = Number(editRoomForm.capacity) || 1;
+    if (capacity < 1 || capacity > 50) {
+      toast.error("Capacity must be between 1 and 50.");
+      return;
+    }
     try {
       setSubmitting(true);
       await onboardingService.createRoom({
         hostId: user.id,
         roomType: editRoomForm.roomType,
-        monthlyRent: Number(editRoomForm.monthlyRent),
-        location: editRoomForm.location,
-        capacity: Number(editRoomForm.capacity) || 1,
+        monthlyRent: rent,
+        location: editRoomForm.location.trim(),
+        capacity: capacity,
         availabilityNotes: editRoomForm.availabilityNotes,
         amenities: editRoomForm.amenities,
         images: room?.images || [],
@@ -451,12 +471,21 @@ export default function ProfilePage() {
   const handleSeekerUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
+    if (!editSeekerForm.preferredLocation.trim() || editSeekerForm.preferredLocation.trim().length < 2) {
+      toast.error("Preferred location must be at least 2 characters.");
+      return;
+    }
+    const budget = Number(editSeekerForm.maxBudget);
+    if (isNaN(budget) || budget < 500) {
+      toast.error("Maximum budget must be at least ₹500.");
+      return;
+    }
     try {
       setSubmitting(true);
       await onboardingService.saveSeekerPreferences({
         userId: user.id,
-        preferredLocation: editSeekerForm.preferredLocation,
-        maxBudget: Number(editSeekerForm.maxBudget),
+        preferredLocation: editSeekerForm.preferredLocation.trim(),
+        maxBudget: budget,
         roomTypePreference: editSeekerForm.roomTypePreference,
         requiredAmenities: editSeekerForm.requiredAmenities,
       });
@@ -1116,11 +1145,20 @@ export default function ProfilePage() {
                   <Input
                     id="dob"
                     type="date"
-                    max={new Date().toISOString().split('T')[0]}
+                    min={MIN_DOB}
+                    max={MAX_DOB}
                     required
                     value={editProfileForm.dob}
-                    onChange={(e) => setEditProfileForm({ ...editProfileForm, dob: e.target.value })}
+                    error={profileDobError || undefined}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditProfileForm({ ...editProfileForm, dob: val });
+                      setProfileDobError(validateDob(val));
+                    }}
                   />
+                  {profileDobError && (
+                    <p className="mt-1 text-xs text-rose-500">{profileDobError}</p>
+                  )}
                 </div>
 
                 <div>
@@ -1281,6 +1319,7 @@ export default function ProfilePage() {
                   <Input
                     id="monthlyRent"
                     type="number"
+                    min="500"
                     required
                     value={editRoomForm.monthlyRent}
                     onChange={(e) => setEditRoomForm({ ...editRoomForm, monthlyRent: e.target.value })}
@@ -1306,6 +1345,7 @@ export default function ProfilePage() {
                     id="capacity"
                     type="number"
                     min="1"
+                    max="50"
                     value={editRoomForm.capacity}
                     onChange={(e) => setEditRoomForm({ ...editRoomForm, capacity: e.target.value })}
                   />
@@ -1403,6 +1443,7 @@ export default function ProfilePage() {
                   <Input
                     id="maxBudget"
                     type="number"
+                    min="500"
                     required
                     value={editSeekerForm.maxBudget}
                     onChange={(e) => setEditSeekerForm({ ...editSeekerForm, maxBudget: e.target.value })}

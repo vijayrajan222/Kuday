@@ -15,6 +15,16 @@ export class CreateRoomUseCase implements ICreateRoomUseCase {
     async execute(dto: CreateRoomDto): Promise<RoomEntity> {
         const { hostId, imagesBase64, images: providedImages, ...roomDetails } = dto;
 
+        if (!roomDetails.location || roomDetails.location.trim().length < 2) {
+            throw new Error("Location must be at least 2 characters");
+        }
+        if (!roomDetails.monthlyRent || Number(roomDetails.monthlyRent) <= 0) {
+            throw new Error("Monthly rent must be a positive number greater than 0");
+        }
+        if (roomDetails.capacity !== undefined && (Number(roomDetails.capacity) <= 0 || Number(roomDetails.capacity) > 50)) {
+            throw new Error("Capacity must be between 1 and 50");
+        }
+
         let finalImages: string[] = providedImages || [];
 
         if (imagesBase64 && imagesBase64.length > 0) {

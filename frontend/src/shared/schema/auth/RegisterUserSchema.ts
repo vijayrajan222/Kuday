@@ -21,7 +21,7 @@ export const registerUserSchema = z
     password: z
       .string()
       .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Include at least one uppercase letter')
+      // .regex(/[A-Z]/, 'Include at least one uppercase letter') // Temporarily disabled for testing; re-enable before production
       .regex(/[a-z]/, 'Include at least one lowercase letter')
       .regex(/\d/, 'Include at least one number')
       .regex(/[^A-Za-z0-9]/, 'Include at least one special character'),

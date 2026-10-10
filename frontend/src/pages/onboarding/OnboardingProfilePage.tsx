@@ -23,6 +23,7 @@ import {
   MapPin,
   Users,
   Clock,
+  LogOut,
 } from 'lucide-react';
 
 // Available Amenities options for checklist
@@ -77,6 +78,47 @@ function compressImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 
   });
 }
 
+function getLocalDateString(yearsAgo = 0): string {
+  const d = new Date();
+  if (yearsAgo > 0) {
+    d.setFullYear(d.getFullYear() - yearsAgo);
+  }
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export const MAX_DOB = getLocalDateString(18); // Must be at least 18 years old
+export const MIN_DOB = getLocalDateString(100); // Max reasonable age 100
+
+export function validateDob(dateStr: string): string | null {
+  if (!dateStr) return "Date of birth is required.";
+  const selected = new Date(dateStr);
+  if (isNaN(selected.getTime())) return "Please enter a valid date.";
+
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  if (selected > today) {
+    return "Date of birth cannot be in the future.";
+  }
+
+  const eighteenYearsAgo = new Date();
+  eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+  eighteenYearsAgo.setHours(23, 59, 59, 999);
+  if (selected > eighteenYearsAgo) {
+    return "You must be at least 18 years old to use this platform.";
+  }
+
+  const hundredYearsAgo = new Date();
+  hundredYearsAgo.setFullYear(hundredYearsAgo.getFullYear() - 100);
+  if (selected < hundredYearsAgo) {
+    return "Please enter a realistic date of birth within the last 100 years.";
+  }
+
+  return null;
+}
+
 export default function OnboardingProfilePage() {
   const { user, loginSuccess, logout } = useAuth();
   const navigate = useNavigate();
@@ -89,10 +131,21 @@ export default function OnboardingProfilePage() {
     }
   }, [user, logout, navigate]);
 
+  const handleLogout = () => {
+    try {
+      logout();
+      toast.success("Logged out successfully");
+      navigate(ROUTES.LOGIN, { replace: true });
+    } catch {
+      toast.error("Failed to log out");
+    }
+  };
+
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [selectedRole, setSelectedRole] = useState<'host' | 'seeker' | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dobError, setDobError] = useState<string | null>(null);
 
   // Step 1: Personal Profile
   const [profile, setProfile] = useState({
@@ -216,11 +269,13 @@ export default function OnboardingProfilePage() {
       setError("User session not found. Please log in again.");
       return;
     }
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (profile.dob && profile.dob > todayStr) {
-      setError("Date of birth cannot be in the future.");
+    const dobValidation = validateDob(profile.dob);
+    if (dobValidation) {
+      setDobError(dobValidation);
+      setError(dobValidation);
       return;
     }
+    setDobError(null);
     try {
       setLoading(true);
       setError(null);
@@ -294,8 +349,18 @@ export default function OnboardingProfilePage() {
   const handleHostFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
-    if (!roomData.monthlyRent || !roomData.location) {
-      setError("Please fill in monthly rent and city location.");
+    if (!roomData.location || roomData.location.trim().length < 2) {
+      setError("Please provide a valid city / location (at least 2 characters).");
+      return;
+    }
+    const rentNum = Number(roomData.monthlyRent);
+    if (!roomData.monthlyRent || isNaN(rentNum) || rentNum < 500) {
+      setError("Please enter a valid monthly rent (minimum ₹500).");
+      return;
+    }
+    const capNum = Number(roomData.capacity);
+    if (isNaN(capNum) || capNum < 1 || capNum > 50) {
+      setError("Vacant capacity must be between 1 and 50 persons.");
       return;
     }
     try {
@@ -304,9 +369,9 @@ export default function OnboardingProfilePage() {
       await onboardingService.createRoom({
         hostId: user.id,
         roomType: roomData.roomType,
-        monthlyRent: Number(roomData.monthlyRent),
-        location: roomData.location,
-        capacity: Number(roomData.capacity) || 1,
+        monthlyRent: rentNum,
+        location: roomData.location.trim(),
+        capacity: capNum || 1,
         availabilityNotes: roomData.availabilityNotes,
         amenities: roomData.amenities,
         imagesBase64: roomData.imagesBase64,
@@ -332,8 +397,13 @@ export default function OnboardingProfilePage() {
   const handleSeekerFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
-    if (!seekerData.preferredLocation || !seekerData.maxBudget) {
-      setError("Please fill in preferred location and maximum budget.");
+    if (!seekerData.preferredLocation || seekerData.preferredLocation.trim().length < 2) {
+      setError("Please provide a valid preferred city / location (at least 2 characters).");
+      return;
+    }
+    const budgetNum = Number(seekerData.maxBudget);
+    if (!seekerData.maxBudget || isNaN(budgetNum) || budgetNum < 500) {
+      setError("Please enter a valid maximum monthly budget (minimum ₹500).");
       return;
     }
     try {
@@ -341,8 +411,8 @@ export default function OnboardingProfilePage() {
       setError(null);
       await onboardingService.saveSeekerPreferences({
         userId: user.id,
-        preferredLocation: seekerData.preferredLocation,
-        maxBudget: Number(seekerData.maxBudget),
+        preferredLocation: seekerData.preferredLocation.trim(),
+        maxBudget: budgetNum,
         roomTypePreference: seekerData.roomTypePreference,
         requiredAmenities: seekerData.requiredAmenities,
       });
@@ -382,7 +452,23 @@ export default function OnboardingProfilePage() {
   };
 
   return (
-    <AuthLayout title={getTitle()} subtitle={getSubtitle()}>
+    <AuthLayout
+      title={getTitle()}
+      subtitle={getSubtitle()}
+      footer={
+        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500">
+          <span>Need to switch account?</span>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-1 font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Switch User / Log out
+          </button>
+        </div>
+      }
+    >
       <div className="space-y-6">
         {/* Progress Bar */}
         <div className="space-y-2">
@@ -419,13 +505,28 @@ export default function OnboardingProfilePage() {
                 <Input
                   id="dob"
                   type="date"
-                  max={new Date().toISOString().split('T')[0]}
+                  max={MAX_DOB}
+                  min={MIN_DOB}
                   required
                   value={profile.dob}
-                  onChange={(e) => setProfile({ ...profile, dob: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setProfile({ ...profile, dob: val });
+                    const valErr = validateDob(val);
+                    setDobError(valErr);
+                    if (valErr) {
+                      setError(valErr);
+                    } else {
+                      setError(null);
+                    }
+                  }}
+                  error={dobError || undefined}
                   leftIcon={<Calendar className="h-4 w-4" />}
                 />
               </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Must be at least 18 years old (born on or before {MAX_DOB}).
+              </p>
             </div>
 
             <div>
@@ -771,6 +872,7 @@ export default function OnboardingProfilePage() {
                   <Input
                     id="monthlyRent"
                     type="number"
+                    min="500"
                     required
                     placeholder="e.g. 12000"
                     value={roomData.monthlyRent}
@@ -804,6 +906,7 @@ export default function OnboardingProfilePage() {
                     id="capacity"
                     type="number"
                     min="1"
+                    max="50"
                     required
                     value={roomData.capacity}
                     onChange={(e) => setRoomData({ ...roomData, capacity: e.target.value })}
@@ -943,6 +1046,7 @@ export default function OnboardingProfilePage() {
                   <Input
                     id="maxBudget"
                     type="number"
+                    min="500"
                     required
                     placeholder="e.g. 15000"
                     value={seekerData.maxBudget}

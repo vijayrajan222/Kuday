@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 const RULES = [
   { id: 'length', label: '8+ characters', test: (v: string) => v.length >= 8 },
-  { id: 'upper', label: 'Uppercase', test: (v: string) => /[A-Z]/.test(v) },
+  { id: 'upper', label: 'Uppercase (optional)', test: (v: string) => /[A-Z]/.test(v) },
   { id: 'lower', label: 'Lowercase', test: (v: string) => /[a-z]/.test(v) },
   { id: 'number', label: 'Number', test: (v: string) => /\d/.test(v) },
   { id: 'special', label: 'Special char', test: (v: string) => /[^A-Za-z0-9]/.test(v) },

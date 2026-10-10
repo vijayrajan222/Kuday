@@ -11,6 +11,13 @@ export class CreateSeekerPreferenceUseCase implements ICreateSeekerPreferenceUse
     ) {}
 
     async execute(dto: CreateSeekerPreferenceDto): Promise<SeekerPreferenceEntity> {
+        if (!dto.preferredLocation || dto.preferredLocation.trim().length < 2) {
+            throw new Error("Preferred location must be at least 2 characters");
+        }
+        if (!dto.maxBudget || Number(dto.maxBudget) <= 0) {
+            throw new Error("Maximum budget must be a positive number greater than 0");
+        }
+
         const preference = await this.seekerRepository.save(dto);
 
         // Mark user as onboarded with seeker role
