@@ -1,18 +1,6 @@
 import type { ISeekerPreferenceRepository } from "../../application/interfaces/repository/ISeekerPreferenceRepository.js";
 import type { SeekerPreferenceEntity } from "../../domain/entities/SeekerPreferenceEntity.js";
-import { SeekerPreferenceModel } from "../database/model/SeekerPreferenceModel.js";
-
-interface SeekerPreferenceDoc {
-    _id: { toString(): string } | string;
-    userId: string;
-    preferredLocation: string;
-    maxBudget: number;
-    roomTypePreference: string;
-    requiredAmenities?: string[] | null;
-    isActive?: boolean | null;
-    createdAt?: Date | string | null;
-    updatedAt?: Date | string | null;
-}
+import { SeekerPreferenceModel, type SeekerPreferenceDoc } from "../database/model/SeekerPreferenceModel.js";
 
 export class MongoSeekerPreferenceRepository implements ISeekerPreferenceRepository {
     private mapToEntity(doc: SeekerPreferenceDoc): SeekerPreferenceEntity {

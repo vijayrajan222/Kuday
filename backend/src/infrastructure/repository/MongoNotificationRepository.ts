@@ -1,17 +1,6 @@
 import type { INotificationRepository } from "../../application/interfaces/repository/INotificationRepository.js";
 import type { NotificationEntity } from "../../domain/entities/NotificationEntity.js";
-import { NotificationModel } from "../database/model/NotificationModel.js";
-
-interface NotificationDoc {
-    _id: { toString(): string } | string;
-    userId: string;
-    title: string;
-    message: string;
-    type: "admin_verification" | "interest_request" | "system";
-    isRead: boolean;
-    createdAt?: Date | string | null;
-    updatedAt?: Date | string | null;
-}
+import { NotificationModel, type NotificationDoc } from "../database/model/NotificationModel.js";
 
 export class MongoNotificationRepository implements INotificationRepository {
     private mapToEntity(doc: NotificationDoc): NotificationEntity {

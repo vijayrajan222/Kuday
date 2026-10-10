@@ -1,14 +1,6 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { type HydratedDocument, type InferSchemaType } from "mongoose";
 
-export interface INotificationDocument extends Document {
-    userId: string;
-    title: string;
-    message: string;
-    type: "admin_verification" | "interest_request" | "system";
-    isRead: boolean;
-}
-
-const NotificationSchema = new Schema<INotificationDocument>(
+export const NotificationSchema = new mongoose.Schema(
     {
         userId: { type: String, required: true, index: true },
         title: { type: String, required: true },
@@ -23,7 +15,9 @@ const NotificationSchema = new Schema<INotificationDocument>(
     { timestamps: true }
 );
 
-export const NotificationModel = mongoose.model<INotificationDocument>(
+export type NotificationDoc = HydratedDocument<InferSchemaType<typeof NotificationSchema>>;
+
+export const NotificationModel = mongoose.model<NotificationDoc>(
     "Notification",
     NotificationSchema
 );

@@ -1,28 +1,6 @@
 import type { IUserRepository } from "../../application/interfaces/repository/IUserRepository.js";
 import type { UserEntity } from "../../domain/entities/UserEntity.js";
-import { userModel } from "../database/model/UserModel.js";
-
-interface UserDoc {
-    _id: { toString(): string } | string;
-    email?: string | null;
-    firstName?: string | null;
-    lastName?: string | null;
-    hashedPassword?: string | null;
-    isVerified?: boolean | null;
-    isBlocked?: boolean | null;
-    isAdmin?: boolean | null;
-    dob?: string | null;
-    gender?: string | null;
-    occupation?: string | null;
-    bio?: string | null;
-    role?: string | null;
-    isOnboarded?: boolean | null;
-    idCardUrl?: string | null;
-    selfieUrl?: string | null;
-    identityVerified?: boolean | null;
-    identityStatus?: string | null;
-    rejectionReason?: string | null;
-}
+import { userModel, type UserDoc } from "../database/model/UserModel.js";
 
 export class MongoUserRepository implements IUserRepository {
     private readonly user = userModel;

@@ -1,7 +1,6 @@
-import mongoose from "mongoose";
+import mongoose, { type HydratedDocument, type InferSchemaType } from "mongoose";
 
-
-const otpSchema = new mongoose.Schema({
+export const otpSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
@@ -14,14 +13,14 @@ const otpSchema = new mongoose.Schema({
     expiresAt: {
         type: Date,
         required: true,
-        expires: 600 // Automatic Mongodb TTL index deltes document after 10 minutes
+        expires: 600 // Automatic Mongodb TTL index deletes document after 10 minutes
     },
     createdAt: {
         type: Date,
         default: Date.now
     }
-})
+});
 
+export type OtpDoc = HydratedDocument<InferSchemaType<typeof otpSchema>>;
 
-export const otpModel = mongoose.model("Otp" , otpSchema)
-//to create a model it needs a name and a structure/schema 
+export const otpModel = mongoose.model<OtpDoc>("Otp", otpSchema);

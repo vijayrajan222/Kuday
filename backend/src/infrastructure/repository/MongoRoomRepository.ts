@@ -1,23 +1,6 @@
 import type { IRoomRepository } from "../../application/interfaces/repository/IRoomRepository.js";
 import type { RoomEntity } from "../../domain/entities/RoomEntity.js";
-import { RoomModel } from "../database/model/RoomModel.js";
-
-interface RoomDoc {
-    _id: { toString(): string } | string;
-    hostId: string;
-    title?: string | null;
-    roomType: string;
-    monthlyRent: number;
-    location: string;
-    capacity: number;
-    availabilityNotes: string;
-    amenities?: string[] | null;
-    images?: string[] | null;
-    description?: string | null;
-    isActive?: boolean | null;
-    createdAt?: Date | string | null;
-    updatedAt?: Date | string | null;
-}
+import { RoomModel, type RoomDoc } from "../database/model/RoomModel.js";
 
 export class MongoRoomRepository implements IRoomRepository {
     private mapToEntity(doc: RoomDoc): RoomEntity {

@@ -1,15 +1,6 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { type HydratedDocument, type InferSchemaType } from "mongoose";
 
-export interface ISeekerPreferenceDocument extends Document {
-    userId: string;
-    preferredLocation: string;
-    maxBudget: number;
-    roomTypePreference: string;
-    requiredAmenities: string[];
-    isActive?: boolean;
-}
-
-const SeekerPreferenceSchema = new Schema<ISeekerPreferenceDocument>(
+export const SeekerPreferenceSchema = new mongoose.Schema(
     {
         userId: { type: String, required: true, unique: true, index: true },
         preferredLocation: { type: String, required: true },
@@ -21,7 +12,9 @@ const SeekerPreferenceSchema = new Schema<ISeekerPreferenceDocument>(
     { timestamps: true }
 );
 
-export const SeekerPreferenceModel = mongoose.model<ISeekerPreferenceDocument>(
+export type SeekerPreferenceDoc = HydratedDocument<InferSchemaType<typeof SeekerPreferenceSchema>>;
+
+export const SeekerPreferenceModel = mongoose.model<SeekerPreferenceDoc>(
     "SeekerPreference",
     SeekerPreferenceSchema
 );

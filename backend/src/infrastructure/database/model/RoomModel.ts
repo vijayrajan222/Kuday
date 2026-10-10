@@ -1,23 +1,9 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { type HydratedDocument, type InferSchemaType } from "mongoose";
 
-export interface IRoomDocument extends Document {
-    hostId: string;
-    title?: string;
-    roomType: string;
-    monthlyRent: number;
-    location: string;
-    capacity: number;
-    availabilityNotes: string;
-    amenities: string[];
-    images: string[];
-    description?: string;
-    isActive?: boolean;
-}
-
-const RoomSchema = new Schema<IRoomDocument>(
+export const RoomSchema = new mongoose.Schema(
     {
         hostId: { type: String, required: true, index: true },
-        title: { type: String },
+        title: { type: String, default: "" },
         roomType: { type: String, required: true },
         monthlyRent: { type: Number, required: true },
         location: { type: String, required: true },
@@ -25,10 +11,12 @@ const RoomSchema = new Schema<IRoomDocument>(
         availabilityNotes: { type: String, required: true },
         amenities: [{ type: String }],
         images: [{ type: String }],
-        description: { type: String },
+        description: { type: String, default: "" },
         isActive: { type: Boolean, default: true },
     },
     { timestamps: true }
 );
 
-export const RoomModel = mongoose.model<IRoomDocument>("Room", RoomSchema);
+export type RoomDoc = HydratedDocument<InferSchemaType<typeof RoomSchema>>;
+
+export const RoomModel = mongoose.model<RoomDoc>("Room", RoomSchema);

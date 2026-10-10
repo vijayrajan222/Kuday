@@ -1,5 +1,3 @@
-// file: backend/src/domain/entities/LifestyleEntity.ts
-
 export interface LifestyleEntity {
     id: string;
     userId: string;
