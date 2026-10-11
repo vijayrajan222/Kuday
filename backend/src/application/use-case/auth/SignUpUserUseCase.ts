@@ -40,8 +40,13 @@ export class SignUpUserUseCase implements ISignUpUserUsercase {
             }
 
             // Edge Case B: User exists but is UNVERIFIED
-            // Reuse existing user ID and clean up old OTPs to prevent duplicates
+            // Update password hash, update names, reuse existing user ID and clean up old OTPs
             userId = existingUser.id;
+            await this._userRepo.updatenewPassword(cleanedEmail, hashedPassword);
+            await this._userRepo.updateUser(existingUser.id, {
+                firstName: dto.firstName.trim(),
+                lastName: dto.lastName.trim(),
+            });
             await this._otpRepo.deleteByEmail(cleanedEmail);
         } else {
             // Brand New User: Create and save to DB
@@ -69,15 +74,12 @@ export class SignUpUserUseCase implements ISignUpUserUsercase {
             expiresAt: expiresAt,
         });
 
-        // 7. Dispatch real email via Nodemailer & log in terminal for quick dev testing
-        console.log(`\n========================================`);
-        console.log(`🔑 [OTP DEBUG] Verification OTP Code for ${cleanedEmail}: ${otpCode}`);
-        console.log(`========================================\n`);
-
+        // 7. Dispatch real email via Nodemailer
         try {
             await this._mailService.sendOtpEmail(cleanedEmail, otpCode);
         } catch (mailError: unknown) {
-            console.error("Failed to send OTP email via Nodemailer:", mailError instanceof Error ? mailError.message : mailError);
+            const errorMsg = mailError instanceof Error ? mailError.message : "Failed to deliver email";
+            throw new Error(`Failed to send verification email: ${errorMsg}. Please try again or check your email address.`);
         }
 
         // 8. Return result DTO

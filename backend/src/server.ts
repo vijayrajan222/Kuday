@@ -132,7 +132,8 @@ async function startServer() {
         forgotPasswordUseCase,
         verifyResetOtpUseCase,
         resetPasswordUseCase,
-        jwtService
+        jwtService,
+        userrepo
     );
 
     const userController = new UserController(

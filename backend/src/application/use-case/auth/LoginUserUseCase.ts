@@ -11,13 +11,17 @@ export class LoginUserUseCase implements ILoginUserUseCase {
         private readonly _jwtService: IJwtService
     ) {}
 
-    async exicute(dto: loginRequestDto): Promise<loginResponseDto> {
+    async execute(dto: loginRequestDto): Promise<loginResponseDto> {
         const cleanedEmail = dto.email.trim().toLowerCase();
 
         const existingUser = await this._userRepo.findByEmail(cleanedEmail);
 
         if (!existingUser) {
             throw new Error("Invalid email or password.");
+        }
+
+        if (existingUser.isBlocked) {
+            throw new Error("Your account has been blocked. Please contact support.");
         }
 
         if (!existingUser.isVerified) {

@@ -11,7 +11,7 @@ export class VerifyResetOtpUseCase implements IVerifyResetOtpUseCase {
         private readonly _jwtService: IJwtService
     ) { }
 
-    async exicute(dto: VerifyResetOtpRequestDto): Promise<VerifyResetOtpResponseDto> {
+    async execute(dto: VerifyResetOtpRequestDto): Promise<VerifyResetOtpResponseDto> {
         let cleanedEmail = dto.email.trim().toLowerCase()
         const user = await this._userRepo.findByEmail(cleanedEmail);
 

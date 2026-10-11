@@ -19,6 +19,7 @@ import { GoogleAuthRequestSchema } from "../utils/validators/zod/GoogleAuthReque
 import { ForgetPasswordSchema } from "../utils/validators/zod/ForgotPasswordSchema.js";
 import { VerifyResetOtpSchema } from "../utils/validators/zod/VerifyResetOtpSchema.js";
 import { ResetPasswordSchema } from "../utils/validators/zod/ResetPasswordSchema.js";
+import type { IUserRepository } from "../../application/interfaces/repository/IUserRepository.js";
 
 export class AuthController implements IAuthController {
     private readonly _signUpUsecase: ISignUpUserUsercase;
@@ -29,6 +30,7 @@ export class AuthController implements IAuthController {
     private readonly _verifyResetOtpUseCase: IVerifyResetOtpUseCase;
     private readonly _resetPasswordUseCase: IResetPasswordUseCase;
     private readonly _jwtService?: IJwtService | undefined;
+    private readonly _userRepo?: IUserRepository | undefined;
 
     constructor(
         signUpUsecase: ISignUpUserUsercase,
@@ -38,7 +40,8 @@ export class AuthController implements IAuthController {
         forgotPasswordUseCase: IForgotPasswordUseCase,
         verifyResetOtpUseCase: IVerifyResetOtpUseCase,
         resetPasswordUseCase: IResetPasswordUseCase,
-        jwtService?: IJwtService | undefined
+        jwtService?: IJwtService | undefined,
+        userRepo?: IUserRepository | undefined
     ) {
         this._signUpUsecase = signUpUsecase;
         this._verifyOtpUseCase = verifyOtpUseCase;
@@ -48,13 +51,12 @@ export class AuthController implements IAuthController {
         this._verifyResetOtpUseCase = verifyResetOtpUseCase;
         this._resetPasswordUseCase = resetPasswordUseCase;
         this._jwtService = jwtService;
+        this._userRepo = userRepo;
     }
 
     async signUp(req: Request, res: Response): Promise<void> {
         try {
             const value = SignUpUserRequestSchema.parse(req.body);
-
-            console.log("SignUp Value", value);
 
             const result = await this._signUpUsecase.execute(value);
 
@@ -83,7 +85,7 @@ export class AuthController implements IAuthController {
         try {
             const value = VerifyOtpRequestSchema.parse(req.body);
 
-            const result = await this._verifyOtpUseCase.exicute(value);
+            const result = await this._verifyOtpUseCase.execute(value);
 
             res.status(200).json({
                 success: true,
@@ -113,7 +115,7 @@ export class AuthController implements IAuthController {
         try {
             const value = LoginRequestSchema.parse(req.body);
 
-            const result = await this._loginUseCase.exicute(value);
+            const result = await this._loginUseCase.execute(value);
 
             // Generate refresh token and set as httpOnly cookie if jwtService is available
             if (this._jwtService && result.id && result.email) {
@@ -121,7 +123,14 @@ export class AuthController implements IAuthController {
                     userId: result.id,
                     email: result.email
                 });
-                res.setHeader("Set-Cookie", `refreshToken=${refreshToken}; Path=/; HttpOnly; Max-Age=2592000; SameSite=Lax`);
+                const isProduction = process.env.NODE_ENV === "production";
+                res.cookie("refreshToken", refreshToken, {
+                    httpOnly: true,
+                    secure: isProduction,
+                    sameSite: isProduction ? "none" : "lax",
+                    maxAge: 30 * 24 * 60 * 60 * 1000,
+                    path: "/",
+                });
             }
 
             res.status(200).json({
@@ -159,7 +168,14 @@ export class AuthController implements IAuthController {
                     userId: result.id,
                     email: result.email
                 });
-                res.setHeader("Set-Cookie", `refreshToken=${refreshToken}; Path=/; HttpOnly; Max-Age=2592000; SameSite=Lax`);
+                const isProduction = process.env.NODE_ENV === "production";
+                res.cookie("refreshToken", refreshToken, {
+                    httpOnly: true,
+                    secure: isProduction,
+                    sameSite: isProduction ? "none" : "lax",
+                    maxAge: 30 * 24 * 60 * 60 * 1000,
+                    path: "/",
+                });
             }
 
             res.status(200).json({
@@ -213,7 +229,7 @@ export class AuthController implements IAuthController {
     async verifyResetOtp(req: Request, res: Response): Promise<void> {
         try {
             const value = VerifyResetOtpSchema.parse(req.body);
-            const result = await this._verifyResetOtpUseCase.exicute(value);
+            const result = await this._verifyResetOtpUseCase.execute(value);
             res.status(200).json({
                 success: true,
                 message: result.message,
@@ -294,6 +310,32 @@ export class AuthController implements IAuthController {
                 return;
             }
 
+            // Verify that user exists in database and is not blocked
+            if (this._userRepo) {
+                const user = await this._userRepo.findById(decoded.userId);
+                if (!user) {
+                    res.status(401).json({
+                        success: false,
+                        message: "User no longer exists."
+                    });
+                    return;
+                }
+                if (user.isBlocked) {
+                    const isProduction = process.env.NODE_ENV === "production";
+                    res.clearCookie("refreshToken", {
+                        httpOnly: true,
+                        secure: isProduction,
+                        sameSite: isProduction ? "none" : "lax",
+                        path: "/",
+                    });
+                    res.status(403).json({
+                        success: false,
+                        message: "Your account has been blocked. Please contact support."
+                    });
+                    return;
+                }
+            }
+
             const newToken = this._jwtService.generateToken({
                 userId: decoded.userId,
                 email: decoded.email
@@ -314,7 +356,13 @@ export class AuthController implements IAuthController {
 
     async logout(req: Request, res: Response): Promise<void> {
         try {
-            res.setHeader("Set-Cookie", "refreshToken=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax");
+            const isProduction = process.env.NODE_ENV === "production";
+            res.clearCookie("refreshToken", {
+                httpOnly: true,
+                secure: isProduction,
+                sameSite: isProduction ? "none" : "lax",
+                path: "/",
+            });
             res.status(200).json({
                 success: true,
                 message: "Logged out successfully"

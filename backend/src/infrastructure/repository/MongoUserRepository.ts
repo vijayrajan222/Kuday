@@ -31,8 +31,15 @@ export class MongoUserRepository implements IUserRepository {
     }
 
     async save(newUser: Omit<UserEntity, "id">): Promise<UserEntity> {
-        const userDocument = await this.user.create(newUser);
-        return this.mapUserDoc(userDocument);
+        try {
+            const userDocument = await this.user.create(newUser);
+            return this.mapUserDoc(userDocument);
+        } catch (error: unknown) {
+            if (typeof error === "object" && error !== null && "code" in error && (error as { code: unknown }).code === 11000) {
+                throw new Error("User with this email already exists.");
+            }
+            throw error;
+        }
     }
 
     async findByEmail(email: string): Promise<UserEntity | null> {
@@ -61,12 +68,30 @@ export class MongoUserRepository implements IUserRepository {
     }
 
     async updateProfile(userId: string, profileData: Partial<UserEntity>): Promise<UserEntity | null> {
-        const doc = await this.user.findByIdAndUpdate(userId, { $set: profileData }, { new: true });
+        // Explicitly pick ONLY allowed profile fields to prevent mass-assignment vulnerabilities (e.g. isAdmin, isBlocked)
+        const allowedUpdates: Record<string, unknown> = {};
+        if (profileData.firstName !== undefined) allowedUpdates.firstName = profileData.firstName;
+        if (profileData.lastName !== undefined) allowedUpdates.lastName = profileData.lastName;
+        if (profileData.dob !== undefined) allowedUpdates.dob = profileData.dob;
+        if (profileData.gender !== undefined) allowedUpdates.gender = profileData.gender;
+        if (profileData.occupation !== undefined) allowedUpdates.occupation = profileData.occupation;
+        if (profileData.bio !== undefined) allowedUpdates.bio = profileData.bio;
+        if (profileData.selfieUrl !== undefined) allowedUpdates.selfieUrl = profileData.selfieUrl;
+        if (profileData.idCardUrl !== undefined) allowedUpdates.idCardUrl = profileData.idCardUrl;
+        if (profileData.role !== undefined) allowedUpdates.role = profileData.role;
+        if (profileData.isOnboarded !== undefined) allowedUpdates.isOnboarded = profileData.isOnboarded;
+        if (profileData.identityVerified !== undefined) allowedUpdates.identityVerified = profileData.identityVerified;
+        if (profileData.identityStatus !== undefined) allowedUpdates.identityStatus = profileData.identityStatus;
+        if (profileData.rejectionReason !== undefined) allowedUpdates.rejectionReason = profileData.rejectionReason;
+
+        const doc = await this.user.findByIdAndUpdate(userId, { $set: allowedUpdates }, { new: true });
         if (!doc) return null;
         return this.mapUserDoc(doc);
     }
 
     async updateUser(userId: string, userData: Partial<UserEntity>): Promise<UserEntity | null> {
-        return this.updateProfile(userId, userData);
+        const doc = await this.user.findByIdAndUpdate(userId, { $set: userData }, { new: true });
+        if (!doc) return null;
+        return this.mapUserDoc(doc);
     }
 }

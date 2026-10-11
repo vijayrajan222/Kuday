@@ -12,7 +12,7 @@ export class JwtService implements IJwtService {
 
     generateToken(payload: { userId: string; email: string }): string {
         return jwt.sign(payload, this._secretKey, {
-            expiresIn: "7d",
+            expiresIn: (process.env.JWT_EXPIRES_IN || "1d") as `${number}${"d" | "h" | "m" | "s"}`,
         });
     }
 

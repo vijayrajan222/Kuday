@@ -11,7 +11,7 @@ export class VerifyOptUseCase implements IVerifyOtpUseCase {
         private readonly _jwtService: IJwtService
     ) {}
 
-    async exicute(dto: VerifyOtpRequestDto): Promise<VerifyOtpResultDto> {
+    async execute(dto: VerifyOtpRequestDto): Promise<VerifyOtpResultDto> {
         const cleanedEmail = dto.email.trim().toLowerCase();
 
         const user = await this._userRepo.findByEmail(cleanedEmail);
