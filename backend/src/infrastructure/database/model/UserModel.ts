@@ -1,7 +1,11 @@
-import mongoose, { type HydratedDocument, type InferSchemaType } from "mongoose";
+import mongoose, {
+    type HydratedDocument,
+    type InferSchemaType,
+} from "mongoose";
 
 export const userSchema = new mongoose.Schema(
     {
+        // Authentication
         email: {
             type: String,
             required: true,
@@ -9,6 +13,16 @@ export const userSchema = new mongoose.Schema(
             trim: true,
             lowercase: true,
         },
+        hashedPassword: {
+            type: String,
+            required: false,
+            default: "",
+        },
+        otp: {
+            type: Number,
+        },
+
+        // Personal Information
         firstName: {
             type: String,
             required: true,
@@ -18,11 +32,24 @@ export const userSchema = new mongoose.Schema(
             required: false,
             default: "",
         },
-        hashedPassword: {
+        dob: {
             type: String,
-            required: false,
             default: "",
         },
+        gender: {
+            type: String,
+            default: "",
+        },
+        occupation: {
+            type: String,
+            default: "",
+        },
+        bio: {
+            type: String,
+            default: "",
+        },
+
+        // Account Status
         isVerified: {
             type: Boolean,
             required: true,
@@ -33,25 +60,55 @@ export const userSchema = new mongoose.Schema(
             required: true,
             default: false,
         },
-        otp: {
-            type: Number,
+        isAdmin: {
+            type: Boolean,
+            default: false,
         },
-        dob: { type: String, default: "" },
-        gender: { type: String, default: "" },
-        occupation: { type: String, default: "" },
-        bio: { type: String, default: "" },
-        role: { type: String, enum: ["host", "seeker", "admin", "none"], default: "none" },
-        isAdmin: { type: Boolean, default: false },
-        isOnboarded: { type: Boolean, default: false },
-        idCardUrl: { type: String, default: "" },
-        selfieUrl: { type: String, default: "" },
-        identityVerified: { type: Boolean, default: false },
-        identityStatus: { type: String, enum: ["pending", "verified", "rejected", "none"], default: "none" },
-        rejectionReason: { type: String, default: "" },
+        isOnboarded: {
+            type: Boolean,
+            default: false,
+        },
+
+        // Role Management
+        role: {
+            type: String,
+            enum: ["host", "seeker", "admin", "none"],
+            default: "none",
+        },
+
+        // Identity Verification
+        idCardUrl: {
+            type: String,
+            default: "",
+        },
+        selfieUrl: {
+            type: String,
+            default: "",
+        },
+        identityVerified: {
+            type: Boolean,
+            default: false,
+        },
+        identityStatus: {
+            type: String,
+            enum: ["pending", "verified", "rejected", "none"],
+            default: "none",
+        },
+        rejectionReason: {
+            type: String,
+            default: "",
+        },
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+    }
 );
 
-export type UserDoc = HydratedDocument<InferSchemaType<typeof userSchema>>;
+export type UserDoc = HydratedDocument<
+    InferSchemaType<typeof userSchema>
+>;
 
-export const userModel = mongoose.model<UserDoc>("user", userSchema);
+export const userModel = mongoose.model<UserDoc>(
+    "user",
+    userSchema
+);

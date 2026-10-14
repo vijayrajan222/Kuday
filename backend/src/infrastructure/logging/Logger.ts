@@ -1,9 +1,6 @@
-export interface ILogger {
-    info(message: string, meta?: unknown): void;
-    warn(message: string, meta?: unknown): void;
-    error(message: string, error?: unknown): void;
-    debug(message: string, meta?: unknown): void;
-}
+import type { ILogger } from "../../application/interfaces/services/ILogger.js";
+
+export type { ILogger };
 
 export class Logger implements ILogger {
     private static instance: Logger;
@@ -37,3 +34,4 @@ export class Logger implements ILogger {
 }
 
 export const logger = Logger.getInstance();
+  

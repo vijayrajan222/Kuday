@@ -1,5 +1,4 @@
 import dotenv from "dotenv"
-import { json } from "express";
 import mongoose from "mongoose";
 import dns from 'node:dns';
 dns.setServers(['8.8.8.8', '8.8.4.4']);
