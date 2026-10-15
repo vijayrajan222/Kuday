@@ -2,13 +2,46 @@ import type { IUserRepository } from "../../application/interfaces/repository/IU
 import type { UserEntity } from "../../domain/entities/UserEntity.js";
 import { userModel, type UserDoc } from "../database/model/UserModel.js";
 
+/**
+ * Fields that updateProfile() is allowed to change.
+ * Anything not listed here (isAdmin, isBlocked, email, hashedPassword, ...)
+ * is ignored, which prevents mass-assignment of sensitive fields.
+ */
+const PROFILE_UPDATABLE_FIELDS = [
+    "firstName",
+    "lastName",
+    "dob",
+    "gender",
+    "occupation",
+    "bio",
+    "selfieUrl",
+    "idCardUrl",
+    "role",
+    "isOnboarded",
+    "identityVerified",
+    "identityStatus",
+    "rejectionReason",
+] as const satisfies readonly (keyof UserEntity)[];
+
+/** MongoDB duplicate-key error code (unique index violated). */
+const MONGO_DUPLICATE_KEY_CODE = 11000;
+
+function isDuplicateKeyError(error: unknown): boolean {
+    return (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code: unknown }).code === MONGO_DUPLICATE_KEY_CODE
+    );
+}
+
 export class MongoUserRepository implements IUserRepository {
     private readonly user = userModel;
-    constructor() {}
 
+    // Converts a Mongoose document into a clean domain entity
     private mapUserDoc(doc: UserDoc): UserEntity {
         return {
-            id: typeof doc._id === 'string' ? doc._id : doc._id.toString(),
+            id: typeof doc._id === "string" ? doc._id : doc._id.toString(),
             email: doc.email ?? "",
             firstName: doc.firstName ?? "",
             lastName: doc.lastName ?? "",
@@ -20,12 +53,13 @@ export class MongoUserRepository implements IUserRepository {
             gender: doc.gender ?? "",
             occupation: doc.occupation ?? "",
             bio: doc.bio ?? "",
-            role: (doc.role as 'host' | 'seeker' | 'admin' | 'none') ?? 'none',
+            role: (doc.role as "host" | "seeker" | "admin" | "none") ?? "none",
             isOnboarded: Boolean(doc.isOnboarded),
             idCardUrl: doc.idCardUrl ?? "",
             selfieUrl: doc.selfieUrl ?? "",
             identityVerified: Boolean(doc.identityVerified),
-            identityStatus: (doc.identityStatus as 'pending' | 'verified' | 'rejected' | 'none') ?? 'none',
+            identityStatus:
+                (doc.identityStatus as "pending" | "verified" | "rejected" | "none") ?? "none",
             rejectionReason: doc.rejectionReason ?? "",
         };
     }
@@ -35,7 +69,8 @@ export class MongoUserRepository implements IUserRepository {
             const userDocument = await this.user.create(newUser);
             return this.mapUserDoc(userDocument);
         } catch (error: unknown) {
-            if (typeof error === "object" && error !== null && "code" in error && (error as { code: unknown }).code === 11000) {
+            // Two signups with the same email at the same moment
+            if (isDuplicateKeyError(error)) {
                 throw new Error("User with this email already exists.");
             }
             throw error;
@@ -67,30 +102,41 @@ export class MongoUserRepository implements IUserRepository {
         await this.user.updateOne({ email }, { hashedPassword });
     }
 
-    async updateProfile(userId: string, profileData: Partial<UserEntity>): Promise<UserEntity | null> {
-        // Explicitly pick ONLY allowed profile fields to prevent mass-assignment vulnerabilities (e.g. isAdmin, isBlocked)
+    async updateProfile(
+        userId: string,
+        profileData: Partial<UserEntity>
+    ): Promise<UserEntity | null> {
+        // Copy only the allowed fields that were actually provided
         const allowedUpdates: Record<string, unknown> = {};
-        if (profileData.firstName !== undefined) allowedUpdates.firstName = profileData.firstName;
-        if (profileData.lastName !== undefined) allowedUpdates.lastName = profileData.lastName;
-        if (profileData.dob !== undefined) allowedUpdates.dob = profileData.dob;
-        if (profileData.gender !== undefined) allowedUpdates.gender = profileData.gender;
-        if (profileData.occupation !== undefined) allowedUpdates.occupation = profileData.occupation;
-        if (profileData.bio !== undefined) allowedUpdates.bio = profileData.bio;
-        if (profileData.selfieUrl !== undefined) allowedUpdates.selfieUrl = profileData.selfieUrl;
-        if (profileData.idCardUrl !== undefined) allowedUpdates.idCardUrl = profileData.idCardUrl;
-        if (profileData.role !== undefined) allowedUpdates.role = profileData.role;
-        if (profileData.isOnboarded !== undefined) allowedUpdates.isOnboarded = profileData.isOnboarded;
-        if (profileData.identityVerified !== undefined) allowedUpdates.identityVerified = profileData.identityVerified;
-        if (profileData.identityStatus !== undefined) allowedUpdates.identityStatus = profileData.identityStatus;
-        if (profileData.rejectionReason !== undefined) allowedUpdates.rejectionReason = profileData.rejectionReason;
+        for (const field of PROFILE_UPDATABLE_FIELDS) {
+            if (profileData[field] !== undefined) {
+                allowedUpdates[field] = profileData[field];
+            }
+        }
 
-        const doc = await this.user.findByIdAndUpdate(userId, { $set: allowedUpdates }, { new: true });
+        const doc = await this.user.findByIdAndUpdate(
+            userId,
+            { $set: allowedUpdates },
+            { new: true } // return the updated document, not the old one
+        );
         if (!doc) return null;
         return this.mapUserDoc(doc);
     }
 
-    async updateUser(userId: string, userData: Partial<UserEntity>): Promise<UserEntity | null> {
-        const doc = await this.user.findByIdAndUpdate(userId, { $set: userData }, { new: true });
+    /**
+     * Unfiltered update. Only call this from trusted use cases (e.g. admin
+     * block / identity verification) with values the use case built itself,
+     * never with raw request data.
+     */
+    async updateUser(
+        userId: string,
+        userData: Partial<UserEntity>
+    ): Promise<UserEntity | null> {
+        const doc = await this.user.findByIdAndUpdate(
+            userId,
+            { $set: userData },
+            { new: true }
+        );
         if (!doc) return null;
         return this.mapUserDoc(doc);
     }

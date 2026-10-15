@@ -6,8 +6,7 @@ export class HashService implements IHashingService{
     constructor(){}
 
     async hash(input: string): Promise<string> {
-       let hashedPassword
-        = await bcrypt.hash(input, 10);
+       let hashedPassword = await bcrypt.hash(input, 10);
 
         return hashedPassword 
     }
