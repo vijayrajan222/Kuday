@@ -4,10 +4,6 @@ import type { IJwtService } from "../../interfaces/services/IJwtServices.js";
 import type { IAdminLoginUseCase } from "../../interfaces/use-case/admin/IAdminLoginUseCase.js";
 import type { AdminLoginRequestDto, AdminLoginResultDto } from "../../dto/admin/AdminLoginDto.js";
 
-// Backward-compatibility aliases
-export type AdminLoginInput = AdminLoginRequestDto;
-export type AdminLoginOutput = AdminLoginResultDto;
-
 export class AdminLoginUseCase implements IAdminLoginUseCase {
     constructor(
         private userRepository: IUserRepository,

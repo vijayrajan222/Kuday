@@ -3,9 +3,6 @@ import type { IRoomRepository } from "../../interfaces/repository/IRoomRepositor
 import type { IGetAdminStatsUseCase } from "../../interfaces/use-case/admin/IGetAdminStatsUseCase.js";
 import type { AdminStatsResultDto } from "../../dto/admin/AdminStatsDto.js";
 
-// Backward-compatibility alias
-export type AdminStatsOutput = AdminStatsResultDto;
-
 export class GetAdminStatsUseCase implements IGetAdminStatsUseCase {
     constructor(
         private userRepository: IUserRepository,

@@ -3,9 +3,6 @@ import type { INotificationRepository } from "../../interfaces/repository/INotif
 import type { IVerifyUserIdentityUseCase } from "../../interfaces/use-case/admin/IVerifyUserIdentityUseCase.js";
 import type { VerifyUserIdentityRequestDto, VerifyUserIdentityResultDto } from "../../dto/admin/VerifyUserIdentityDto.js";
 
-// Backward-compatibility alias
-export type VerifyUserIdentityInput = VerifyUserIdentityRequestDto;
-
 export class VerifyUserIdentityUseCase implements IVerifyUserIdentityUseCase {
     constructor(
         private userRepository: IUserRepository,

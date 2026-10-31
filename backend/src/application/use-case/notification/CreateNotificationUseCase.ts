@@ -3,9 +3,6 @@ import type { NotificationEntity } from "../../../domain/entities/NotificationEn
 import type { ICreateNotificationUseCase } from "../../interfaces/use-case/notification/ICreateNotificationUseCase.js";
 import type { CreateNotificationRequestDto } from "../../dto/notification/CreateNotificationDto.js";
 
-// Backward-compatibility alias
-export type CreateNotificationDto = CreateNotificationRequestDto;
-
 export class CreateNotificationUseCase implements ICreateNotificationUseCase {
     constructor(private notificationRepository: INotificationRepository) {}
 
