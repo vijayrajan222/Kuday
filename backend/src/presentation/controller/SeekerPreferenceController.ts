@@ -1,11 +1,11 @@
 import type { Request, Response } from "express";
 import type { ICreateSeekerPreferenceUseCase } from "../../application/interfaces/use-case/seeker/ICreateSeekerPreferenceUseCase.js";
-import type { GetSeekerPreferencesUseCase } from "../../application/use-case/seeker/GetSeekerPreferencesUseCase.js";
+import type { IGetSeekerPreferencesUseCase } from "../../application/interfaces/use-case/seeker/IGetSeekerPreferencesUseCase.js";
 
 export class SeekerPreferenceController {
     constructor(
         private createSeekerPreferenceUseCase: ICreateSeekerPreferenceUseCase,
-        private getSeekerPreferencesUseCase: GetSeekerPreferencesUseCase
+        private getSeekerPreferencesUseCase: IGetSeekerPreferencesUseCase
     ) {}
 
     async createPreference(req: Request, res: Response): Promise<void> {

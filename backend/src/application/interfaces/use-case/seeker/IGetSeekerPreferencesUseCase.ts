@@ -1,6 +1,5 @@
-import type { SeekerPreferenceEntity } from "../../../../domain/entities/SeekerPreferenceEntity.js";
+import type { SeekerPreferenceWithUserDto } from "../../../dto/seeker/GetSeekerResponseDto.js";
 
 export interface IGetSeekerPreferencesUseCase {
-    execute(): Promise<SeekerPreferenceEntity[]>;
-    getByUserId(userId: string): Promise<SeekerPreferenceEntity | null>;
+    execute(hostUserId?: string): Promise<SeekerPreferenceWithUserDto[]>;
 }

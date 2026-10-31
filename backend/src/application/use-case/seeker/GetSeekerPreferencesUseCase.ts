@@ -3,9 +3,10 @@ import type { IUserRepository } from "../../interfaces/repository/IUserRepositor
 import type { ILifestyleRepository } from "../../interfaces/repository/ILifestyleRepository.js";
 import type { IRoomRepository } from "../../interfaces/repository/IRoomRepository.js";
 import type { SeekerPreferenceWithUserDto, SeekerProfileDto } from "../../dto/seeker/GetSeekerResponseDto.js";
+import type { IGetSeekerPreferencesUseCase } from "../../interfaces/use-case/seeker/IGetSeekerPreferencesUseCase.js";
 import { MatchCalculatorService } from "../../../domain/services/MatchCalculatorService.js";
 
-export class GetSeekerPreferencesUseCase {
+export class GetSeekerPreferencesUseCase implements IGetSeekerPreferencesUseCase {
     constructor(
         private seekerPreferenceRepository: ISeekerPreferenceRepository,
         private userRepository: IUserRepository,
