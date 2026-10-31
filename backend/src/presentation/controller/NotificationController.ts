@@ -1,13 +1,13 @@
 import type { Request, Response } from "express";
-import type { GetNotificationsUseCase } from "../../application/use-case/notification/GetNotificationsUseCase.js";
-import type { CreateNotificationUseCase } from "../../application/use-case/notification/CreateNotificationUseCase.js";
-import type { MarkNotificationReadUseCase } from "../../application/use-case/notification/MarkNotificationReadUseCase.js";
+import type { IGetNotificationsUseCase } from "../../application/interfaces/use-case/notification/IGetNotificationsUseCase.js";
+import type { ICreateNotificationUseCase } from "../../application/interfaces/use-case/notification/ICreateNotificationUseCase.js";
+import type { IMarkNotificationReadUseCase } from "../../application/interfaces/use-case/notification/IMarkNotificationReadUseCase.js";
 
 export class NotificationController {
     constructor(
-        private getNotificationsUseCase: GetNotificationsUseCase,
-        private createNotificationUseCase: CreateNotificationUseCase,
-        private markNotificationReadUseCase: MarkNotificationReadUseCase
+        private getNotificationsUseCase: IGetNotificationsUseCase,
+        private createNotificationUseCase: ICreateNotificationUseCase,
+        private markNotificationReadUseCase: IMarkNotificationReadUseCase
     ) {}
 
     async getNotifications(req: Request, res: Response): Promise<void> {
