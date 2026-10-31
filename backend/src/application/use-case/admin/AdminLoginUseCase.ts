@@ -1,30 +1,21 @@
 import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
 import type { IHashingService } from "../../interfaces/services/IhashingService.js";
 import type { IJwtService } from "../../interfaces/services/IJwtServices.js";
+import type { IAdminLoginUseCase } from "../../interfaces/use-case/admin/IAdminLoginUseCase.js";
+import type { AdminLoginRequestDto, AdminLoginResultDto } from "../../dto/admin/AdminLoginDto.js";
 
-export interface AdminLoginInput {
-    email: string;
-    password: string;
-}
+// Backward-compatibility aliases
+export type AdminLoginInput = AdminLoginRequestDto;
+export type AdminLoginOutput = AdminLoginResultDto;
 
-export interface AdminLoginOutput {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    isAdmin: boolean;
-    token: string;
-}
-
-export class AdminLoginUseCase {
+export class AdminLoginUseCase implements IAdminLoginUseCase {
     constructor(
         private userRepository: IUserRepository,
         private hashService: IHashingService,
         private jwtService: IJwtService
     ) {}
 
-    async execute(input: AdminLoginInput): Promise<AdminLoginOutput> {
+    async execute(input: AdminLoginRequestDto): Promise<AdminLoginResultDto> {
         const inputClean = input.email.trim().toLowerCase();
         const isAdminQuery =
             inputClean === "kudai_admin" ||

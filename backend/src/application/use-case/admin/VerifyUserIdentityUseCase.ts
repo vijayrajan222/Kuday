@@ -1,19 +1,18 @@
 import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
 import type { INotificationRepository } from "../../interfaces/repository/INotificationRepository.js";
+import type { IVerifyUserIdentityUseCase } from "../../interfaces/use-case/admin/IVerifyUserIdentityUseCase.js";
+import type { VerifyUserIdentityRequestDto, VerifyUserIdentityResultDto } from "../../dto/admin/VerifyUserIdentityDto.js";
 
-export interface VerifyUserIdentityInput {
-    userId: string;
-    action: "approve" | "reject";
-    rejectionReason?: string;
-}
+// Backward-compatibility alias
+export type VerifyUserIdentityInput = VerifyUserIdentityRequestDto;
 
-export class VerifyUserIdentityUseCase {
+export class VerifyUserIdentityUseCase implements IVerifyUserIdentityUseCase {
     constructor(
         private userRepository: IUserRepository,
         private notificationRepository: INotificationRepository
     ) {}
 
-    async execute(input: VerifyUserIdentityInput): Promise<{ message: string; identityStatus: string }> {
+    async execute(input: VerifyUserIdentityRequestDto): Promise<VerifyUserIdentityResultDto> {
         const user = await this.userRepository.findById(input.userId);
         if (!user) {
             throw new Error("User not found.");

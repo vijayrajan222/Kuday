@@ -1,9 +1,11 @@
 import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
+import type { IToggleBlockUserUseCase } from "../../interfaces/use-case/admin/IToggleBlockUserUseCase.js";
+import type { ToggleBlockUserResultDto } from "../../dto/admin/ToggleBlockUserDto.js";
 
-export class ToggleBlockUserUseCase {
+export class ToggleBlockUserUseCase implements IToggleBlockUserUseCase {
     constructor(private userRepository: IUserRepository) {}
 
-    async execute(userId: string): Promise<{ isBlocked: boolean; message: string }> {
+    async execute(userId: string): Promise<ToggleBlockUserResultDto> {
         const user = await this.userRepository.findById(userId);
         if (!user) {
             throw new Error("User not found.");

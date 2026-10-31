@@ -1,17 +1,17 @@
 import type { Request, Response } from "express";
-import type { AdminLoginUseCase } from "../../application/use-case/admin/AdminLoginUseCase.js";
-import type { GetAdminStatsUseCase } from "../../application/use-case/admin/GetAdminStatsUseCase.js";
-import type { GetAllUsersUseCase } from "../../application/use-case/admin/GetAllUsersUseCase.js";
-import type { VerifyUserIdentityUseCase } from "../../application/use-case/admin/VerifyUserIdentityUseCase.js";
-import type { ToggleBlockUserUseCase } from "../../application/use-case/admin/ToggleBlockUserUseCase.js";
+import type { IAdminLoginUseCase } from "../../application/interfaces/use-case/admin/IAdminLoginUseCase.js";
+import type { IGetAdminStatsUseCase } from "../../application/interfaces/use-case/admin/IGetAdminStatsUseCase.js";
+import type { IGetAllUsersUseCase } from "../../application/interfaces/use-case/admin/IGetAllUsersUseCase.js";
+import type { IVerifyUserIdentityUseCase } from "../../application/interfaces/use-case/admin/IVerifyUserIdentityUseCase.js";
+import type { IToggleBlockUserUseCase } from "../../application/interfaces/use-case/admin/IToggleBlockUserUseCase.js";
 
 export class AdminController {
     constructor(
-        private adminLoginUseCase: AdminLoginUseCase,
-        private getAdminStatsUseCase: GetAdminStatsUseCase,
-        private getAllUsersUseCase: GetAllUsersUseCase,
-        private verifyUserIdentityUseCase: VerifyUserIdentityUseCase,
-        private toggleBlockUserUseCase: ToggleBlockUserUseCase
+        private adminLoginUseCase: IAdminLoginUseCase,
+        private getAdminStatsUseCase: IGetAdminStatsUseCase,
+        private getAllUsersUseCase: IGetAllUsersUseCase,
+        private verifyUserIdentityUseCase: IVerifyUserIdentityUseCase,
+        private toggleBlockUserUseCase: IToggleBlockUserUseCase
     ) {}
 
     async login(req: Request, res: Response): Promise<void> {

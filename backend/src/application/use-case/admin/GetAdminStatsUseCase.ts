@@ -1,30 +1,18 @@
 import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
 import type { IRoomRepository } from "../../interfaces/repository/IRoomRepository.js";
+import type { IGetAdminStatsUseCase } from "../../interfaces/use-case/admin/IGetAdminStatsUseCase.js";
+import type { AdminStatsResultDto } from "../../dto/admin/AdminStatsDto.js";
 
-export interface AdminStatsOutput {
-    totalUsers: number;
-    hostsCount: number;
-    seekersCount: number;
-    pendingVerifications: number;
-    verifiedUsers: number;
-    blockedUsers: number;
-    activeListings: number;
-    totalRevenue: number;
-    monthlyRevenue: number;
-    revenueBreakdown: {
-        listingFees: number;
-        subscriptionRevenue: number;
-        bookingCommissions: number;
-    };
-}
+// Backward-compatibility alias
+export type AdminStatsOutput = AdminStatsResultDto;
 
-export class GetAdminStatsUseCase {
+export class GetAdminStatsUseCase implements IGetAdminStatsUseCase {
     constructor(
         private userRepository: IUserRepository,
         private roomRepository: IRoomRepository
     ) {}
 
-    async execute(): Promise<AdminStatsOutput> {
+    async execute(): Promise<AdminStatsResultDto> {
         const users = await this.userRepository.findAll();
         const nonAdminUsers = users.filter((u) => !u.isAdmin && u.role !== "admin");
 
