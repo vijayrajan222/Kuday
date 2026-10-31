@@ -1,21 +1,46 @@
-import mongoose, { type HydratedDocument, type InferSchemaType } from "mongoose";
+import mongoose, {
+    type HydratedDocument,
+    type InferSchemaType,
+} from "mongoose";
 
 export const NotificationSchema = new mongoose.Schema(
     {
-        userId: { type: String, required: true, index: true },
-        title: { type: String, required: true },
-        message: { type: String, required: true },
+        // Target Recipient
+        userId: {
+            type: String,
+            required: true,
+            index: true,
+        },
+
+        // Message Content
+        title: {
+            type: String,
+            required: true,
+        },
+        message: {
+            type: String,
+            required: true,
+        },
+
+        // Classification & Delivery
         type: {
             type: String,
             enum: ["admin_verification", "interest_request", "system"],
             default: "system",
         },
-        isRead: { type: Boolean, default: false },
+        isRead: {
+            type: Boolean,
+            default: false,
+        },
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+    }
 );
 
-export type NotificationDoc = HydratedDocument<InferSchemaType<typeof NotificationSchema>>;
+export type NotificationDoc = HydratedDocument<
+    InferSchemaType<typeof NotificationSchema>
+>;
 
 export const NotificationModel = mongoose.model<NotificationDoc>(
     "Notification",
