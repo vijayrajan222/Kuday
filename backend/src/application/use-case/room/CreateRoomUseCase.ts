@@ -1,7 +1,7 @@
 import type { ICreateRoomUseCase } from "../../interfaces/use-case/room/ICreateRoomUseCase.js";
 import type { IRoomRepository } from "../../interfaces/repository/IRoomRepository.js";
 import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
-import type { CloudinaryService } from "../../../infrastructure/services/CloudinaryService.js";
+import type { ICloudinaryService } from "../../interfaces/services/ICloudinaryService.js";
 import type { CreateRoomDto } from "../../dto/room/CreateRoomDto.js";
 import type { RoomEntity } from "../../../domain/entities/RoomEntity.js";
 
@@ -9,7 +9,7 @@ export class CreateRoomUseCase implements ICreateRoomUseCase {
     constructor(
         private roomRepository: IRoomRepository,
         private userRepository: IUserRepository,
-        private cloudinaryService: CloudinaryService
+        private cloudinaryService: ICloudinaryService
     ) {}
 
     async execute(dto: CreateRoomDto): Promise<RoomEntity> {

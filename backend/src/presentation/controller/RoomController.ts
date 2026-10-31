@@ -1,11 +1,11 @@
 import type { Request, Response } from "express";
 import type { ICreateRoomUseCase } from "../../application/interfaces/use-case/room/ICreateRoomUseCase.js";
-import type { GetRoomsUseCase } from "../../application/use-case/room/GetRoomsUseCase.js";
+import type { IGetRoomsUseCase } from "../../application/interfaces/use-case/room/IGetRoomsUseCase.js";
 
 export class RoomController {
     constructor(
         private createRoomUseCase: ICreateRoomUseCase,
-        private getRoomsUseCase: GetRoomsUseCase
+        private getRoomsUseCase: IGetRoomsUseCase
     ) {}
 
     async createRoom(req: Request, res: Response): Promise<void> {

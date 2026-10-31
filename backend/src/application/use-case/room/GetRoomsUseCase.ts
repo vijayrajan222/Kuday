@@ -3,9 +3,10 @@ import type { IUserRepository } from "../../interfaces/repository/IUserRepositor
 import type { ILifestyleRepository } from "../../interfaces/repository/ILifestyleRepository.js";
 import type { ISeekerPreferenceRepository } from "../../interfaces/repository/ISeekerPreferenceRepository.js";
 import type { RoomWithHostDto, HostProfileDto } from "../../dto/room/GetRoomResponseDto.js";
+import type { IGetRoomsUseCase } from "../../interfaces/use-case/room/IGetRoomsUseCase.js";
 import { MatchCalculatorService } from "../../../domain/services/MatchCalculatorService.js";
 
-export class GetRoomsUseCase {
+export class GetRoomsUseCase implements IGetRoomsUseCase {
     constructor(
         private roomRepository: IRoomRepository,
         private userRepository: IUserRepository,

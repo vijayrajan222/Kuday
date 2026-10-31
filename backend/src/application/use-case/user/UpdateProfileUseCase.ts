@@ -2,12 +2,12 @@ import type { IUserRepository } from "../../interfaces/repository/IUserRepositor
 import type { IUpdateProfileUseCase } from "../../interfaces/use-case/user/IUpdateProfileUseCase.js";
 import type { UpdateProfileDto } from "../../dto/user/UpdateProfileDto.js";
 import type { UserEntity } from "../../../domain/entities/UserEntity.js";
-import type { CloudinaryService } from "../../../infrastructure/services/CloudinaryService.js";
+import type { ICloudinaryService } from "../../interfaces/services/ICloudinaryService.js";
 
 export class UpdateProfileUseCase implements IUpdateProfileUseCase {
     constructor(
         private userRepository: IUserRepository,
-        private cloudinaryService?: CloudinaryService
+        private cloudinaryService?: ICloudinaryService
     ) {}
 
     async execute(dto: UpdateProfileDto): Promise<UserEntity> {

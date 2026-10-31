@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
+import type { ICloudinaryService } from "../../application/interfaces/services/ICloudinaryService.js";
 
-export class CloudinaryService {
+export class CloudinaryService implements ICloudinaryService {
     constructor() {
         cloudinary.config({
             cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "hz3hcfmp",

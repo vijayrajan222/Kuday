@@ -2,13 +2,13 @@ import type { IUserRepository } from "../../interfaces/repository/IUserRepositor
 import type { IUploadIdentityUseCase } from "../../interfaces/use-case/user/IUploadIdentityUseCase.js";
 import type { UploadIdentityDto } from "../../dto/user/UploadIdentityDto.js";
 import type { UserEntity } from "../../../domain/entities/UserEntity.js";
-import type { CloudinaryService } from "../../../infrastructure/services/CloudinaryService.js";
+import type { ICloudinaryService } from "../../interfaces/services/ICloudinaryService.js";
 import type { INotificationRepository } from "../../interfaces/repository/INotificationRepository.js";
 
 export class UploadIdentityUseCase implements IUploadIdentityUseCase {
     constructor(
         private userRepository: IUserRepository,
-        private cloudinaryService: CloudinaryService,
+        private cloudinaryService: ICloudinaryService,
         private notificationRepository?: INotificationRepository
     ) {}
 
