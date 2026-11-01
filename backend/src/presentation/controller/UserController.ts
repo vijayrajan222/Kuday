@@ -3,11 +3,12 @@ import type { IUpdateProfileUseCase } from "../../application/interfaces/use-cas
 import type { IUploadIdentityUseCase } from "../../application/interfaces/use-case/user/IUploadIdentityUseCase.js";
 import type { IUpdateRoleUseCase } from "../../application/interfaces/use-case/user/IUpdateRoleUseCase.js";
 import type { IGetUserProfileUseCase } from "../../application/interfaces/use-case/user/IGetUserProfileUseCase.js";
+import type { IUserController } from "../interface/IUserController.js";
 import { UpdateProfileSchema } from "../utils/validators/zod/UpdateProfileSchema.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
 
-export class UserController {
+export class UserController implements IUserController {
     constructor(
         private updateProfileUseCase: IUpdateProfileUseCase,
         private uploadIdentityUseCase: IUploadIdentityUseCase,
