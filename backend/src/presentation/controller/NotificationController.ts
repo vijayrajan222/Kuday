@@ -2,10 +2,11 @@ import type { Request, Response } from "express";
 import type { IGetNotificationsUseCase } from "../../application/interfaces/use-case/notification/IGetNotificationsUseCase.js";
 import type { ICreateNotificationUseCase } from "../../application/interfaces/use-case/notification/ICreateNotificationUseCase.js";
 import type { IMarkNotificationReadUseCase } from "../../application/interfaces/use-case/notification/IMarkNotificationReadUseCase.js";
+import type { INotificationController } from "../interface/INotificationController.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
 
-export class NotificationController {
+export class NotificationController implements INotificationController {
     constructor(
         private getNotificationsUseCase: IGetNotificationsUseCase,
         private createNotificationUseCase: ICreateNotificationUseCase,
