@@ -1,9 +1,9 @@
 import { Router } from "express";
-import type { RoomController } from "../controller/RoomController.js";
+import type { IRoomController } from "../interface/IRoomController.js";
 
-export const createRoomRouter = (roomController: RoomController): Router => {
+export function createRoomRouter(roomController: IRoomController): Router {
     const router = Router();
     router.post("/", (req, res) => roomController.createRoom(req, res));
     router.get("/", (req, res) => roomController.getRooms(req, res));
     return router;
-};
+}
