@@ -17,10 +17,12 @@ import { GoogleAuthUseCase } from "./application/use-case/auth/GoogleAuthUseCase
 import { ForgotPasswordUseCase } from "./application/use-case/auth/ForgotPasswordUseCase.js";
 import { VerifyResetOtpUseCase } from "./application/use-case/auth/VerifyResetOtpUseCase.js";
 import { ResetPasswordUseCase } from "./application/use-case/auth/ResetPasswordUseCase.js";
+import { RefreshTokenUseCase } from "./application/use-case/auth/RefreshTokenUseCase.js";
 
 import { MongoLifestyleRepository } from "./infrastructure/repository/MongoLifestyleRepository.js";
 import { UpdateProfileUseCase } from "./application/use-case/user/UpdateProfileUseCase.js";
 import { UpdateRoleUseCase } from "./application/use-case/user/UpdateRoleUseCase.js";
+import { GetUserProfileUseCase } from "./application/use-case/user/GetUserProfileUseCase.js";
 import { CreateLifestyleUseCase } from "./application/use-case/lifestyle/CreateLifestyleUseCase.js";
 import { GetLifestyleUseCase } from "./application/use-case/lifestyle/GetLifestyleUseCase.js";
 import { CloudinaryService } from "./infrastructure/services/CloudinaryService.js";
@@ -100,12 +102,14 @@ async function startServer() {
     const forgotPasswordUseCase = new ForgotPasswordUseCase(userrepo, otpservice, otprepo, mailer);
     const verifyResetOtpUseCase = new VerifyResetOtpUseCase(userrepo, otprepo, jwtService);
     const resetPasswordUseCase = new ResetPasswordUseCase(userrepo, hasher);
+    const refreshTokenUseCase = new RefreshTokenUseCase(userrepo, jwtService);
 
     const updateProfileUseCase = new UpdateProfileUseCase(userrepo, cloudinaryService);
     const updateRoleUseCase = new UpdateRoleUseCase(userrepo, roomrepo, seekerrepo);
     const createLifestyleUseCase = new CreateLifestyleUseCase(lifestylerepo, userrepo);
     const getLifestyleUseCase = new GetLifestyleUseCase(lifestylerepo);
     const uploadIdentityUseCase = new UploadIdentityUseCase(userrepo, cloudinaryService, notificationrepo);
+    const getUserProfileUseCase = new GetUserProfileUseCase(userrepo);
 
     const createRoomUseCase = new CreateRoomUseCase(roomrepo, userrepo, cloudinaryService);
     const getRoomsUseCase = new GetRoomsUseCase(roomrepo, userrepo, lifestylerepo, seekerrepo);
@@ -133,14 +137,14 @@ async function startServer() {
         verifyResetOtpUseCase,
         resetPasswordUseCase,
         jwtService,
-        userrepo
+        refreshTokenUseCase
     );
 
     const userController = new UserController(
         updateProfileUseCase,
         uploadIdentityUseCase,
         updateRoleUseCase,
-        userrepo
+        getUserProfileUseCase
     );
     const lifestyleController = new LifestyleController(
         createLifestyleUseCase,

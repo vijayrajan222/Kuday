@@ -10,6 +10,7 @@ import type { IGoogleAuthUseCase } from "../../application/interfaces/use-case/a
 import type { IForgotPasswordUseCase } from "../../application/interfaces/use-case/auth/IForgotPasswordUseCase.js";
 import type { IVerifyResetOtpUseCase } from "../../application/interfaces/use-case/auth/IVerifyResetOtpUseCase.js";
 import type { IResetPasswordUseCase } from "../../application/interfaces/use-case/auth/IResetPasswordUseCase.js";
+import type { IRefreshTokenUseCase } from "../../application/interfaces/use-case/auth/IRefreshTokenUseCase.js";
 import type { IJwtService } from "../../application/interfaces/services/IJwtServices.js";
 
 import { SignUpUserRequestSchema } from "../utils/validators/zod/AuthSchema.js";
@@ -19,7 +20,6 @@ import { GoogleAuthRequestSchema } from "../utils/validators/zod/GoogleAuthReque
 import { ForgetPasswordSchema } from "../utils/validators/zod/ForgotPasswordSchema.js";
 import { VerifyResetOtpSchema } from "../utils/validators/zod/VerifyResetOtpSchema.js";
 import { ResetPasswordSchema } from "../utils/validators/zod/ResetPasswordSchema.js";
-import type { IUserRepository } from "../../application/interfaces/repository/IUserRepository.js";
 
 export class AuthController implements IAuthController {
     private readonly _signUpUsecase: ISignUpUserUsercase;
@@ -29,8 +29,8 @@ export class AuthController implements IAuthController {
     private readonly _forgotPasswordUseCase: IForgotPasswordUseCase;
     private readonly _verifyResetOtpUseCase: IVerifyResetOtpUseCase;
     private readonly _resetPasswordUseCase: IResetPasswordUseCase;
+    private readonly _refreshTokenUseCase?: IRefreshTokenUseCase | undefined;
     private readonly _jwtService?: IJwtService | undefined;
-    private readonly _userRepo?: IUserRepository | undefined;
 
     constructor(
         signUpUsecase: ISignUpUserUsercase,
@@ -41,7 +41,7 @@ export class AuthController implements IAuthController {
         verifyResetOtpUseCase: IVerifyResetOtpUseCase,
         resetPasswordUseCase: IResetPasswordUseCase,
         jwtService?: IJwtService | undefined,
-        userRepo?: IUserRepository | undefined
+        refreshTokenUseCase?: IRefreshTokenUseCase | undefined
     ) {
         this._signUpUsecase = signUpUsecase;
         this._verifyOtpUseCase = verifyOtpUseCase;
@@ -51,7 +51,7 @@ export class AuthController implements IAuthController {
         this._verifyResetOtpUseCase = verifyResetOtpUseCase;
         this._resetPasswordUseCase = resetPasswordUseCase;
         this._jwtService = jwtService;
-        this._userRepo = userRepo;
+        this._refreshTokenUseCase = refreshTokenUseCase;
     }
 
     async signUp(req: Request, res: Response): Promise<void> {
@@ -296,60 +296,38 @@ export class AuthController implements IAuthController {
                 return;
             }
 
-            if (!this._jwtService) {
-                res.status(500).json({ success: false, message: "JWT service not initialized." });
+            if (!this._refreshTokenUseCase) {
+                res.status(500).json({ success: false, message: "Refresh token service not initialized." });
                 return;
             }
 
-            const decoded = this._jwtService.verifyToken(refreshToken, true);
-            if (!decoded) {
-                res.status(401).json({
-                    success: false,
-                    message: "Invalid or expired refresh token."
-                });
-                return;
-            }
-
-            // Verify that user exists in database and is not blocked
-            if (this._userRepo) {
-                const user = await this._userRepo.findById(decoded.userId);
-                if (!user) {
-                    res.status(401).json({
-                        success: false,
-                        message: "User no longer exists."
-                    });
-                    return;
-                }
-                if (user.isBlocked) {
-                    const isProduction = process.env.NODE_ENV === "production";
-                    res.clearCookie("refreshToken", {
-                        httpOnly: true,
-                        secure: isProduction,
-                        sameSite: isProduction ? "none" : "lax",
-                        path: "/",
-                    });
-                    res.status(403).json({
-                        success: false,
-                        message: "Your account has been blocked. Please contact support."
-                    });
-                    return;
-                }
-            }
-
-            const newToken = this._jwtService.generateToken({
-                userId: decoded.userId,
-                email: decoded.email
-            });
+            const result = await this._refreshTokenUseCase.execute({ refreshToken });
 
             res.status(200).json({
                 success: true,
                 message: "Token refreshed successfully",
-                payload: { token: newToken }
+                payload: { token: result.accessToken }
             });
         } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Token refresh failed.";
+            if (message.includes("blocked")) {
+                const isProduction = process.env.NODE_ENV === "production";
+                res.clearCookie("refreshToken", {
+                    httpOnly: true,
+                    secure: isProduction,
+                    sameSite: isProduction ? "none" : "lax",
+                    path: "/",
+                });
+                res.status(403).json({
+                    success: false,
+                    message,
+                });
+                return;
+            }
+
             res.status(401).json({
                 success: false,
-                message: error instanceof Error ? error.message : "Token refresh failed."
+                message,
             });
         }
     }

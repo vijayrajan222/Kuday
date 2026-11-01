@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import type { IUpdateProfileUseCase } from "../../application/interfaces/use-case/user/IUpdateProfileUseCase.js";
 import type { IUploadIdentityUseCase } from "../../application/interfaces/use-case/user/IUploadIdentityUseCase.js";
 import type { IUpdateRoleUseCase } from "../../application/interfaces/use-case/user/IUpdateRoleUseCase.js";
-import type { IUserRepository } from "../../application/interfaces/repository/IUserRepository.js";
+import type { IGetUserProfileUseCase } from "../../application/interfaces/use-case/user/IGetUserProfileUseCase.js";
 import { UpdateProfileSchema } from "../utils/validators/zod/UpdateProfileSchema.js";
 
 export class UserController {
@@ -10,7 +10,7 @@ export class UserController {
         private updateProfileUseCase: IUpdateProfileUseCase,
         private uploadIdentityUseCase: IUploadIdentityUseCase,
         private updateRoleUseCase: IUpdateRoleUseCase,
-        private userRepository: IUserRepository
+        private getUserProfileUseCase: IGetUserProfileUseCase
     ) {}
 
     async updateProfile(req: Request, res: Response): Promise<void> {
@@ -99,7 +99,7 @@ export class UserController {
     async getUserProfile(req: Request, res: Response): Promise<void> {
         try {
             const userId = req.params.userId as string;
-            const user = await this.userRepository.findById(userId);
+            const user = await this.getUserProfileUseCase.execute(userId);
 
             if (!user) {
                 res.status(404).json({ success: false, message: "User not found" });
