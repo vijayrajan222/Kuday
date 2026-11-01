@@ -4,6 +4,8 @@ import type { IUploadIdentityUseCase } from "../../application/interfaces/use-ca
 import type { IUpdateRoleUseCase } from "../../application/interfaces/use-case/user/IUpdateRoleUseCase.js";
 import type { IGetUserProfileUseCase } from "../../application/interfaces/use-case/user/IGetUserProfileUseCase.js";
 import { UpdateProfileSchema } from "../utils/validators/zod/UpdateProfileSchema.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
 
 export class UserController {
     constructor(
@@ -23,16 +25,13 @@ export class UserController {
                 ...validatedData,
             });
 
-            res.status(200).json({
-                success: true,
-                message: "Profile updated successfully",
-                data: user,
-            });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(user, "Profile updated successfully")
+            );
         } catch (error: unknown) {
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Failed to update profile",
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to update profile")
+            );
         }
     }
 
@@ -42,25 +41,21 @@ export class UserController {
             const { role } = req.body;
 
             if (!role || (role !== "host" && role !== "seeker")) {
-                res.status(400).json({
-                    success: false,
-                    message: "Valid role ('host' or 'seeker') is required",
-                });
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error("Valid role ('host' or 'seeker') is required")
+                );
                 return;
             }
 
             const user = await this.updateRoleUseCase.execute({ userId, role });
 
-            res.status(200).json({
-                success: true,
-                message: "Role updated successfully",
-                data: user,
-            });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(user, "Role updated successfully")
+            );
         } catch (error: unknown) {
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Failed to update role",
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to update role")
+            );
         }
     }
 
@@ -70,10 +65,9 @@ export class UserController {
             const { idCardBase64, selfieBase64 } = req.body;
 
             if (!idCardBase64 || !selfieBase64) {
-                res.status(400).json({
-                    success: false,
-                    message: "Both ID Card image and Selfie image are required.",
-                });
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error("Both ID Card image and Selfie image are required.")
+                );
                 return;
             }
 
@@ -83,16 +77,13 @@ export class UserController {
                 selfieBase64,
             });
 
-            res.status(200).json({
-                success: true,
-                message: "Identity verification documents uploaded successfully",
-                data: user,
-            });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(user, "Identity verification documents uploaded successfully")
+            );
         } catch (error: unknown) {
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Failed to upload identity verification documents",
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to upload identity verification documents")
+            );
         }
     }
 
@@ -102,19 +93,19 @@ export class UserController {
             const user = await this.getUserProfileUseCase.execute(userId);
 
             if (!user) {
-                res.status(404).json({ success: false, message: "User not found" });
+                res.status(HttpStatusCodes.NOT_FOUND).json(
+                    ApiResponse.error("User not found", HttpStatusCodes.NOT_FOUND)
+                );
                 return;
             }
 
-            res.status(200).json({
-                success: true,
-                data: user,
-            });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(user, "User profile fetched successfully")
+            );
         } catch (error: unknown) {
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Failed to fetch user profile",
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to fetch user profile")
+            );
         }
     }
 }

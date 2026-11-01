@@ -20,6 +20,8 @@ import { GoogleAuthRequestSchema } from "../utils/validators/zod/GoogleAuthReque
 import { ForgetPasswordSchema } from "../utils/validators/zod/ForgotPasswordSchema.js";
 import { VerifyResetOtpSchema } from "../utils/validators/zod/VerifyResetOtpSchema.js";
 import { ResetPasswordSchema } from "../utils/validators/zod/ResetPasswordSchema.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
 
 export class AuthController implements IAuthController {
     private readonly _signUpUsecase: ISignUpUserUsercase;
@@ -57,71 +59,57 @@ export class AuthController implements IAuthController {
     async signUp(req: Request, res: Response): Promise<void> {
         try {
             const value = SignUpUserRequestSchema.parse(req.body);
-
             const result = await this._signUpUsecase.execute(value);
 
-            res.status(200).json({
-                success: true,
-                message: "User created successfully",
-                payload: result
-            });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(result, "User created successfully")
+            );
         } catch (error: unknown) {
             if (error instanceof ZodError) {
-                res.status(400).json({
-                    success: false,
-                    message: error.issues[0]?.message ?? "Invalid signup data"
-                });
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error(error.issues[0]?.message ?? "Invalid signup data")
+                );
                 return;
             }
 
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Sign up failed."
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Sign up failed.")
+            );
         }
     }
 
     async verifyOtp(req: Request, res: Response): Promise<void> {
         try {
             const value = VerifyOtpRequestSchema.parse(req.body);
-
             const result = await this._verifyOtpUseCase.execute(value);
 
-            res.status(200).json({
-                success: true,
-                message: result.message,
-                payload: result
-            });
-
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(result, result.message)
+            );
         } catch (error: unknown) {
             if (error instanceof ZodError) {
-                res.status(400).json({
-                    success: false,
-                    message: error.issues[0]?.message ?? "Invalid OTP data"
-                });
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error(error.issues[0]?.message ?? "Invalid OTP data")
+                );
                 return;
             }
 
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error
-                    ? error.message
-                    : "OTP verification failed."
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "OTP verification failed.")
+            );
         }
     }
 
     async login(req: Request, res: Response): Promise<void> {
         try {
             const value = LoginRequestSchema.parse(req.body);
-
             const result = await this._loginUseCase.execute(value);
 
             // Generate refresh token and set as httpOnly cookie if jwtService is available
             if (this._jwtService && result.id && result.email) {
                 const refreshToken = this._jwtService.generateRefreshToken({
                     userId: result.id,
-                    email: result.email
+                    email: result.email,
                 });
                 const isProduction = process.env.NODE_ENV === "production";
                 res.cookie("refreshToken", refreshToken, {
@@ -133,40 +121,32 @@ export class AuthController implements IAuthController {
                 });
             }
 
-            res.status(200).json({
-                success: true,
-                message: result.message,
-                payload: result
-            });
-
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(result, result.message)
+            );
         } catch (error: unknown) {
             if (error instanceof ZodError) {
-                res.status(400).json({
-                    success: false,
-                    message: error.issues[0]?.message ?? "Invalid login data"
-                });
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error(error.issues[0]?.message ?? "Invalid login data")
+                );
                 return;
             }
 
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error
-                    ? error.message
-                    : "Login failed"
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Login failed")
+            );
         }
     }
 
     async googleAuth(req: Request, res: Response): Promise<void> {
         try {
             const validatedData = GoogleAuthRequestSchema.parse(req.body);
-
             const result = await this._googleAuthUseCase.execute(validatedData);
 
             if (this._jwtService && result.id && result.email) {
                 const refreshToken = this._jwtService.generateRefreshToken({
                     userId: result.id,
-                    email: result.email
+                    email: result.email,
                 });
                 const isProduction = process.env.NODE_ENV === "production";
                 res.cookie("refreshToken", refreshToken, {
@@ -178,27 +158,20 @@ export class AuthController implements IAuthController {
                 });
             }
 
-            res.status(200).json({
-                success: true,
-                message: result.message,
-                payload: result
-            });
-
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(result, result.message)
+            );
         } catch (error: unknown) {
             if (error instanceof ZodError) {
-                res.status(400).json({
-                    success: false,
-                    message: error.issues[0]?.message ?? "Invalid request data"
-                });
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error(error.issues[0]?.message ?? "Invalid request data")
+                );
                 return;
             }
 
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error
-                    ? error.message
-                    : "Google authentication failed"
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Google authentication failed")
+            );
         }
     }
 
@@ -206,23 +179,20 @@ export class AuthController implements IAuthController {
         try {
             const value = ForgetPasswordSchema.parse(req.body);
             const result = await this._forgotPasswordUseCase.execute(value);
-            res.status(200).json({
-                success: true,
-                message: result.message,
-                payload: result
-            });
+
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(result, result.message)
+            );
         } catch (error: unknown) {
             if (error instanceof ZodError) {
-                res.status(400).json({
-                    success: false,
-                    message: error.issues[0]?.message ?? "Invalid email format"
-                });
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error(error.issues[0]?.message ?? "Invalid email format")
+                );
                 return;
             }
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Forgot password request failed."
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Forgot password request failed.")
+            );
         }
     }
 
@@ -230,23 +200,20 @@ export class AuthController implements IAuthController {
         try {
             const value = VerifyResetOtpSchema.parse(req.body);
             const result = await this._verifyResetOtpUseCase.execute(value);
-            res.status(200).json({
-                success: true,
-                message: result.message,
-                payload: result
-            });
+
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(result, result.message)
+            );
         } catch (error: unknown) {
             if (error instanceof ZodError) {
-                res.status(400).json({
-                    success: false,
-                    message: error.issues[0]?.message ?? "Invalid OTP data"
-                });
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error(error.issues[0]?.message ?? "Invalid OTP data")
+                );
                 return;
             }
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Reset OTP verification failed."
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Reset OTP verification failed.")
+            );
         }
     }
 
@@ -254,23 +221,20 @@ export class AuthController implements IAuthController {
         try {
             const value = ResetPasswordSchema.parse(req.body);
             const result = await this._resetPasswordUseCase.execute(value);
-            res.status(200).json({
-                success: true,
-                message: result.message,
-                payload: result
-            });
+
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(result, result.message)
+            );
         } catch (error: unknown) {
             if (error instanceof ZodError) {
-                res.status(400).json({
-                    success: false,
-                    message: error.issues[0]?.message ?? "Invalid password data"
-                });
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error(error.issues[0]?.message ?? "Invalid password data")
+                );
                 return;
             }
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Password reset failed."
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Password reset failed.")
+            );
         }
     }
 
@@ -280,8 +244,8 @@ export class AuthController implements IAuthController {
             let refreshToken: string | undefined;
 
             if (cookieHeader) {
-                const match = cookieHeader.split('; ').find(row => row.startsWith('refreshToken='));
-                if (match) refreshToken = match.split('=')[1];
+                const match = cookieHeader.split("; ").find((row) => row.startsWith("refreshToken="));
+                if (match) refreshToken = match.split("=")[1];
             }
 
             if (!refreshToken && req.body && req.body.refreshToken) {
@@ -289,25 +253,24 @@ export class AuthController implements IAuthController {
             }
 
             if (!refreshToken) {
-                res.status(401).json({
-                    success: false,
-                    message: "Refresh token is missing or expired."
-                });
+                res.status(HttpStatusCodes.UNAUTHORIZED).json(
+                    ApiResponse.error("Refresh token is missing or expired.", HttpStatusCodes.UNAUTHORIZED)
+                );
                 return;
             }
 
             if (!this._refreshTokenUseCase) {
-                res.status(500).json({ success: false, message: "Refresh token service not initialized." });
+                res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json(
+                    ApiResponse.error("Refresh token service not initialized.", HttpStatusCodes.INTERNAL_SERVER_ERROR)
+                );
                 return;
             }
 
             const result = await this._refreshTokenUseCase.execute({ refreshToken });
 
-            res.status(200).json({
-                success: true,
-                message: "Token refreshed successfully",
-                payload: { token: result.accessToken }
-            });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success({ token: result.accessToken }, "Token refreshed successfully")
+            );
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : "Token refresh failed.";
             if (message.includes("blocked")) {
@@ -318,17 +281,15 @@ export class AuthController implements IAuthController {
                     sameSite: isProduction ? "none" : "lax",
                     path: "/",
                 });
-                res.status(403).json({
-                    success: false,
-                    message,
-                });
+                res.status(HttpStatusCodes.FORBIDDEN).json(
+                    ApiResponse.error(message, HttpStatusCodes.FORBIDDEN)
+                );
                 return;
             }
 
-            res.status(401).json({
-                success: false,
-                message,
-            });
+            res.status(HttpStatusCodes.UNAUTHORIZED).json(
+                ApiResponse.error(message, HttpStatusCodes.UNAUTHORIZED)
+            );
         }
     }
 
@@ -341,15 +302,13 @@ export class AuthController implements IAuthController {
                 sameSite: isProduction ? "none" : "lax",
                 path: "/",
             });
-            res.status(200).json({
-                success: true,
-                message: "Logged out successfully"
-            });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(null, "Logged out successfully")
+            );
         } catch (error: unknown) {
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Logout failed."
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Logout failed.")
+            );
         }
     }
 }

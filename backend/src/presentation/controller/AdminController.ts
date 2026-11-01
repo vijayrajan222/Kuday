@@ -4,6 +4,8 @@ import type { IGetAdminStatsUseCase } from "../../application/interfaces/use-cas
 import type { IGetAllUsersUseCase } from "../../application/interfaces/use-case/admin/IGetAllUsersUseCase.js";
 import type { IVerifyUserIdentityUseCase } from "../../application/interfaces/use-case/admin/IVerifyUserIdentityUseCase.js";
 import type { IToggleBlockUserUseCase } from "../../application/interfaces/use-case/admin/IToggleBlockUserUseCase.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
 
 export class AdminController {
     constructor(
@@ -18,24 +20,34 @@ export class AdminController {
         try {
             const { email, password } = req.body;
             if (!email || !password) {
-                res.status(400).json({ success: false, message: "Email and password are required." });
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error("Email and password are required.")
+                );
                 return;
             }
             const result = await this.adminLoginUseCase.execute({ email, password });
-            res.status(200).json({ success: true, data: result });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(result, "Admin login successful")
+            );
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : "Admin login failed.";
-            res.status(401).json({ success: false, message: msg });
+            res.status(HttpStatusCodes.UNAUTHORIZED).json(
+                ApiResponse.error(msg, HttpStatusCodes.UNAUTHORIZED)
+            );
         }
     }
 
     async getStats(_req: Request, res: Response): Promise<void> {
         try {
             const stats = await this.getAdminStatsUseCase.execute();
-            res.status(200).json({ success: true, data: stats });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(stats, "Admin stats fetched successfully")
+            );
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : "Failed to fetch admin stats.";
-            res.status(500).json({ success: false, message: msg });
+            res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json(
+                ApiResponse.error(msg, HttpStatusCodes.INTERNAL_SERVER_ERROR)
+            );
         }
     }
 
@@ -56,10 +68,14 @@ export class AdminController {
                 isBlocked: Boolean(u.isBlocked),
                 isAdmin: Boolean(u.isAdmin),
             }));
-            res.status(200).json({ success: true, data: mappedUsers });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(mappedUsers, "Users fetched successfully")
+            );
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : "Failed to fetch users.";
-            res.status(500).json({ success: false, message: msg });
+            res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json(
+                ApiResponse.error(msg, HttpStatusCodes.INTERNAL_SERVER_ERROR)
+            );
         }
     }
 
@@ -68,14 +84,20 @@ export class AdminController {
             const userId = req.params.userId as string;
             const { action, rejectionReason } = req.body;
             if (!action || (action !== "approve" && action !== "reject")) {
-                res.status(400).json({ success: false, message: "Action must be 'approve' or 'reject'." });
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error("Action must be 'approve' or 'reject'.")
+                );
                 return;
             }
             const result = await this.verifyUserIdentityUseCase.execute({ userId, action, rejectionReason });
-            res.status(200).json({ success: true, data: result });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(result, "Identity verification updated successfully")
+            );
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : "Failed to verify user identity.";
-            res.status(500).json({ success: false, message: msg });
+            res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json(
+                ApiResponse.error(msg, HttpStatusCodes.INTERNAL_SERVER_ERROR)
+            );
         }
     }
 
@@ -83,10 +105,14 @@ export class AdminController {
         try {
             const userId = req.params.userId as string;
             const result = await this.toggleBlockUserUseCase.execute(userId);
-            res.status(200).json({ success: true, data: result });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(result, result.message)
+            );
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : "Failed to toggle block status.";
-            res.status(500).json({ success: false, message: msg });
+            res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json(
+                ApiResponse.error(msg, HttpStatusCodes.INTERNAL_SERVER_ERROR)
+            );
         }
     }
 }

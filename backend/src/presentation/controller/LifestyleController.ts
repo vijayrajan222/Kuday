@@ -2,6 +2,8 @@ import type { Request, Response } from "express";
 import type { ICreateLifestyleUseCase } from "../../application/interfaces/use-case/lifestyle/ICreateLifestyleUseCase.js";
 import type { IGetLifestyleUseCase } from "../../application/interfaces/use-case/lifestyle/IGetLifestyleUseCase.js";
 import { CreateLifestyleSchema } from "../utils/validators/zod/CreateLifestyleSchema.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
 
 export class LifestyleController {
     constructor(
@@ -14,16 +16,13 @@ export class LifestyleController {
             const validatedData = CreateLifestyleSchema.parse(req.body);
             const lifestyle = await this.createLifestyleUseCase.execute(validatedData);
 
-            res.status(201).json({
-                success: true,
-                message: "Lifestyle preferences saved successfully",
-                data: lifestyle,
-            });
+            res.status(HttpStatusCodes.CREATED).json(
+                ApiResponse.success(lifestyle, "Lifestyle preferences saved successfully")
+            );
         } catch (error: unknown) {
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Failed to save lifestyle preferences",
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to save lifestyle preferences")
+            );
         }
     }
 
@@ -32,15 +31,13 @@ export class LifestyleController {
             const userId = req.params.userId as string;
             const lifestyle = await this.getLifestyleUseCase.execute(userId);
 
-            res.status(200).json({
-                success: true,
-                data: lifestyle,
-            });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(lifestyle, "Lifestyle preferences fetched successfully")
+            );
         } catch (error: unknown) {
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Failed to fetch lifestyle preferences",
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to fetch lifestyle preferences")
+            );
         }
     }
 }

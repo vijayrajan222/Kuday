@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
 import type { ICreateRoomUseCase } from "../../application/interfaces/use-case/room/ICreateRoomUseCase.js";
 import type { IGetRoomsUseCase } from "../../application/interfaces/use-case/room/IGetRoomsUseCase.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
 
 export class RoomController {
     constructor(
@@ -11,16 +13,13 @@ export class RoomController {
     async createRoom(req: Request, res: Response): Promise<void> {
         try {
             const room = await this.createRoomUseCase.execute(req.body);
-            res.status(201).json({
-                success: true,
-                message: "Room created successfully",
-                data: room,
-            });
+            res.status(HttpStatusCodes.CREATED).json(
+                ApiResponse.success(room, "Room created successfully")
+            );
         } catch (error: unknown) {
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Failed to create room",
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to create room")
+            );
         }
     }
 
@@ -33,15 +32,13 @@ export class RoomController {
                 ? await this.getRoomsUseCase.getByHostId(hostId)
                 : await this.getRoomsUseCase.execute(seekerUserId);
 
-            res.status(200).json({
-                success: true,
-                data: rooms,
-            });
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(rooms, "Rooms fetched successfully")
+            );
         } catch (error: unknown) {
-            res.status(400).json({
-                success: false,
-                message: error instanceof Error ? error.message : "Failed to fetch rooms",
-            });
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to fetch rooms")
+            );
         }
     }
 }
