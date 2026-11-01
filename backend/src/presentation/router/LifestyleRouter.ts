@@ -1,9 +1,9 @@
 import { Router } from "express";
-import type { LifestyleController } from "../controller/LifestyleController.js";
+import type { ILifestyleController } from "../interface/ILifestyleController.js";
 
-export const createLifestyleRouter = (lifestyleController: LifestyleController): Router => {
+export function createLifestyleRouter(lifestyleController: ILifestyleController): Router {
     const router = Router();
     router.post("/", (req, res) => lifestyleController.saveLifestyle(req, res));
     router.get("/:userId", (req, res) => lifestyleController.getLifestyle(req, res));
     return router;
-};
+}
