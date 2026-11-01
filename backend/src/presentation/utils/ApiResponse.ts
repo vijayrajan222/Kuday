@@ -1,4 +1,4 @@
-import { HttpStatusCodes, type HttpStatusCode } from "./HttpStatusCodes.js";
+import { HttpStatusCodes } from "./HttpStatusCodes.js";
 
 export interface ApiResponseData<T = unknown> {
     success: boolean;
@@ -12,7 +12,7 @@ export class ApiResponse {
     static success<T>(
         data?: T,
         message = "Success",
-        _statusCode: HttpStatusCode = HttpStatusCodes.OK
+        _statusCode: number = HttpStatusCodes.OK
     ): ApiResponseData<T> {
         const response: ApiResponseData<T> = {
             success: true,
@@ -27,7 +27,7 @@ export class ApiResponse {
 
     static error(
         message = "An error occurred",
-        _statusCode: HttpStatusCode = HttpStatusCodes.BAD_REQUEST,
+        _statusCode: number = HttpStatusCodes.BAD_REQUEST,
         error?: string
     ): ApiResponseData {
         const response: ApiResponseData = {

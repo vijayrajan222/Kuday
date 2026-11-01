@@ -1,47 +1,27 @@
 import type { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 import { logger } from "../../infrastructure/logging/Logger.js";
+import {
+    ApplicationError,
+    NotFoundError,
+    ConflictError,
+    UnauthorizedError,
+    ForbiddenError,
+    ValidationError,
+} from "../../application/errors/AppError.js";
 
-export class AppError extends Error {
-    constructor(
-        public override message: string,
-        public statusCode: number = HttpStatusCodes.BAD_REQUEST
-    ) {
-        super(message);
-        Object.setPrototypeOf(this, new.target.prototype);
-    }
-}
+export {
+    ApplicationError,
+    NotFoundError,
+    ConflictError,
+    UnauthorizedError,
+    ForbiddenError,
+    ValidationError,
+};
 
-export class ValidationError extends AppError {
-    constructor(message: string = "Validation failed") {
-        super(message, HttpStatusCodes.BAD_REQUEST);
-    }
-}
-
-export class UnauthorizedError extends AppError {
-    constructor(message: string = "Unauthorized") {
-        super(message, HttpStatusCodes.UNAUTHORIZED);
-    }
-}
-
-export class ForbiddenError extends AppError {
-    constructor(message: string = "Forbidden") {
-        super(message, HttpStatusCodes.FORBIDDEN);
-    }
-}
-
-export class NotFoundError extends AppError {
-    constructor(message: string = "Resource not found") {
-        super(message, HttpStatusCodes.NOT_FOUND);
-    }
-}
-
-export class ConflictError extends AppError {
-    constructor(message: string = "Resource already exists") {
-        super(message, HttpStatusCodes.CONFLICT);
-    }
-}
+export class AppError extends ApplicationError {}
 
 export function globalErrorHandler(
     err: unknown,
@@ -49,13 +29,15 @@ export function globalErrorHandler(
     res: Response,
     _next: NextFunction
 ): void {
-    if (err instanceof AppError) {
-        logger.error(`[AppError] (${err.statusCode}): ${err.message}`);
-        res.status(err.statusCode).json({
-            success: false,
-            message: err.message,
-            error: process.env.NODE_ENV === "development" ? err.stack : undefined,
-        });
+    if (err instanceof ApplicationError) {
+        logger.error(`[ApplicationError] (${err.statusCode}): ${err.message}`);
+        res.status(err.statusCode).json(
+            ApiResponse.error(
+                err.message,
+                err.statusCode,
+                process.env.NODE_ENV === "development" ? err.stack : undefined
+            )
+        );
         return;
     }
 
@@ -65,6 +47,7 @@ export function globalErrorHandler(
         res.status(HttpStatusCodes.BAD_REQUEST).json({
             success: false,
             message,
+            error: message,
             errors: err.issues,
         });
         return;
@@ -73,10 +56,9 @@ export function globalErrorHandler(
     // Check for MongoDB duplicate key error code 11000
     if (typeof err === "object" && err !== null && "code" in err && (err as { code: unknown }).code === 11000) {
         logger.error(`[MongoDuplicateKeyError] Conflict detected`);
-        res.status(HttpStatusCodes.CONFLICT).json({
-            success: false,
-            message: "User or resource with this unique value already exists.",
-        });
+        res.status(HttpStatusCodes.CONFLICT).json(
+            ApiResponse.error("User or resource with this unique value already exists.", HttpStatusCodes.CONFLICT)
+        );
         return;
     }
 
@@ -119,18 +101,19 @@ export function globalErrorHandler(
         }
 
         logger.error(`[ErrorHandler] (${statusCode}) ${msg}`, err);
-        res.status(statusCode).json({
-            success: false,
-            message: msg,
-            error: process.env.NODE_ENV === "development" ? err.stack : undefined,
-        });
+        res.status(statusCode).json(
+            ApiResponse.error(
+                msg,
+                statusCode,
+                process.env.NODE_ENV === "development" ? err.stack : undefined
+            )
+        );
         return;
     }
 
     const fallbackMessage = "Internal Server Error";
     logger.error(`[GlobalErrorHandler] ${fallbackMessage}`, err);
-    res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: fallbackMessage,
-    });
+    res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json(
+        ApiResponse.error(fallbackMessage, HttpStatusCodes.INTERNAL_SERVER_ERROR)
+    );
 }
