@@ -4,10 +4,11 @@ import type { IGetAdminStatsUseCase } from "../../application/interfaces/use-cas
 import type { IGetAllUsersUseCase } from "../../application/interfaces/use-case/admin/IGetAllUsersUseCase.js";
 import type { IVerifyUserIdentityUseCase } from "../../application/interfaces/use-case/admin/IVerifyUserIdentityUseCase.js";
 import type { IToggleBlockUserUseCase } from "../../application/interfaces/use-case/admin/IToggleBlockUserUseCase.js";
+import type { IAdminController } from "../interface/IAdminController.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
 
-export class AdminController {
+export class AdminController implements IAdminController {
     constructor(
         private adminLoginUseCase: IAdminLoginUseCase,
         private getAdminStatsUseCase: IGetAdminStatsUseCase,
