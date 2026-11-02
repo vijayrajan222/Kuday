@@ -10,3 +10,5 @@ export const CreateLifestyleSchema = z.object({
     visitorPolicy: z.string().min(1, "Visitor policy is required"),
     roommateGenderPref: z.string().min(1, "Roommate gender preference is required"),
 });
+
+export type CreateLifestyleRequest = z.infer<typeof CreateLifestyleSchema>;

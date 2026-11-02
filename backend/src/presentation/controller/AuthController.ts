@@ -58,7 +58,7 @@ export class AuthController implements IAuthController {
 
     async signUp(req: Request, res: Response): Promise<void> {
         try {
-            const value = SignUpUserRequestSchema.parse(req.body);
+            const value = SignUpUserRequestSchema.parse(req.body);   // how it is getting passed the req data is in the form of zod schema and what happens when its parsed does it becomes the normal objet so is int it normal object while coming from the reqest 
             const result = await this._signUpUsecase.execute(value);
 
             res.status(HttpStatusCodes.OK).json(
@@ -77,6 +77,7 @@ export class AuthController implements IAuthController {
             );
         }
     }
+     
 
     async verifyOtp(req: Request, res: Response): Promise<void> {
         try {

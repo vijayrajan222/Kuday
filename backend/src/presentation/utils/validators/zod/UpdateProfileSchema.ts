@@ -37,3 +37,5 @@ export const UpdateProfileSchema = z.object({
     selfieUrl: z.string().optional(),
     selfieBase64: z.string().optional(),
 });
+
+export type UpdateProfileRequest = z.infer<typeof UpdateProfileSchema>;
