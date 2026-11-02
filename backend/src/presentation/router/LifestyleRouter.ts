@@ -1,9 +1,17 @@
 import { Router } from "express";
+import type { Request, Response } from "express";
 import type { ILifestyleController } from "../interface/ILifestyleController.js";
 
 export function createLifestyleRouter(lifestyleController: ILifestyleController): Router {
     const router = Router();
-    router.post("/", (req, res) => lifestyleController.saveLifestyle(req, res));
-    router.get("/:userId", (req, res) => lifestyleController.getLifestyle(req, res));
+
+    router.post("/", async (req: Request, res: Response) => {
+        return await lifestyleController.saveLifestyle(req, res);
+    });
+
+    router.get("/:userId", async (req: Request, res: Response) => {
+        return await lifestyleController.getLifestyle(req, res);
+    });
+
     return router;
 }
