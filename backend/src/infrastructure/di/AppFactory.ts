@@ -171,10 +171,12 @@ export function setupAppDependencies(app: Express): void {
 
     // 5. Routers & Route Mounting
     app.use("/auth", createAuthRouter(authController));
-    app.use("/users", createUserRouter(userController));
+    app.use("/users", createUserRouter(userController)); 
     app.use("/lifestyles", createLifestyleRouter(lifestyleController));
     app.use("/rooms", createRoomRouter(roomController));
     app.use("/seeker-preferences", createSeekerPreferenceRouter(seekerController));
     app.use("/notifications", createNotificationRouter(notificationController));
     app.use("/admin", createAdminRouter(adminController));
 }
+
+// is there any other place where the router mounting takes place 
