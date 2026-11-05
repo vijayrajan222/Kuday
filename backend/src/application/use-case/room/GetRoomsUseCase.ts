@@ -35,8 +35,13 @@ export class GetRoomsUseCase implements IGetRoomsUseCase {
         for (const room of activeRooms) {
             const hostUser = await this.userRepository.findById(room.hostId);
 
-            // STRICT FILTER RULE: Only show room listings created by ADMIN-VERIFIED hosts who are currently in 'host' role
-            if (!hostUser || !hostUser.identityVerified || hostUser.role !== 'host') {
+            // Host must exist and be currently in 'host' role
+            if (!hostUser || hostUser.role !== 'host') {
+                continue;
+            }
+
+            // Exclude the current user's own listing if they are viewing
+            if (seekerUserId && room.hostId === seekerUserId) {
                 continue;
             }
 

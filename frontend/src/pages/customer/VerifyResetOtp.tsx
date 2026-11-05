@@ -6,17 +6,14 @@ import { Button } from '@/components/ui/button';
 import { InputOTP } from '@/components/ui/input-otp';
 import { MESSAGES } from '@/constants/messages';
 import { ROUTES } from '@/constants/routes';
-import { useAuth } from '@/hooks/useAuth';
 import { useVerifyResetOtp } from '@/hooks/useVerifyResetOtp';
-import { maskEmail } from '@/utils/formatters';
+import { formatSeconds, maskEmail } from '@/utils/formatters';
 
 export default function VerifyResetOtp() {
-  const { pendingSignup } = useAuth();
-  const { verifyResetOtp, isLoading } = useVerifyResetOtp();
+  const { email, verifyResetOtp, resendResetOtp, isLoading, isResending, secondsLeft, canResend } = useVerifyResetOtp();
   const [otp, setOtp] = useState('');
   const [error, setError] = useState<string>();
 
-  const email = pendingSignup?.email;
   if (!email) return <Navigate to={ROUTES.FORGOT_PASSWORD} replace />;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -27,6 +24,12 @@ export default function VerifyResetOtp() {
     }
     setError(undefined);
     void verifyResetOtp(otp);
+  };
+
+  const handleResend = async () => {
+    setOtp('');
+    setError(undefined);
+    await resendResetOtp();
   };
 
   return (
@@ -70,6 +73,22 @@ export default function VerifyResetOtp() {
         <Button type="submit" size="lg" fullWidth isLoading={isLoading} disabled={otp.length < 6}>
           Verify Code
         </Button>
+
+        <p className="text-center text-sm text-slate-500">
+          Didn&apos;t get the code?{' '}
+          {canResend ? (
+            <button
+              type="button"
+              onClick={() => void handleResend()}
+              disabled={isResending}
+              className="font-semibold text-emerald-600 hover:underline disabled:opacity-60"
+            >
+              Resend Code
+            </button>
+          ) : (
+            <span className="font-medium tabular-nums text-slate-700">Resend in {formatSeconds(secondsLeft)}</span>
+          )}
+        </p>
       </form>
     </AuthLayout>
   );

@@ -35,8 +35,13 @@ export class GetSeekerPreferencesUseCase implements IGetSeekerPreferencesUseCase
         for (const pref of allPreferences) {
             const seekerUser = await this.userRepository.findById(pref.userId);
 
-            // STRICT FILTER RULE: Only show seeker listings created by ADMIN-VERIFIED seekers who are currently in 'seeker' role
-            if (!seekerUser || !seekerUser.identityVerified || seekerUser.role !== 'seeker') {
+            // Seeker must exist and be currently in 'seeker' role
+            if (!seekerUser || seekerUser.role !== 'seeker') {
+                continue;
+            }
+
+            // Exclude the current user's own seeker preference if they are viewing
+            if (hostUserId && pref.userId === hostUserId) {
                 continue;
             }
 

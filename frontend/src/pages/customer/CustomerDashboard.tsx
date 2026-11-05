@@ -85,7 +85,7 @@ export default function CustomerDashboard() {
 
     if (role === 'seeker') {
       onboardingService
-        .getRooms(user.id)
+        .getRooms({ userId: user.id })
         .then((res) => {
           if (isMounted) {
             setRooms(res || []);
@@ -422,9 +422,9 @@ export default function CustomerDashboard() {
                   <div className="mx-auto h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
                     <Home className="h-6 w-6" />
                   </div>
-                  <h3 className="font-bold text-slate-900 text-base">No Verified Room Listings Available</h3>
+                  <h3 className="font-bold text-slate-900 text-base">No Room Listings Available</h3>
                   <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                    There are currently no room listings from Admin-Verified hosts. Once hosts upload their identity documents and get approved by Admin, their property listings will appear here.
+                    There are currently no room listings available. Once hosts publish property listings, they will appear here.
                   </p>
                 </Card>
               )
@@ -707,9 +707,11 @@ export default function CustomerDashboard() {
                     </div>
                   </div>
 
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-1 text-[11px] font-bold">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Admin Verified Host
-                  </span>
+                  {selectedRoom.host.identityVerified && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-1 text-[11px] font-bold">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Admin Verified Host
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-emerald-200/40">

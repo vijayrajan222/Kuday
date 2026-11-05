@@ -49,10 +49,15 @@ export const onboardingService = {
     return data;
   },
 
-  async getRooms(hostId?: string) {
-    const url = hostId
-      ? `${API_ENDPOINTS.ROOM.GET_ALL}?hostId=${hostId}`
-      : API_ENDPOINTS.ROOM.GET_ALL;
+  async getRooms(params?: { hostId?: string; userId?: string } | string) {
+    let url: string = API_ENDPOINTS.ROOM.GET_ALL;
+    if (typeof params === 'string') {
+      url = `${API_ENDPOINTS.ROOM.GET_ALL}?hostId=${params}`;
+    } else if (params?.hostId) {
+      url = `${API_ENDPOINTS.ROOM.GET_ALL}?hostId=${params.hostId}`;
+    } else if (params?.userId) {
+      url = `${API_ENDPOINTS.ROOM.GET_ALL}?userId=${params.userId}`;
+    }
     const { data } = await api.get(url);
     return data.data;
   },
