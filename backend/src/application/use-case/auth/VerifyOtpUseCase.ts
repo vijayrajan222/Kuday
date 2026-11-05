@@ -39,7 +39,7 @@ export class VerifyOptUseCase implements IVerifyOtpUseCase {
             throw new Error("Otp has expired, request a new one.");
         }
 
-        if (latestOtp.otp !== dto.otp) {
+        if (latestOtp.otp.trim() !== dto.otp.trim()) {
             throw new Error("Invalid OTP code.");
         }
 

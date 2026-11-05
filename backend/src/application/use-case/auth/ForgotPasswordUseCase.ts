@@ -28,6 +28,9 @@ export class ForgotPasswordUseCase implements IForgotPasswordUseCase {
             throw new Error("Your account has been blocked. Please contact support.");
         }
 
+        // Clean up any existing OTPs for this email before generating a new one
+        await this._otpRepo.deleteByEmail(cleanedEmail);
+
         const otpCode = this._otpService.generateOtp(6);
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
@@ -37,7 +40,13 @@ export class ForgotPasswordUseCase implements IForgotPasswordUseCase {
             expiresAt: expiresAt,
         });
 
-        await this._mailService.sendOtpEmail(cleanedEmail, otpCode);
+        try {
+            await this._mailService.sendOtpEmail(cleanedEmail, otpCode);
+        } catch (mailError: unknown) {
+            await this._otpRepo.deleteByEmail(cleanedEmail);
+            const errorMsg = mailError instanceof Error ? mailError.message : "Failed to deliver email";
+            throw new Error(`Failed to send password reset email: ${errorMsg}. Please try again later.`);
+        }
 
         return {
             email: cleanedEmail,

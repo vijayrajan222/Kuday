@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { Button } from '@/components/ui/button';
@@ -18,12 +18,13 @@ export default function VerifyResetOtp() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.length < 6) {
+    const cleanOtp = otp.trim();
+    if (cleanOtp.length < 6) {
       setError(MESSAGES.OTP_INCOMPLETE);
       return;
     }
     setError(undefined);
-    void verifyResetOtp(otp);
+    void verifyResetOtp(cleanOtp);
   };
 
   const handleResend = async () => {
@@ -41,9 +42,12 @@ export default function VerifyResetOtp() {
         </>
       }
       footer={
-        <a href={ROUTES.FORGOT_PASSWORD} className="font-medium text-emerald-600 hover:underline">
-          Request new reset code
-        </a>
+        <p className="text-center text-sm text-slate-500">
+          Entered the wrong email?{' '}
+          <Link to={ROUTES.FORGOT_PASSWORD} className="font-medium text-emerald-600 hover:underline">
+            Use a different email
+          </Link>
+        </p>
       }
     >
       <div className="mb-6 flex justify-center">
@@ -59,7 +63,10 @@ export default function VerifyResetOtp() {
             setOtp(v);
             if (error) setError(undefined);
           }}
-          onComplete={(code) => void verifyResetOtp(code)}
+          onComplete={(code) => {
+            const clean = code.trim();
+            if (clean.length === 6) void verifyResetOtp(clean);
+          }}
           disabled={isLoading}
           hasError={Boolean(error)}
         />
@@ -70,7 +77,7 @@ export default function VerifyResetOtp() {
           </p>
         )}
 
-        <Button type="submit" size="lg" fullWidth isLoading={isLoading} disabled={otp.length < 6}>
+        <Button type="submit" size="lg" fullWidth isLoading={isLoading} disabled={otp.trim().length < 6}>
           Verify Code
         </Button>
 
@@ -81,9 +88,9 @@ export default function VerifyResetOtp() {
               type="button"
               onClick={() => void handleResend()}
               disabled={isResending}
-              className="font-semibold text-emerald-600 hover:underline disabled:opacity-60"
+              className="font-semibold text-emerald-600 hover:underline disabled:opacity-60 cursor-pointer"
             >
-              Resend Code
+              Request new code
             </button>
           ) : (
             <span className="font-medium tabular-nums text-slate-700">Resend in {formatSeconds(secondsLeft)}</span>
