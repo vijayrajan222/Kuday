@@ -5,4 +5,5 @@ export interface IUserController {
     updateRole(req: Request, res: Response): Promise<void>;
     uploadIdentity(req: Request, res: Response): Promise<void>;
     getUserProfile(req: Request, res: Response): Promise<void>;
+    changePassword(req: Request, res: Response): Promise<void>;
 }

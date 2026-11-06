@@ -79,4 +79,9 @@ export const onboardingService = {
     const { data } = await api.get(API_ENDPOINTS.USER.GET_USER(userId));
     return data.data;
   },
+
+  async changePassword(userId: string, payload: { currentPassword?: string; newPassword: string; confirmPassword: string }) {
+    const { data } = await api.patch(API_ENDPOINTS.USER.CHANGE_PASSWORD(userId), payload);
+    return data;
+  },
 };

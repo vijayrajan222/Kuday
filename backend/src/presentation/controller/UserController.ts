@@ -1,10 +1,13 @@
 import type { Request, Response } from "express";
+import { ZodError } from "zod";
 import type { IUpdateProfileUseCase } from "../../application/interfaces/use-case/user/IUpdateProfileUseCase.js";
 import type { IUploadIdentityUseCase } from "../../application/interfaces/use-case/user/IUploadIdentityUseCase.js";
 import type { IUpdateRoleUseCase } from "../../application/interfaces/use-case/user/IUpdateRoleUseCase.js";
 import type { IGetUserProfileUseCase } from "../../application/interfaces/use-case/user/IGetUserProfileUseCase.js";
+import type { IChangePasswordUseCase } from "../../application/interfaces/use-case/user/IChangePasswordUseCase.js";
 import type { IUserController } from "../interface/IUserController.js";
 import { UpdateProfileSchema } from "../utils/validators/zod/UpdateProfileSchema.js";
+import { ChangePasswordSchema } from "../utils/validators/zod/ChangePasswordSchema.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
 
@@ -13,7 +16,8 @@ export class UserController implements IUserController {
         private updateProfileUseCase: IUpdateProfileUseCase,
         private uploadIdentityUseCase: IUploadIdentityUseCase,
         private updateRoleUseCase: IUpdateRoleUseCase,
-        private getUserProfileUseCase: IGetUserProfileUseCase
+        private getUserProfileUseCase: IGetUserProfileUseCase,
+        private changePasswordUseCase: IChangePasswordUseCase
     ) {}
 
     async updateProfile(req: Request, res: Response): Promise<void> {
@@ -106,6 +110,34 @@ export class UserController implements IUserController {
         } catch (error: unknown) {
             res.status(HttpStatusCodes.BAD_REQUEST).json(
                 ApiResponse.error(error instanceof Error ? error.message : "Failed to fetch user profile")
+            );
+        }
+    }
+
+    async changePassword(req: Request, res: Response): Promise<void> {
+        try {
+            const userId = req.params.userId as string;
+            const validatedData = ChangePasswordSchema.parse(req.body);
+
+            const result = await this.changePasswordUseCase.execute({
+                userId,
+                currentPassword: validatedData.currentPassword,
+                newPassword: validatedData.newPassword,
+                confirmPassword: validatedData.confirmPassword,
+            });
+
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(result, result.message)
+            );
+        } catch (error: unknown) {
+            if (error instanceof ZodError) {
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error(error.issues[0]?.message ?? "Invalid password data")
+                );
+                return;
+            }
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to change password")
             );
         }
     }

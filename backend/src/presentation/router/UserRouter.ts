@@ -21,5 +21,9 @@ export function createUserRouter(userController: IUserController): Router {
         return await userController.uploadIdentity(req, res);
     });
 
+    router.patch("/:userId/change-password", async (req: Request, res: Response) => {
+        return await userController.changePassword(req, res);
+    });
+
     return router;
 }

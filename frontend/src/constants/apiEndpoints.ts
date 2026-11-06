@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
     UPDATE_PROFILE: (userId: string) => `/users/${userId}/profile`,
     UPDATE_ROLE: (userId: string) => `/users/${userId}/role`,
     UPLOAD_IDENTITY: (userId: string) => `/users/${userId}/identity`,
+    CHANGE_PASSWORD: (userId: string) => `/users/${userId}/change-password`,
     GET_USER: (userId: string) => `/users/${userId}`,
   },
   LIFESTYLE: {

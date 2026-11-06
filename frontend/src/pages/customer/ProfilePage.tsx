@@ -26,8 +26,11 @@ import {
   Plus,
   Trash2,
   ShieldAlert,
+  Lock,
 } from 'lucide-react';
 import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.types';
+import { PasswordInput } from '@/components/ui/PasswordInput';
+import { PasswordStrength } from '@/components/common/PasswordStrength';
 import { MAX_DOB, MIN_DOB, validateDob } from '../onboarding/OnboardingProfilePage';
 
 // Available Amenities for Host/Seeker checklists
@@ -123,6 +126,16 @@ export default function ProfilePage() {
   const [isEditSeekerOpen, setIsEditSeekerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [profileDobError, setProfileDobError] = useState<string | null>(null);
+
+  // Change Password Modal State
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [changePasswordError, setChangePasswordError] = useState<string | null>(null);
+  const [changePasswordForm, setChangePasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
 
   // Edit Form Inputs
   const [editProfileForm, setEditProfileForm] = useState({
@@ -523,6 +536,61 @@ export default function ProfilePage() {
     }));
   };
 
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) return;
+    setChangePasswordError(null);
+
+    const { currentPassword, newPassword, confirmPassword } = changePasswordForm;
+
+    if (!newPassword) {
+      setChangePasswordError('New password is required.');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setChangePasswordError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      setChangePasswordError(
+        'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character.'
+      );
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setChangePasswordError('New password and confirm password do not match.');
+      return;
+    }
+
+    if (currentPassword && currentPassword === newPassword) {
+      setChangePasswordError('New password cannot be the same as your current password.');
+      return;
+    }
+
+    try {
+      setIsChangingPassword(true);
+      await onboardingService.changePassword(user.id, {
+        currentPassword: currentPassword.trim() ? currentPassword : undefined,
+        newPassword,
+        confirmPassword,
+      });
+
+      toast.success('Password changed successfully!');
+      setIsChangePasswordOpen(false);
+      setChangePasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      const msg = getErrorMessage(err);
+      setChangePasswordError(msg);
+      toast.error(msg);
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       {/* Top Banner Header */}
@@ -707,6 +775,30 @@ export default function ProfilePage() {
                   <span className="font-semibold text-slate-800 capitalize">{(lifestyle.visitorPolicy || '').replace('_', ' ') || 'flexible'}</span>
                 </div>
               </div>
+            </Card>
+            {/* Account Security Card */}
+            <Card className="p-5 space-y-4 border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <Lock className="h-4 w-4 text-emerald-600" /> Account Security
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500">
+                Keep your account secure with a strong and updated password.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs font-semibold justify-center"
+                leftIcon={<Lock className="h-3.5 w-3.5" />}
+                onClick={() => {
+                  setChangePasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                  setChangePasswordError(null);
+                  setIsChangePasswordOpen(true);
+                }}
+              >
+                Change Password
+              </Button>
             </Card>
           </div>
 
@@ -996,6 +1088,31 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
+            </Card>
+
+            {/* Account Security Card */}
+            <Card className="p-5 space-y-4 border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <Lock className="h-4 w-4 text-emerald-600" /> Account Security
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500">
+                Keep your account secure with a strong and updated password.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs font-semibold justify-center"
+                leftIcon={<Lock className="h-3.5 w-3.5" />}
+                onClick={() => {
+                  setChangePasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                  setChangePasswordError(null);
+                  setIsChangePasswordOpen(true);
+                }}
+              >
+                Change Password
+              </Button>
             </Card>
           </div>
 
@@ -1576,6 +1693,113 @@ export default function ProfilePage() {
                 {switchingRole ? 'Switching Role...' : 'Confirm & Switch Role'}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* CHANGE PASSWORD MODAL */}
+      {isChangePasswordOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-5 relative">
+            <button
+              type="button"
+              onClick={() => setIsChangePasswordOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <Lock className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  Change Password
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Update your account password to stay secure
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
+              {changePasswordError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700">
+                  {changePasswordError}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="currentPassword">Current Password</Label>
+                <PasswordInput
+                  id="currentPassword"
+                  name="currentPassword"
+                  value={changePasswordForm.currentPassword}
+                  onChange={(e) => {
+                    setChangePasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }));
+                    setChangePasswordError(null);
+                  }}
+                  placeholder="Enter current password (if set)"
+                  autoComplete="current-password"
+                />
+                <p className="text-[11px] text-slate-400">
+                  Leave blank if you registered via Google and have no password set.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="newPassword">New Password</Label>
+                <PasswordInput
+                  id="newPassword"
+                  name="newPassword"
+                  value={changePasswordForm.newPassword}
+                  onChange={(e) => {
+                    setChangePasswordForm((prev) => ({ ...prev, newPassword: e.target.value }));
+                    setChangePasswordError(null);
+                  }}
+                  placeholder="Enter new password"
+                  autoComplete="new-password"
+                  required
+                />
+                <PasswordStrength password={changePasswordForm.newPassword} />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <PasswordInput
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={changePasswordForm.confirmPassword}
+                  onChange={(e) => {
+                    setChangePasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }));
+                    setChangePasswordError(null);
+                  }}
+                  placeholder="Re-enter new password"
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsChangePasswordOpen(false)}
+                  className="text-slate-600 border-slate-300 text-xs font-semibold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isChangingPassword}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md"
+                >
+                  {isChangingPassword ? 'Updating Password...' : 'Update Password'}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}
