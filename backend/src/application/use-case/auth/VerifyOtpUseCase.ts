@@ -1,8 +1,8 @@
-import type { VerifyOtpRequestDto, VerifyOtpResultDto } from "../../dto/auth/VerifyOtpDto.js";
-import type { IOtpRepository } from "../../interfaces/repository/IOtpRepository.js";
-import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
-import type { IJwtService } from "../../interfaces/services/IJwtServices.js";
-import type { IVerifyOtpUseCase } from "../../interfaces/use-case/auth/IVerifyOtpUseCase.js";
+import type { VerifyOtpRequestDto, VerifyOtpResultDto } from "@application/dto/auth/VerifyOtpDto.js";
+import type { IOtpRepository } from "@application/interfaces/repository/IOtpRepository.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
+import type { IJwtService } from "@application/interfaces/services/IJwtServices.js";
+import type { IVerifyOtpUseCase } from "@application/interfaces/use-case/auth/IVerifyOtpUseCase.js";
 
 export class VerifyOptUseCase implements IVerifyOtpUseCase {
     constructor(

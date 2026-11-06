@@ -1,10 +1,10 @@
-import type { ISeekerPreferenceRepository } from "../../interfaces/repository/ISeekerPreferenceRepository.js";
-import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
-import type { ILifestyleRepository } from "../../interfaces/repository/ILifestyleRepository.js";
-import type { IRoomRepository } from "../../interfaces/repository/IRoomRepository.js";
-import type { SeekerPreferenceWithUserDto, SeekerProfileDto } from "../../dto/seeker/GetSeekerResponseDto.js";
-import type { IGetSeekerPreferencesUseCase } from "../../interfaces/use-case/seeker/IGetSeekerPreferencesUseCase.js";
-import { MatchCalculatorService } from "../../../domain/services/MatchCalculatorService.js";
+import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
+import type { ILifestyleRepository } from "@application/interfaces/repository/ILifestyleRepository.js";
+import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository.js";
+import type { SeekerPreferenceWithUserDto, SeekerProfileDto } from "@application/dto/seeker/GetSeekerResponseDto.js";
+import type { IGetSeekerPreferencesUseCase } from "@application/interfaces/use-case/seeker/IGetSeekerPreferencesUseCase.js";
+import { MatchCalculatorService } from "@domain/services/MatchCalculatorService.js";
 
 export class GetSeekerPreferencesUseCase implements IGetSeekerPreferencesUseCase {
     constructor(

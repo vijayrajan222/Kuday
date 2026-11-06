@@ -1,8 +1,8 @@
-import type { VerifyResetOtpRequestDto, VerifyResetOtpResponseDto } from "../../dto/auth/VerifyResetOtpDto.js";
-import type { IOtpRepository } from "../../interfaces/repository/IOtpRepository.js";
-import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
-import type { IJwtService } from "../../interfaces/services/IJwtServices.js";
-import type { IVerifyResetOtpUseCase } from "../../interfaces/use-case/auth/IVerifyResetOtpUseCase.js";
+import type { VerifyResetOtpRequestDto, VerifyResetOtpResponseDto } from "@application/dto/auth/VerifyResetOtpDto.js";
+import type { IOtpRepository } from "@application/interfaces/repository/IOtpRepository.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
+import type { IJwtService } from "@application/interfaces/services/IJwtServices.js";
+import type { IVerifyResetOtpUseCase } from "@application/interfaces/use-case/auth/IVerifyResetOtpUseCase.js";
 
 export class VerifyResetOtpUseCase implements IVerifyResetOtpUseCase {
     constructor(

@@ -1,8 +1,8 @@
-import type { ICreateSeekerPreferenceUseCase } from "../../interfaces/use-case/seeker/ICreateSeekerPreferenceUseCase.js";
-import type { ISeekerPreferenceRepository } from "../../interfaces/repository/ISeekerPreferenceRepository.js";
-import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
-import type { CreateSeekerPreferenceDto } from "../../dto/seeker/CreateSeekerPreferenceDto.js";
-import type { SeekerPreferenceEntity } from "../../../domain/entities/SeekerPreferenceEntity.js";
+import type { ICreateSeekerPreferenceUseCase } from "@application/interfaces/use-case/seeker/ICreateSeekerPreferenceUseCase.js";
+import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
+import type { CreateSeekerPreferenceDto } from "@application/dto/seeker/CreateSeekerPreferenceDto.js";
+import type { SeekerPreferenceEntity } from "@domain/entities/SeekerPreferenceEntity.js";
 
 export class CreateSeekerPreferenceUseCase implements ICreateSeekerPreferenceUseCase {
     constructor(

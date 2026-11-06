@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
-import type { IJwtService } from "../../application/interfaces/services/IJwtServices.js";
-import type { IUserRepository } from "../../application/interfaces/repository/IUserRepository.js";
-import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
+import type { IJwtService } from "@application/interfaces/services/IJwtServices.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
+import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes.js";
 
 export interface AuthenticatedRequest extends Request {
     user?: {

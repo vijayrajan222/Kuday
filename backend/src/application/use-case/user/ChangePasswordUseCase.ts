@@ -1,7 +1,7 @@
-import type { ChangePasswordRequestDto, ChangePasswordResponseDto } from "../../dto/user/ChangePasswordDto.js";
-import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
-import type { IHashingService } from "../../interfaces/services/IhashingService.js";
-import type { IChangePasswordUseCase } from "../../interfaces/use-case/user/IChangePasswordUseCase.js";
+import type { ChangePasswordRequestDto, ChangePasswordResponseDto } from "@application/dto/user/ChangePasswordDto.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
+import type { IHashingService } from "@application/interfaces/services/IhashingService.js";
+import type { IChangePasswordUseCase } from "@application/interfaces/use-case/user/IChangePasswordUseCase.js";
 
 export class ChangePasswordUseCase implements IChangePasswordUseCase {
     constructor(

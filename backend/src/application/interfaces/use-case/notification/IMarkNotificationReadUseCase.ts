@@ -1,4 +1,4 @@
-import type { NotificationEntity } from "../../../../domain/entities/NotificationEntity.js";
+import type { NotificationEntity } from "@domain/entities/NotificationEntity.js";
 
 export interface IMarkNotificationReadUseCase {
     markSingle(id: string): Promise<NotificationEntity | null>;

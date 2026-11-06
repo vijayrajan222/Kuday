@@ -1,9 +1,9 @@
-import type { IUpdateRoleUseCase } from "../../interfaces/use-case/user/IUpdateRoleUseCase.js";
-import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
-import type { IRoomRepository } from "../../interfaces/repository/IRoomRepository.js";
-import type { ISeekerPreferenceRepository } from "../../interfaces/repository/ISeekerPreferenceRepository.js";
-import type { UpdateRoleDto } from "../../dto/user/UpdateRoleDto.js";
-import type { UserEntity } from "../../../domain/entities/UserEntity.js";
+import type { IUpdateRoleUseCase } from "@application/interfaces/use-case/user/IUpdateRoleUseCase.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
+import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository.js";
+import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository.js";
+import type { UpdateRoleDto } from "@application/dto/user/UpdateRoleDto.js";
+import type { UserEntity } from "@domain/entities/UserEntity.js";
 
 export class UpdateRoleUseCase implements IUpdateRoleUseCase {
     constructor(

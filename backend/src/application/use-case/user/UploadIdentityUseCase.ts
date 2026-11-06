@@ -1,9 +1,9 @@
-import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
-import type { IUploadIdentityUseCase } from "../../interfaces/use-case/user/IUploadIdentityUseCase.js";
-import type { UploadIdentityDto } from "../../dto/user/UploadIdentityDto.js";
-import type { UserEntity } from "../../../domain/entities/UserEntity.js";
-import type { ICloudinaryService } from "../../interfaces/services/ICloudinaryService.js";
-import type { INotificationRepository } from "../../interfaces/repository/INotificationRepository.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
+import type { IUploadIdentityUseCase } from "@application/interfaces/use-case/user/IUploadIdentityUseCase.js";
+import type { UploadIdentityDto } from "@application/dto/user/UploadIdentityDto.js";
+import type { UserEntity } from "@domain/entities/UserEntity.js";
+import type { ICloudinaryService } from "@application/interfaces/services/ICloudinaryService.js";
+import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository.js";
 
 export class UploadIdentityUseCase implements IUploadIdentityUseCase {
     constructor(

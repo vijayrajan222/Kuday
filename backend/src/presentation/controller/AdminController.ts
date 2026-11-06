@@ -1,12 +1,12 @@
 import type { Request, Response } from "express";
-import type { IAdminLoginUseCase } from "../../application/interfaces/use-case/admin/IAdminLoginUseCase.js";
-import type { IGetAdminStatsUseCase } from "../../application/interfaces/use-case/admin/IGetAdminStatsUseCase.js";
-import type { IGetAllUsersUseCase } from "../../application/interfaces/use-case/admin/IGetAllUsersUseCase.js";
-import type { IVerifyUserIdentityUseCase } from "../../application/interfaces/use-case/admin/IVerifyUserIdentityUseCase.js";
-import type { IToggleBlockUserUseCase } from "../../application/interfaces/use-case/admin/IToggleBlockUserUseCase.js";
-import type { IAdminController } from "../interface/IAdminController.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
+import type { IAdminLoginUseCase } from "@application/interfaces/use-case/admin/IAdminLoginUseCase.js";
+import type { IGetAdminStatsUseCase } from "@application/interfaces/use-case/admin/IGetAdminStatsUseCase.js";
+import type { IGetAllUsersUseCase } from "@application/interfaces/use-case/admin/IGetAllUsersUseCase.js";
+import type { IVerifyUserIdentityUseCase } from "@application/interfaces/use-case/admin/IVerifyUserIdentityUseCase.js";
+import type { IToggleBlockUserUseCase } from "@application/interfaces/use-case/admin/IToggleBlockUserUseCase.js";
+import type { IAdminController } from "@presentation/interface/IAdminController.js";
+import { ApiResponse } from "@presentation/utils/ApiResponse.js";
+import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes.js";
 
 export class AdminController implements IAdminController {
     constructor(

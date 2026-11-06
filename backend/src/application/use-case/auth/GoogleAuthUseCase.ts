@@ -1,7 +1,7 @@
-import type { GoogleAuthRequestDto, GoogleAuthResponseDto } from "../../dto/auth/GoogleAuthDto.js";
-import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
-import type { IJwtService } from "../../interfaces/services/IJwtServices.js";
-import type { IGoogleAuthUseCase } from "../../interfaces/use-case/auth/IGoogleAuthUseCase.js";
+import type { GoogleAuthRequestDto, GoogleAuthResponseDto } from "@application/dto/auth/GoogleAuthDto.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
+import type { IJwtService } from "@application/interfaces/services/IJwtServices.js";
+import type { IGoogleAuthUseCase } from "@application/interfaces/use-case/auth/IGoogleAuthUseCase.js";
 
 export class GoogleAuthUseCase implements IGoogleAuthUseCase {
   constructor(

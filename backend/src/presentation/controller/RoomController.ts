@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
-import type { ICreateRoomUseCase } from "../../application/interfaces/use-case/room/ICreateRoomUseCase.js";
-import type { IGetRoomsUseCase } from "../../application/interfaces/use-case/room/IGetRoomsUseCase.js";
-import type { IRoomController } from "../interface/IRoomController.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
+import type { ICreateRoomUseCase } from "@application/interfaces/use-case/room/ICreateRoomUseCase.js";
+import type { IGetRoomsUseCase } from "@application/interfaces/use-case/room/IGetRoomsUseCase.js";
+import type { IRoomController } from "@presentation/interface/IRoomController.js";
+import { ApiResponse } from "@presentation/utils/ApiResponse.js";
+import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes.js";
 
 export class RoomController implements IRoomController {
     constructor(

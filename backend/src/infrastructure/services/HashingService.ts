@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt"
 
-import type { IHashingService } from "../../application/interfaces/services/IhashingService.js";
+import type { IHashingService } from "@application/interfaces/services/IhashingService.js";
 
 export class HashService implements IHashingService{
     constructor(){}

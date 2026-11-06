@@ -1,4 +1,4 @@
-import type { OtpEntity } from "../../../domain/entities/OtpEntity.js";
+import type { OtpEntity } from "@domain/entities/OtpEntity.js";
 
 
 /**

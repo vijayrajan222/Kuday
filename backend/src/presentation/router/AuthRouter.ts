@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import type { IAuthController } from "../interface/IAuthController.js";
+import type { IAuthController } from "@presentation/interface/IAuthController.js";
 
 export function createAuthRouter(authController: IAuthController) {
     const router = Router();

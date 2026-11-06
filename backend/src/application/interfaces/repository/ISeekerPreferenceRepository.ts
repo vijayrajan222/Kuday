@@ -1,4 +1,4 @@
-import type { SeekerPreferenceEntity } from "../../../domain/entities/SeekerPreferenceEntity.js";
+import type { SeekerPreferenceEntity } from "@domain/entities/SeekerPreferenceEntity.js";
 
 export interface ISeekerPreferenceRepository {
     save(preferenceData: Omit<SeekerPreferenceEntity, "id">): Promise<SeekerPreferenceEntity>;

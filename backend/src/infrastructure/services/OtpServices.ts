@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import type { IOtpService } from "../../application/interfaces/services/IOtpServices.js";
+import type { IOtpService } from "@application/interfaces/services/IOtpServices.js";
 
 export class OtpService implements IOtpService {
     constructor() {}

@@ -1,4 +1,4 @@
-import type { VerifyUserIdentityRequestDto, VerifyUserIdentityResultDto } from "../../../dto/admin/VerifyUserIdentityDto.js";
+import type { VerifyUserIdentityRequestDto, VerifyUserIdentityResultDto } from "@application/dto/admin/VerifyUserIdentityDto.js";
 
 export interface IVerifyUserIdentityUseCase {
     execute(input: VerifyUserIdentityRequestDto): Promise<VerifyUserIdentityResultDto>;

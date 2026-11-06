@@ -1,10 +1,10 @@
 import type { Request, Response } from "express";
-import type { ICreateLifestyleUseCase } from "../../application/interfaces/use-case/lifestyle/ICreateLifestyleUseCase.js";
-import type { IGetLifestyleUseCase } from "../../application/interfaces/use-case/lifestyle/IGetLifestyleUseCase.js";
-import type { ILifestyleController } from "../interface/ILifestyleController.js";
-import { CreateLifestyleSchema } from "../utils/validators/zod/CreateLifestyleSchema.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { HttpStatusCodes } from "../utils/HttpStatusCodes.js";
+import type { ICreateLifestyleUseCase } from "@application/interfaces/use-case/lifestyle/ICreateLifestyleUseCase.js";
+import type { IGetLifestyleUseCase } from "@application/interfaces/use-case/lifestyle/IGetLifestyleUseCase.js";
+import type { ILifestyleController } from "@presentation/interface/ILifestyleController.js";
+import { CreateLifestyleSchema } from "@presentation/utils/validators/zod/CreateLifestyleSchema.js";
+import { ApiResponse } from "@presentation/utils/ApiResponse.js";
+import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes.js";
 
 export class LifestyleController implements ILifestyleController {
     constructor(

@@ -1,78 +1,78 @@
 import type { Express } from "express";
 
 // Repositories
-import { MongoUserRepository } from "../repository/MongoUserRepository.js";
-import { MongoLifestyleRepository } from "../repository/MongoLifestyleRepository.js";
-import { MongoRoomRepository } from "../repository/MongoRoomRepository.js";
-import { MongoSeekerPreferenceRepository } from "../repository/MongoSeekerPreferenceRepository.js";
-import { MongoNotificationRepository } from "../repository/MongoNotificationRepository.js";
-import { MongoOtpRepository } from "../repository/MongoOtpRepository.js";
+import { MongoUserRepository } from "@infrastructure/repository/MongoUserRepository.js";
+import { MongoLifestyleRepository } from "@infrastructure/repository/MongoLifestyleRepository.js";
+import { MongoRoomRepository } from "@infrastructure/repository/MongoRoomRepository.js";
+import { MongoSeekerPreferenceRepository } from "@infrastructure/repository/MongoSeekerPreferenceRepository.js";
+import { MongoNotificationRepository } from "@infrastructure/repository/MongoNotificationRepository.js";
+import { MongoOtpRepository } from "@infrastructure/repository/MongoOtpRepository.js";
 
 // Services
-import { HashService } from "../services/HashingService.js";
-import { OtpService } from "../services/OtpServices.js";
-import { NodemailerMailService } from "../services/NodemailerService.js";
-import { JwtService } from "../services/JwtServices.js";
-import { CloudinaryService } from "../services/CloudinaryService.js";
+import { HashService } from "@infrastructure/services/HashingService.js";
+import { OtpService } from "@infrastructure/services/OtpServices.js";
+import { NodemailerMailService } from "@infrastructure/services/NodemailerService.js";
+import { JwtService } from "@infrastructure/services/JwtServices.js";
+import { CloudinaryService } from "@infrastructure/services/CloudinaryService.js";
 
 // Auth Use Cases
-import { SignUpUserUseCase } from "../../application/use-case/auth/SignUpUserUseCase.js";
-import { VerifyOptUseCase } from "../../application/use-case/auth/VerifyOtpUseCase.js";
-import { LoginUserUseCase } from "../../application/use-case/auth/LoginUserUseCase.js";
-import { GoogleAuthUseCase } from "../../application/use-case/auth/GoogleAuthUseCase.js";
-import { ForgotPasswordUseCase } from "../../application/use-case/auth/ForgotPasswordUseCase.js";
-import { VerifyResetOtpUseCase } from "../../application/use-case/auth/VerifyResetOtpUseCase.js";
-import { ResetPasswordUseCase } from "../../application/use-case/auth/ResetPasswordUseCase.js";
-import { RefreshTokenUseCase } from "../../application/use-case/auth/RefreshTokenUseCase.js";
+import { SignUpUserUseCase } from "@application/use-case/auth/SignUpUserUseCase.js";
+import { VerifyOptUseCase } from "@application/use-case/auth/VerifyOtpUseCase.js";
+import { LoginUserUseCase } from "@application/use-case/auth/LoginUserUseCase.js";
+import { GoogleAuthUseCase } from "@application/use-case/auth/GoogleAuthUseCase.js";
+import { ForgotPasswordUseCase } from "@application/use-case/auth/ForgotPasswordUseCase.js";
+import { VerifyResetOtpUseCase } from "@application/use-case/auth/VerifyResetOtpUseCase.js";
+import { ResetPasswordUseCase } from "@application/use-case/auth/ResetPasswordUseCase.js";
+import { RefreshTokenUseCase } from "@application/use-case/auth/RefreshTokenUseCase.js";
 
 // User Use Cases
-import { UpdateProfileUseCase } from "../../application/use-case/user/UpdateProfileUseCase.js";
-import { UpdateRoleUseCase } from "../../application/use-case/user/UpdateRoleUseCase.js";
-import { UploadIdentityUseCase } from "../../application/use-case/user/UploadIdentityUseCase.js";
-import { GetUserProfileUseCase } from "../../application/use-case/user/GetUserProfileUseCase.js";
-import { ChangePasswordUseCase } from "../../application/use-case/user/ChangePasswordUseCase.js";
+import { UpdateProfileUseCase } from "@application/use-case/user/UpdateProfileUseCase.js";
+import { UpdateRoleUseCase } from "@application/use-case/user/UpdateRoleUseCase.js";
+import { UploadIdentityUseCase } from "@application/use-case/user/UploadIdentityUseCase.js";
+import { GetUserProfileUseCase } from "@application/use-case/user/GetUserProfileUseCase.js";
+import { ChangePasswordUseCase } from "@application/use-case/user/ChangePasswordUseCase.js";
 
 // Lifestyle Use Cases
-import { CreateLifestyleUseCase } from "../../application/use-case/lifestyle/CreateLifestyleUseCase.js";
-import { GetLifestyleUseCase } from "../../application/use-case/lifestyle/GetLifestyleUseCase.js";
+import { CreateLifestyleUseCase } from "@application/use-case/lifestyle/CreateLifestyleUseCase.js";
+import { GetLifestyleUseCase } from "@application/use-case/lifestyle/GetLifestyleUseCase.js";
 
 // Room Use Cases
-import { CreateRoomUseCase } from "../../application/use-case/room/CreateRoomUseCase.js";
-import { GetRoomsUseCase } from "../../application/use-case/room/GetRoomsUseCase.js";
+import { CreateRoomUseCase } from "@application/use-case/room/CreateRoomUseCase.js";
+import { GetRoomsUseCase } from "@application/use-case/room/GetRoomsUseCase.js";
 
 // Seeker Use Cases
-import { CreateSeekerPreferenceUseCase } from "../../application/use-case/seeker/CreateSeekerPreferenceUseCase.js";
-import { GetSeekerPreferencesUseCase } from "../../application/use-case/seeker/GetSeekerPreferencesUseCase.js";
+import { CreateSeekerPreferenceUseCase } from "@application/use-case/seeker/CreateSeekerPreferenceUseCase.js";
+import { GetSeekerPreferencesUseCase } from "@application/use-case/seeker/GetSeekerPreferencesUseCase.js";
 
 // Notification Use Cases
-import { GetNotificationsUseCase } from "../../application/use-case/notification/GetNotificationsUseCase.js";
-import { CreateNotificationUseCase } from "../../application/use-case/notification/CreateNotificationUseCase.js";
-import { MarkNotificationReadUseCase } from "../../application/use-case/notification/MarkNotificationReadUseCase.js";
+import { GetNotificationsUseCase } from "@application/use-case/notification/GetNotificationsUseCase.js";
+import { CreateNotificationUseCase } from "@application/use-case/notification/CreateNotificationUseCase.js";
+import { MarkNotificationReadUseCase } from "@application/use-case/notification/MarkNotificationReadUseCase.js";
 
 // Admin Use Cases
-import { AdminLoginUseCase } from "../../application/use-case/admin/AdminLoginUseCase.js";
-import { GetAdminStatsUseCase } from "../../application/use-case/admin/GetAdminStatsUseCase.js";
-import { GetAllUsersUseCase } from "../../application/use-case/admin/GetAllUsersUseCase.js";
-import { VerifyUserIdentityUseCase } from "../../application/use-case/admin/VerifyUserIdentityUseCase.js";
-import { ToggleBlockUserUseCase } from "../../application/use-case/admin/ToggleBlockUserUseCase.js";
+import { AdminLoginUseCase } from "@application/use-case/admin/AdminLoginUseCase.js";
+import { GetAdminStatsUseCase } from "@application/use-case/admin/GetAdminStatsUseCase.js";
+import { GetAllUsersUseCase } from "@application/use-case/admin/GetAllUsersUseCase.js";
+import { VerifyUserIdentityUseCase } from "@application/use-case/admin/VerifyUserIdentityUseCase.js";
+import { ToggleBlockUserUseCase } from "@application/use-case/admin/ToggleBlockUserUseCase.js";
 
 // Controllers
-import { AuthController } from "../../presentation/controller/AuthController.js";
-import { UserController } from "../../presentation/controller/UserController.js";
-import { LifestyleController } from "../../presentation/controller/LifestyleController.js";
-import { RoomController } from "../../presentation/controller/RoomController.js";
-import { SeekerPreferenceController } from "../../presentation/controller/SeekerPreferenceController.js";
-import { NotificationController } from "../../presentation/controller/NotificationController.js";
-import { AdminController } from "../../presentation/controller/AdminController.js";
+import { AuthController } from "@presentation/controller/AuthController.js";
+import { UserController } from "@presentation/controller/UserController.js";
+import { LifestyleController } from "@presentation/controller/LifestyleController.js";
+import { RoomController } from "@presentation/controller/RoomController.js";
+import { SeekerPreferenceController } from "@presentation/controller/SeekerPreferenceController.js";
+import { NotificationController } from "@presentation/controller/NotificationController.js";
+import { AdminController } from "@presentation/controller/AdminController.js";
 
 // Routers
-import { createAuthRouter } from "../../presentation/router/AuthRouter.js";
-import { createUserRouter } from "../../presentation/router/UserRouter.js";
-import { createLifestyleRouter } from "../../presentation/router/LifestyleRouter.js";
-import { createRoomRouter } from "../../presentation/router/RoomRouter.js";
-import { createSeekerPreferenceRouter } from "../../presentation/router/SeekerPreferenceRouter.js";
-import { createNotificationRouter } from "../../presentation/router/NotificationRouter.js";
-import { createAdminRouter } from "../../presentation/router/AdminRouter.js";
+import { createAuthRouter } from "@presentation/router/AuthRouter.js";
+import { createUserRouter } from "@presentation/router/UserRouter.js";
+import { createLifestyleRouter } from "@presentation/router/LifestyleRouter.js";
+import { createRoomRouter } from "@presentation/router/RoomRouter.js";
+import { createSeekerPreferenceRouter } from "@presentation/router/SeekerPreferenceRouter.js";
+import { createNotificationRouter } from "@presentation/router/NotificationRouter.js";
+import { createAdminRouter } from "@presentation/router/AdminRouter.js";
 
 export function setupAppDependencies(app: Express): void {
     // 1. Repositories

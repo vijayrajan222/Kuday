@@ -1,5 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
-import type { ICloudinaryService } from "../../application/interfaces/services/ICloudinaryService.js";
+import type { ICloudinaryService } from "@application/interfaces/services/ICloudinaryService.js";
 
 export class CloudinaryService implements ICloudinaryService {
     constructor() {

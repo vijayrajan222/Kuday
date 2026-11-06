@@ -1,4 +1,4 @@
-import type { ILogger } from "../../application/interfaces/services/ILogger.js";
+import type { ILogger } from "@application/interfaces/services/ILogger.js";
 
 export type { ILogger };
 

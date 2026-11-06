@@ -1,4 +1,4 @@
-import type { ToggleBlockUserResultDto } from "../../../dto/admin/ToggleBlockUserDto.js";
+import type { ToggleBlockUserResultDto } from "@application/dto/admin/ToggleBlockUserDto.js";
 
 export interface IToggleBlockUserUseCase {
     execute(userId: string): Promise<ToggleBlockUserResultDto>;

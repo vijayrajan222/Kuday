@@ -1,4 +1,4 @@
-import { HttpStatusCodes } from "./HttpStatusCodes.js";
+import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes.js";
 
 export interface ApiResponseData<T = unknown> {
     success: boolean;

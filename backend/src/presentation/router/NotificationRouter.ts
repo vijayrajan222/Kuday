@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import type { INotificationController } from "../interface/INotificationController.js";
+import type { INotificationController } from "@presentation/interface/INotificationController.js";
 
 export function createNotificationRouter(
     notificationController: INotificationController

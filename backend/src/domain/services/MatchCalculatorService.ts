@@ -1,6 +1,6 @@
-import type { RoomEntity } from "../entities/RoomEntity.js";
-import type { SeekerPreferenceEntity } from "../entities/SeekerPreferenceEntity.js";
-import type { LifestyleEntity } from "../entities/LifestyleEntity.js";
+import type { RoomEntity } from "@domain/entities/RoomEntity.js";
+import type { SeekerPreferenceEntity } from "@domain/entities/SeekerPreferenceEntity.js";
+import type { LifestyleEntity } from "@domain/entities/LifestyleEntity.js";
 
 export interface SeekerContext {
     seekerPreference?: SeekerPreferenceEntity | null;

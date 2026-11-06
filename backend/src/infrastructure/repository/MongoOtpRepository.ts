@@ -1,7 +1,7 @@
-import type { IOtpRepository } from "../../application/interfaces/repository/IOtpRepository.js";
-import type { OtpEntity } from "../../domain/entities/OtpEntity.js";
+import type { IOtpRepository } from "@application/interfaces/repository/IOtpRepository.js";
+import type { OtpEntity } from "@domain/entities/OtpEntity.js";
 
-import { otpModel } from "../database/model/OtpModel.js";
+import { otpModel } from "@infrastructure/database/model/OtpModel.js";
 
 
 

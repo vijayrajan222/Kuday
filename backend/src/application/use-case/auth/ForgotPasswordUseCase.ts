@@ -1,9 +1,9 @@
-import type { ForgotPasswordRequestDto, ForgotPasswordResponseDto } from "../../dto/auth/ForgotPasswordDto.js";
-import type { IUserRepository } from "../../interfaces/repository/IUserRepository.js";
-import type { IOtpService } from "../../interfaces/services/IOtpServices.js";
-import type { IOtpRepository } from "../../interfaces/repository/IOtpRepository.js";
-import type { IMailService } from "../../interfaces/services/IMailServices.js";
-import type { IForgotPasswordUseCase } from "../../interfaces/use-case/auth/IForgotPasswordUseCase.js";
+import type { ForgotPasswordRequestDto, ForgotPasswordResponseDto } from "@application/dto/auth/ForgotPasswordDto.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
+import type { IOtpService } from "@application/interfaces/services/IOtpServices.js";
+import type { IOtpRepository } from "@application/interfaces/repository/IOtpRepository.js";
+import type { IMailService } from "@application/interfaces/services/IMailServices.js";
+import type { IForgotPasswordUseCase } from "@application/interfaces/use-case/auth/IForgotPasswordUseCase.js";
 
 export class ForgotPasswordUseCase implements IForgotPasswordUseCase {
     constructor(

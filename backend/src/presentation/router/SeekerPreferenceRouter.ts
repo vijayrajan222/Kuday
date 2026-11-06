@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import type { ISeekerPreferenceController } from "../interface/ISeekerPreferenceController.js";
+import type { ISeekerPreferenceController } from "@presentation/interface/ISeekerPreferenceController.js";
 
 export function createSeekerPreferenceRouter(
     seekerController: ISeekerPreferenceController

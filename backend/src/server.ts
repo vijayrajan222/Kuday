@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
-import { connectMongo } from "./infrastructure/database/ConnectMongoDB.js";
-import { setupAppDependencies } from "./infrastructure/di/AppFactory.js";
-import { globalErrorHandler } from "./presentation/middleware/ErrorHandlerMiddleware.js";
+import { connectMongo } from "@infrastructure/database/ConnectMongoDB.js";
+import { setupAppDependencies } from "@infrastructure/di/AppFactory.js";
+import { globalErrorHandler } from "@presentation/middleware/ErrorHandlerMiddleware.js";
 
 async function startServer(): Promise<void> {
     console.log("Waiting for database connection...");

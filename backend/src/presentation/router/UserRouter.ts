@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import type { IUserController } from "../interface/IUserController.js";
+import type { IUserController } from "@presentation/interface/IUserController.js";
 
 export function createUserRouter(userController: IUserController): Router {
     const router = Router();
