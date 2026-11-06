@@ -1,7 +1,7 @@
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository.js";
-import type { IVerifyUserIdentityUseCase } from "@application/interfaces/use-case/admin/IVerifyUserIdentityUseCase.js";
-import type { VerifyUserIdentityRequestDto, VerifyUserIdentityResultDto } from "@application/dto/admin/VerifyUserIdentityDto.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository";
+import type { IVerifyUserIdentityUseCase } from "@application/interfaces/use-case/admin/IVerifyUserIdentityUseCase";
+import type { VerifyUserIdentityRequestDto, VerifyUserIdentityResultDto } from "@application/dto/admin/VerifyUserIdentityDto";
 
 export class VerifyUserIdentityUseCase implements IVerifyUserIdentityUseCase {
     constructor(

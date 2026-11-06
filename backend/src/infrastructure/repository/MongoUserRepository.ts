@@ -1,6 +1,6 @@
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { UserEntity } from "@domain/entities/UserEntity.js";
-import { userModel, type UserDoc } from "@infrastructure/database/model/UserModel.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { UserEntity } from "@domain/entities/UserEntity";
+import { userModel, type UserDoc } from "@infrastructure/database/model/UserModel";
 
 /**
  * Fields that updateProfile() is allowed to change.

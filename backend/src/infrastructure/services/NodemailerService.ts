@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import type { IMailService } from "@application/interfaces/services/IMailServices.js";
+import type { IMailService } from "@application/interfaces/services/IMailServices";
 
 const OTP_VALID_MINUTES = 10;
 

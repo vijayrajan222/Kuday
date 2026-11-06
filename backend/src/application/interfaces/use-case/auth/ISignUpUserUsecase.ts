@@ -7,7 +7,7 @@
  * we write the interfaces as a part of dependancy inverrtion such a way that a class should not depend onn its 
  */
 
-import type { SignUpUserRequestDto, SignUpUserResultDTO } from "@application/dto/auth/SignUpDTO.js";
+import type { SignUpUserRequestDto, SignUpUserResultDTO } from "@application/dto/auth/SignUpDTO";
 
 /**
  * This interface is used to define the use case class

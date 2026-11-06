@@ -1,7 +1,7 @@
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { IResetPasswordUseCase } from "@application/interfaces/use-case/auth/IResetPasswordUseCase.js";
-import type { IHashingService } from "@application/interfaces/services/IhashingService.js";
-import type { ResetPasswordRequestDto, ResetPasswordResponseDto } from "@application/dto/auth/ResetPasswordDto.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { IResetPasswordUseCase } from "@application/interfaces/use-case/auth/IResetPasswordUseCase";
+import type { IHashingService } from "@application/interfaces/services/IhashingService";
+import type { ResetPasswordRequestDto, ResetPasswordResponseDto } from "@application/dto/auth/ResetPasswordDto";
 
 export class ResetPasswordUseCase implements IResetPasswordUseCase {
     constructor(

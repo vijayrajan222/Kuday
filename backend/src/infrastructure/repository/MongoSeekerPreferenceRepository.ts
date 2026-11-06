@@ -1,6 +1,6 @@
-import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository.js";
-import type { SeekerPreferenceEntity } from "@domain/entities/SeekerPreferenceEntity.js";
-import { SeekerPreferenceModel, type SeekerPreferenceDoc } from "@infrastructure/database/model/SeekerPreferenceModel.js";
+import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository";
+import type { SeekerPreferenceEntity } from "@domain/entities/SeekerPreferenceEntity";
+import { SeekerPreferenceModel, type SeekerPreferenceDoc } from "@infrastructure/database/model/SeekerPreferenceModel";
 
 export class MongoSeekerPreferenceRepository implements ISeekerPreferenceRepository {
     private mapToEntity(doc: SeekerPreferenceDoc): SeekerPreferenceEntity {

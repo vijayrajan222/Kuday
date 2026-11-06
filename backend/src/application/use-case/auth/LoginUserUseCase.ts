@@ -1,8 +1,8 @@
-import type { loginRequestDto, loginResponseDto } from "@application/dto/auth/LoginDto.js";
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { IHashingService } from "@application/interfaces/services/IhashingService.js";
-import type { IJwtService } from "@application/interfaces/services/IJwtServices.js";
-import type { ILoginUserUseCase } from "@application/interfaces/use-case/auth/ILoginUserUseCase.js";
+import type { loginRequestDto, loginResponseDto } from "@application/dto/auth/LoginDto";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { IHashingService } from "@application/interfaces/services/IhashingService";
+import type { IJwtService } from "@application/interfaces/services/IJwtServices";
+import type { ILoginUserUseCase } from "@application/interfaces/use-case/auth/ILoginUserUseCase";
 
 export class LoginUserUseCase implements ILoginUserUseCase {
     constructor(

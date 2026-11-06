@@ -1,6 +1,6 @@
-import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository.js";
-import type { NotificationEntity } from "@domain/entities/NotificationEntity.js";
-import { NotificationModel, type NotificationDoc } from "@infrastructure/database/model/NotificationModel.js";
+import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository";
+import type { NotificationEntity } from "@domain/entities/NotificationEntity";
+import { NotificationModel, type NotificationDoc } from "@infrastructure/database/model/NotificationModel";
 
 export class MongoNotificationRepository implements INotificationRepository {
     private mapToEntity(doc: NotificationDoc): NotificationEntity {

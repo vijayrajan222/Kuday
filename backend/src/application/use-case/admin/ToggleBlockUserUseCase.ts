@@ -1,6 +1,6 @@
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { IToggleBlockUserUseCase } from "@application/interfaces/use-case/admin/IToggleBlockUserUseCase.js";
-import type { ToggleBlockUserResultDto } from "@application/dto/admin/ToggleBlockUserDto.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { IToggleBlockUserUseCase } from "@application/interfaces/use-case/admin/IToggleBlockUserUseCase";
+import type { ToggleBlockUserResultDto } from "@application/dto/admin/ToggleBlockUserDto";
 
 export class ToggleBlockUserUseCase implements IToggleBlockUserUseCase {
     constructor(private userRepository: IUserRepository) {}

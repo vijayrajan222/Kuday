@@ -1,7 +1,7 @@
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { IJwtService } from "@application/interfaces/services/IJwtServices.js";
-import type { IRefreshTokenUseCase } from "@application/interfaces/use-case/auth/IRefreshTokenUseCase.js";
-import type { RefreshTokenRequestDto, RefreshTokenResultDto } from "@application/dto/auth/RefreshTokenDto.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { IJwtService } from "@application/interfaces/services/IJwtServices";
+import type { IRefreshTokenUseCase } from "@application/interfaces/use-case/auth/IRefreshTokenUseCase";
+import type { RefreshTokenRequestDto, RefreshTokenResultDto } from "@application/dto/auth/RefreshTokenDto";
 
 export class RefreshTokenUseCase implements IRefreshTokenUseCase {
     constructor(

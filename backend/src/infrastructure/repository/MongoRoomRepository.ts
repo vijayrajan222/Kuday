@@ -1,6 +1,6 @@
-import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository.js";
-import type { RoomEntity } from "@domain/entities/RoomEntity.js";
-import { RoomModel, type RoomDoc } from "@infrastructure/database/model/RoomModel.js";
+import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
+import type { RoomEntity } from "@domain/entities/RoomEntity";
+import { RoomModel, type RoomDoc } from "@infrastructure/database/model/RoomModel";
 
 export class MongoRoomRepository implements IRoomRepository {
     private mapToEntity(doc: RoomDoc): RoomEntity {

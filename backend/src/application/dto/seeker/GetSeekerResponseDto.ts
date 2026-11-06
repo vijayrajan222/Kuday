@@ -1,4 +1,4 @@
-import type { LifestyleEntity } from "@domain/entities/LifestyleEntity.js";
+import type { LifestyleEntity } from "@domain/entities/LifestyleEntity";
 
 export interface SeekerProfileDto {
     id: string;

@@ -1,8 +1,8 @@
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { IUpdateProfileUseCase } from "@application/interfaces/use-case/user/IUpdateProfileUseCase.js";
-import type { UpdateProfileDto } from "@application/dto/user/UpdateProfileDto.js";
-import type { UserEntity } from "@domain/entities/UserEntity.js";
-import type { ICloudinaryService } from "@application/interfaces/services/ICloudinaryService.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { IUpdateProfileUseCase } from "@application/interfaces/use-case/user/IUpdateProfileUseCase";
+import type { UpdateProfileDto } from "@application/dto/user/UpdateProfileDto";
+import type { UserEntity } from "@domain/entities/UserEntity";
+import type { ICloudinaryService } from "@application/interfaces/services/ICloudinaryService";
 
 export class UpdateProfileUseCase implements IUpdateProfileUseCase {
     constructor(

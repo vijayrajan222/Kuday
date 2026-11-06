@@ -1,11 +1,11 @@
-import type { UserEntity } from "@domain/entities/UserEntity.js";
-import type { SignUpUserRequestDto, SignUpUserResultDTO } from "@application/dto/auth/SignUpDTO.js";
-import type { IOtpRepository } from "@application/interfaces/repository/IOtpRepository.js";
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { IHashingService } from "@application/interfaces/services/IhashingService.js";
-import type { IMailService } from "@application/interfaces/services/IMailServices.js";
-import type { IOtpService } from "@application/interfaces/services/IOtpServices.js";
-import type { ISignUpUserUsercase } from "@application/interfaces/use-case/auth/ISignUpUserUsecase.js";
+import type { UserEntity } from "@domain/entities/UserEntity";
+import type { SignUpUserRequestDto, SignUpUserResultDTO } from "@application/dto/auth/SignUpDTO";
+import type { IOtpRepository } from "@application/interfaces/repository/IOtpRepository";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { IHashingService } from "@application/interfaces/services/IhashingService";
+import type { IMailService } from "@application/interfaces/services/IMailServices";
+import type { IOtpService } from "@application/interfaces/services/IOtpServices";
+import type { ISignUpUserUsercase } from "@application/interfaces/use-case/auth/ISignUpUserUsecase";
 
 export class SignUpUserUseCase implements ISignUpUserUsercase {
     constructor(

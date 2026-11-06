@@ -1,27 +1,27 @@
 import type { Request, Response } from "express";
 import { ZodError } from "zod";
 
-import type { IAuthController } from "@presentation/interface/IAuthController.js";
+import type { IAuthController } from "@presentation/interface/IAuthController";
 
-import type { ISignUpUserUsercase } from "@application/interfaces/use-case/auth/ISignUpUserUsecase.js";
-import type { IVerifyOtpUseCase } from "@application/interfaces/use-case/auth/IVerifyOtpUseCase.js";
-import type { ILoginUserUseCase } from "@application/interfaces/use-case/auth/ILoginUserUseCase.js";
-import type { IGoogleAuthUseCase } from "@application/interfaces/use-case/auth/IGoogleAuthUseCase.js";
-import type { IForgotPasswordUseCase } from "@application/interfaces/use-case/auth/IForgotPasswordUseCase.js";
-import type { IVerifyResetOtpUseCase } from "@application/interfaces/use-case/auth/IVerifyResetOtpUseCase.js";
-import type { IResetPasswordUseCase } from "@application/interfaces/use-case/auth/IResetPasswordUseCase.js";
-import type { IRefreshTokenUseCase } from "@application/interfaces/use-case/auth/IRefreshTokenUseCase.js";
-import type { IJwtService } from "@application/interfaces/services/IJwtServices.js";
+import type { ISignUpUserUsercase } from "@application/interfaces/use-case/auth/ISignUpUserUsecase";
+import type { IVerifyOtpUseCase } from "@application/interfaces/use-case/auth/IVerifyOtpUseCase";
+import type { ILoginUserUseCase } from "@application/interfaces/use-case/auth/ILoginUserUseCase";
+import type { IGoogleAuthUseCase } from "@application/interfaces/use-case/auth/IGoogleAuthUseCase";
+import type { IForgotPasswordUseCase } from "@application/interfaces/use-case/auth/IForgotPasswordUseCase";
+import type { IVerifyResetOtpUseCase } from "@application/interfaces/use-case/auth/IVerifyResetOtpUseCase";
+import type { IResetPasswordUseCase } from "@application/interfaces/use-case/auth/IResetPasswordUseCase";
+import type { IRefreshTokenUseCase } from "@application/interfaces/use-case/auth/IRefreshTokenUseCase";
+import type { IJwtService } from "@application/interfaces/services/IJwtServices";
 
-import { SignUpUserRequestSchema } from "@presentation/utils/validators/zod/AuthSchema.js";
-import { VerifyOtpRequestSchema } from "@presentation/utils/validators/zod/VerifyOtpRequestSchema.js";
-import { LoginRequestSchema } from "@presentation/utils/validators/zod/LoginSchema.js";
-import { GoogleAuthRequestSchema } from "@presentation/utils/validators/zod/GoogleAuthRequestSchema.js";
-import { ForgetPasswordSchema } from "@presentation/utils/validators/zod/ForgotPasswordSchema.js";
-import { VerifyResetOtpSchema } from "@presentation/utils/validators/zod/VerifyResetOtpSchema.js";
-import { ResetPasswordSchema } from "@presentation/utils/validators/zod/ResetPasswordSchema.js";
-import { ApiResponse } from "@presentation/utils/ApiResponse.js";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes.js";
+import { SignUpUserRequestSchema } from "@presentation/utils/validators/zod/AuthSchema";
+import { VerifyOtpRequestSchema } from "@presentation/utils/validators/zod/VerifyOtpRequestSchema";
+import { LoginRequestSchema } from "@presentation/utils/validators/zod/LoginSchema";
+import { GoogleAuthRequestSchema } from "@presentation/utils/validators/zod/GoogleAuthRequestSchema";
+import { ForgetPasswordSchema } from "@presentation/utils/validators/zod/ForgotPasswordSchema";
+import { VerifyResetOtpSchema } from "@presentation/utils/validators/zod/VerifyResetOtpSchema";
+import { ResetPasswordSchema } from "@presentation/utils/validators/zod/ResetPasswordSchema";
+import { ApiResponse } from "@presentation/utils/ApiResponse";
+import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
 
 export class AuthController implements IAuthController {
     private readonly _signUpUsecase: ISignUpUserUsercase;

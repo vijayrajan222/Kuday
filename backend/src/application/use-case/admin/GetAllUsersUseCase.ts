@@ -1,6 +1,6 @@
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { UserEntity } from "@domain/entities/UserEntity.js";
-import type { IGetAllUsersUseCase } from "@application/interfaces/use-case/admin/IGetAllUsersUseCase.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { UserEntity } from "@domain/entities/UserEntity";
+import type { IGetAllUsersUseCase } from "@application/interfaces/use-case/admin/IGetAllUsersUseCase";
 
 export class GetAllUsersUseCase implements IGetAllUsersUseCase {
     constructor(private userRepository: IUserRepository) {}

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import type { ILifestyleController } from "@presentation/interface/ILifestyleController.js";
+import type { ILifestyleController } from "@presentation/interface/ILifestyleController";
 
 export function createLifestyleRouter(lifestyleController: ILifestyleController): Router {
     const router = Router();

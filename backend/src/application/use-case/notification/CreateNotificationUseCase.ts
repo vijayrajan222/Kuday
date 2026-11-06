@@ -1,7 +1,7 @@
-import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository.js";
-import type { NotificationEntity } from "@domain/entities/NotificationEntity.js";
-import type { ICreateNotificationUseCase } from "@application/interfaces/use-case/notification/ICreateNotificationUseCase.js";
-import type { CreateNotificationRequestDto } from "@application/dto/notification/CreateNotificationDto.js";
+import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository";
+import type { NotificationEntity } from "@domain/entities/NotificationEntity";
+import type { ICreateNotificationUseCase } from "@application/interfaces/use-case/notification/ICreateNotificationUseCase";
+import type { CreateNotificationRequestDto } from "@application/dto/notification/CreateNotificationDto";
 
 export class CreateNotificationUseCase implements ICreateNotificationUseCase {
     constructor(private notificationRepository: INotificationRepository) {}

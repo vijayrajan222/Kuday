@@ -1,6 +1,6 @@
-import type { IGetLifestyleUseCase } from "@application/interfaces/use-case/lifestyle/IGetLifestyleUseCase.js";
-import type { ILifestyleRepository } from "@application/interfaces/repository/ILifestyleRepository.js";
-import type { LifestyleEntity } from "@domain/entities/LifestyleEntity.js";
+import type { IGetLifestyleUseCase } from "@application/interfaces/use-case/lifestyle/IGetLifestyleUseCase";
+import type { ILifestyleRepository } from "@application/interfaces/repository/ILifestyleRepository";
+import type { LifestyleEntity } from "@domain/entities/LifestyleEntity";
 
 export class GetLifestyleUseCase implements IGetLifestyleUseCase {
     constructor(private lifestyleRepository: ILifestyleRepository) {}

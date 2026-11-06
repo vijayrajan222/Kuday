@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import type { IJwtService } from "@application/interfaces/services/IJwtServices.js";
+import type { IJwtService } from "@application/interfaces/services/IJwtServices";
 
 export class JwtService implements IJwtService {
     private readonly _secretKey: string;

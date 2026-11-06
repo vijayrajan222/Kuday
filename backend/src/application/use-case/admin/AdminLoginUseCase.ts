@@ -1,8 +1,8 @@
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { IHashingService } from "@application/interfaces/services/IhashingService.js";
-import type { IJwtService } from "@application/interfaces/services/IJwtServices.js";
-import type { IAdminLoginUseCase } from "@application/interfaces/use-case/admin/IAdminLoginUseCase.js";
-import type { AdminLoginRequestDto, AdminLoginResultDto } from "@application/dto/admin/AdminLoginDto.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { IHashingService } from "@application/interfaces/services/IhashingService";
+import type { IJwtService } from "@application/interfaces/services/IJwtServices";
+import type { IAdminLoginUseCase } from "@application/interfaces/use-case/admin/IAdminLoginUseCase";
+import type { AdminLoginRequestDto, AdminLoginResultDto } from "@application/dto/admin/AdminLoginDto";
 
 export class AdminLoginUseCase implements IAdminLoginUseCase {
     constructor(

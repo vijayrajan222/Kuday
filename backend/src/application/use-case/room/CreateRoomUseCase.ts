@@ -1,9 +1,9 @@
-import type { ICreateRoomUseCase } from "@application/interfaces/use-case/room/ICreateRoomUseCase.js";
-import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository.js";
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { ICloudinaryService } from "@application/interfaces/services/ICloudinaryService.js";
-import type { CreateRoomDto } from "@application/dto/room/CreateRoomDto.js";
-import type { RoomEntity } from "@domain/entities/RoomEntity.js";
+import type { ICreateRoomUseCase } from "@application/interfaces/use-case/room/ICreateRoomUseCase";
+import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { ICloudinaryService } from "@application/interfaces/services/ICloudinaryService";
+import type { CreateRoomDto } from "@application/dto/room/CreateRoomDto";
+import type { RoomEntity } from "@domain/entities/RoomEntity";
 
 export class CreateRoomUseCase implements ICreateRoomUseCase {
     constructor(

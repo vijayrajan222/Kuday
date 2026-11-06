@@ -1,6 +1,6 @@
-import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository.js";
-import type { NotificationEntity } from "@domain/entities/NotificationEntity.js";
-import type { IMarkNotificationReadUseCase } from "@application/interfaces/use-case/notification/IMarkNotificationReadUseCase.js";
+import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository";
+import type { NotificationEntity } from "@domain/entities/NotificationEntity";
+import type { IMarkNotificationReadUseCase } from "@application/interfaces/use-case/notification/IMarkNotificationReadUseCase";
 
 export class MarkNotificationReadUseCase implements IMarkNotificationReadUseCase {
     constructor(private notificationRepository: INotificationRepository) {}

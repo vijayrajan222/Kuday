@@ -1,8 +1,8 @@
-import type { ILifestyleRepository } from "@application/interfaces/repository/ILifestyleRepository.js";
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { ICreateLifestyleUseCase } from "@application/interfaces/use-case/lifestyle/ICreateLifestyleUseCase.js";
-import type { CreateLifestyleDto } from "@application/dto/lifestyle/CreateLifestyleDto.js";
-import type { LifestyleEntity } from "@domain/entities/LifestyleEntity.js";
+import type { ILifestyleRepository } from "@application/interfaces/repository/ILifestyleRepository";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { ICreateLifestyleUseCase } from "@application/interfaces/use-case/lifestyle/ICreateLifestyleUseCase";
+import type { CreateLifestyleDto } from "@application/dto/lifestyle/CreateLifestyleDto";
+import type { LifestyleEntity } from "@domain/entities/LifestyleEntity";
 
 export class CreateLifestyleUseCase implements ICreateLifestyleUseCase {
     constructor(

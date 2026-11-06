@@ -1,5 +1,5 @@
 
-import type { LifestyleEntity } from "@domain/entities/LifestyleEntity.js";
+import type { LifestyleEntity } from "@domain/entities/LifestyleEntity";
 
 export interface ILifestyleRepository {
     upsert(lifestyle: Omit<LifestyleEntity, "id">): Promise<LifestyleEntity>;

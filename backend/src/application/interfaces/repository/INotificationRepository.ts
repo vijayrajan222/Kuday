@@ -1,4 +1,4 @@
-import type { NotificationEntity } from "@domain/entities/NotificationEntity.js";
+import type { NotificationEntity } from "@domain/entities/NotificationEntity";
 
 export interface INotificationRepository {
     create(data: Omit<NotificationEntity, "id">): Promise<NotificationEntity>;

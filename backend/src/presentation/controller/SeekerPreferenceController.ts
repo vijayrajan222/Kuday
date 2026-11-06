@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
-import type { ICreateSeekerPreferenceUseCase } from "@application/interfaces/use-case/seeker/ICreateSeekerPreferenceUseCase.js";
-import type { IGetSeekerPreferencesUseCase } from "@application/interfaces/use-case/seeker/IGetSeekerPreferencesUseCase.js";
-import type { ISeekerPreferenceController } from "@presentation/interface/ISeekerPreferenceController.js";
-import { ApiResponse } from "@presentation/utils/ApiResponse.js";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes.js";
+import type { ICreateSeekerPreferenceUseCase } from "@application/interfaces/use-case/seeker/ICreateSeekerPreferenceUseCase";
+import type { IGetSeekerPreferencesUseCase } from "@application/interfaces/use-case/seeker/IGetSeekerPreferencesUseCase";
+import type { ISeekerPreferenceController } from "@presentation/interface/ISeekerPreferenceController";
+import { ApiResponse } from "@presentation/utils/ApiResponse";
+import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
 
 export class SeekerPreferenceController implements ISeekerPreferenceController {
     constructor(

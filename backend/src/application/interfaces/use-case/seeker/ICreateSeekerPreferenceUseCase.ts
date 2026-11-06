@@ -1,5 +1,5 @@
-import type { SeekerPreferenceEntity } from "@domain/entities/SeekerPreferenceEntity.js";
-import type { CreateSeekerPreferenceDto } from "@application/dto/seeker/CreateSeekerPreferenceDto.js";
+import type { SeekerPreferenceEntity } from "@domain/entities/SeekerPreferenceEntity";
+import type { CreateSeekerPreferenceDto } from "@application/dto/seeker/CreateSeekerPreferenceDto";
 
 export interface ICreateSeekerPreferenceUseCase {
     execute(dto: CreateSeekerPreferenceDto): Promise<SeekerPreferenceEntity>;

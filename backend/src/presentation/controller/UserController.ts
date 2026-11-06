@@ -1,15 +1,15 @@
 import type { Request, Response } from "express";
 import { ZodError } from "zod";
-import type { IUpdateProfileUseCase } from "@application/interfaces/use-case/user/IUpdateProfileUseCase.js";
-import type { IUploadIdentityUseCase } from "@application/interfaces/use-case/user/IUploadIdentityUseCase.js";
-import type { IUpdateRoleUseCase } from "@application/interfaces/use-case/user/IUpdateRoleUseCase.js";
-import type { IGetUserProfileUseCase } from "@application/interfaces/use-case/user/IGetUserProfileUseCase.js";
-import type { IChangePasswordUseCase } from "@application/interfaces/use-case/user/IChangePasswordUseCase.js";
-import type { IUserController } from "@presentation/interface/IUserController.js";
-import { UpdateProfileSchema } from "@presentation/utils/validators/zod/UpdateProfileSchema.js";
-import { ChangePasswordSchema } from "@presentation/utils/validators/zod/ChangePasswordSchema.js";
-import { ApiResponse } from "@presentation/utils/ApiResponse.js";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes.js";
+import type { IUpdateProfileUseCase } from "@application/interfaces/use-case/user/IUpdateProfileUseCase";
+import type { IUploadIdentityUseCase } from "@application/interfaces/use-case/user/IUploadIdentityUseCase";
+import type { IUpdateRoleUseCase } from "@application/interfaces/use-case/user/IUpdateRoleUseCase";
+import type { IGetUserProfileUseCase } from "@application/interfaces/use-case/user/IGetUserProfileUseCase";
+import type { IChangePasswordUseCase } from "@application/interfaces/use-case/user/IChangePasswordUseCase";
+import type { IUserController } from "@presentation/interface/IUserController";
+import { UpdateProfileSchema } from "@presentation/utils/validators/zod/UpdateProfileSchema";
+import { ChangePasswordSchema } from "@presentation/utils/validators/zod/ChangePasswordSchema";
+import { ApiResponse } from "@presentation/utils/ApiResponse";
+import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
 
 export class UserController implements IUserController {
     constructor(

@@ -1,6 +1,6 @@
-import type { ILifestyleRepository } from "@application/interfaces/repository/ILifestyleRepository.js";
-import type { LifestyleEntity } from "@domain/entities/LifestyleEntity.js";
-import { LifestyleModel } from "@infrastructure/database/model/LifestyleModel.js";
+import type { ILifestyleRepository } from "@application/interfaces/repository/ILifestyleRepository";
+import type { LifestyleEntity } from "@domain/entities/LifestyleEntity";
+import { LifestyleModel } from "@infrastructure/database/model/LifestyleModel";
 
 export class MongoLifestyleRepository implements ILifestyleRepository {
     async upsert(lifestyle: Omit<LifestyleEntity, "id">): Promise<LifestyleEntity> {

@@ -1,10 +1,10 @@
-import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository.js";
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { ILifestyleRepository } from "@application/interfaces/repository/ILifestyleRepository.js";
-import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository.js";
-import type { RoomWithHostDto, HostProfileDto } from "@application/dto/room/GetRoomResponseDto.js";
-import type { IGetRoomsUseCase } from "@application/interfaces/use-case/room/IGetRoomsUseCase.js";
-import { MatchCalculatorService } from "@domain/services/MatchCalculatorService.js";
+import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { ILifestyleRepository } from "@application/interfaces/repository/ILifestyleRepository";
+import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository";
+import type { RoomWithHostDto, HostProfileDto } from "@application/dto/room/GetRoomResponseDto";
+import type { IGetRoomsUseCase } from "@application/interfaces/use-case/room/IGetRoomsUseCase";
+import { MatchCalculatorService } from "@domain/services/MatchCalculatorService";
 
 export class GetRoomsUseCase implements IGetRoomsUseCase {
     constructor(

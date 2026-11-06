@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes.js";
-import { ApiResponse } from "@presentation/utils/ApiResponse.js";
-import { logger } from "@infrastructure/logging/Logger.js";
+import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import { ApiResponse } from "@presentation/utils/ApiResponse";
+import { logger } from "@infrastructure/logging/Logger";
 import {
     ApplicationError,
     NotFoundError,
@@ -10,7 +10,7 @@ import {
     UnauthorizedError,
     ForbiddenError,
     ValidationError,
-} from "@application/errors/AppError.js";
+} from "@application/errors/AppError";
 
 export {
     ApplicationError,

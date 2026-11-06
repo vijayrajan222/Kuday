@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import type { IAdminController } from "@presentation/interface/IAdminController.js";
+import type { IAdminController } from "@presentation/interface/IAdminController";
 
 export function createAdminRouter(adminController: IAdminController): Router {
     const router = Router();

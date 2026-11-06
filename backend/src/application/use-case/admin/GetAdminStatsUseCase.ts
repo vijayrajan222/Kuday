@@ -1,7 +1,7 @@
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
-import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository.js";
-import type { IGetAdminStatsUseCase } from "@application/interfaces/use-case/admin/IGetAdminStatsUseCase.js";
-import type { AdminStatsResultDto } from "@application/dto/admin/AdminStatsDto.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
+import type { IGetAdminStatsUseCase } from "@application/interfaces/use-case/admin/IGetAdminStatsUseCase";
+import type { AdminStatsResultDto } from "@application/dto/admin/AdminStatsDto";
 
 export class GetAdminStatsUseCase implements IGetAdminStatsUseCase {
     constructor(

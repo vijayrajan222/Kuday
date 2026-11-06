@@ -1,4 +1,4 @@
-import type { RoomWithHostDto } from "@application/dto/room/GetRoomResponseDto.js";
+import type { RoomWithHostDto } from "@application/dto/room/GetRoomResponseDto";
 
 export interface IGetRoomsUseCase {
     execute(seekerUserId?: string): Promise<RoomWithHostDto[]>;

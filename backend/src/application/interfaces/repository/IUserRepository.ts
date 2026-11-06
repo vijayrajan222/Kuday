@@ -5,7 +5,7 @@
  * 
  */
 
-import type { UserEntity } from "@domain/entities/UserEntity.js";
+import type { UserEntity } from "@domain/entities/UserEntity";
 
 export interface IUserRepository {
     save(newUser: Omit<UserEntity, "id">): Promise<UserEntity>;

@@ -1,4 +1,4 @@
-import type { RoomEntity } from "@domain/entities/RoomEntity.js";
+import type { RoomEntity } from "@domain/entities/RoomEntity";
 
 export interface IRoomRepository {
     create(roomData: Omit<RoomEntity, "id">): Promise<RoomEntity>;
