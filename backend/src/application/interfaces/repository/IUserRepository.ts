@@ -7,29 +7,13 @@
 
 import type { UserEntity } from "../../../domain/entities/UserEntity.js";
 
-
-export interface IUserRepository{
-
-    save(newUser:Omit<UserEntity,"id">) : Promise<UserEntity>
-    /** this methords saves the userdata to the database . 
-     *  we are giving the userEntity 
-     * @param the data of the new user in the user enity 
-     * @return the user data saved in the db 
-     * which is again the userEnity 
-    */
-
-    findByEmail(email:string) : Promise<UserEntity|null>;
-
-    updateVerificationStatus(email:string,isVerified:boolean) : Promise<void>
-
-    updatenewPassword(email:string,password:string):Promise<void>
-/**
- * from here we are going to serve the data for the profile updation the authentication is compleated 
- * now we are going to wirte the methrods to manipulate the profile details 
- */
-
+export interface IUserRepository {
+    save(newUser: Omit<UserEntity, "id">): Promise<UserEntity>;
+    findByEmail(email: string): Promise<UserEntity | null>;
+    updateVerificationStatus(email: string, isVerified: boolean): Promise<void>;
+    updatenewPassword(email: string, password: string): Promise<void>;
     updateProfile(userId: string, profileData: Partial<UserEntity>): Promise<UserEntity | null>;
     updateUser(userId: string, userData: Partial<UserEntity>): Promise<UserEntity | null>;
     findById(id: string): Promise<UserEntity | null>;
-    findAll(): Promise<UserEntity[]>;
+    findAll(search?: string): Promise<UserEntity[]>;
 }

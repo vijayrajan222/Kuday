@@ -5,7 +5,7 @@ import type { IGetAllUsersUseCase } from "../../interfaces/use-case/admin/IGetAl
 export class GetAllUsersUseCase implements IGetAllUsersUseCase {
     constructor(private userRepository: IUserRepository) {}
 
-    async execute(): Promise<UserEntity[]> {
-        return this.userRepository.findAll();
+    async execute(search?: string): Promise<UserEntity[]> {
+        return this.userRepository.findAll(search);
     }
 }

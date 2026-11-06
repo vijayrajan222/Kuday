@@ -18,9 +18,12 @@ export const adminService = {
     return response.data.data;
   },
 
-  async getUsers(): Promise<AdminUser[]> {
+  async getUsers(search?: string): Promise<AdminUser[]> {
     const response = await api.get<{ success: boolean; data: AdminUser[] }>(
-      API_ENDPOINTS.ADMIN.USERS
+      API_ENDPOINTS.ADMIN.USERS,
+      {
+        params: search && search.trim() ? { search: search.trim() } : undefined,
+      }
     );
     return response.data.data;
   },

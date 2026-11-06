@@ -89,8 +89,19 @@ export class MongoUserRepository implements IUserRepository {
         return this.mapUserDoc(doc);
     }
 
-    async findAll(): Promise<UserEntity[]> {
-        const docs = await this.user.find().exec();
+    async findAll(search?: string): Promise<UserEntity[]> {
+        const filter: Record<string, unknown> = {};
+        if (search && search.trim()) {
+            const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const regex = new RegExp(escaped, "i");
+            filter.$or = [
+                { firstName: regex },
+                { lastName: regex },
+                { email: regex },
+                { role: regex },
+            ];
+        }
+        const docs = await this.user.find(filter).exec();
         return docs.map((doc) => this.mapUserDoc(doc));
     }
 

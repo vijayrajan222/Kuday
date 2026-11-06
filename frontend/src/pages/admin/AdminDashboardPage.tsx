@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Users,
   Building2,
@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileCheck2,
+  Loader2,
 } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import type { AdminStats, AdminUser } from '@/types/admin.types';
@@ -29,6 +30,11 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'verifications' | 'users'>('verifications');
   const [searchQuery, setSearchQuery] = useState('');
+  const [userList, setUserList] = useState<AdminUser[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const isInitialMount = useRef(true);
+  const searchQueryRef = useRef(searchQuery);
+  searchQueryRef.current = searchQuery;
   const [submittingId, setSubmittingId] = useState<string | null>(null);
 
   // Inspection Modal State
@@ -46,12 +52,26 @@ export default function AdminDashboardPage() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [statsData, usersData] = await Promise.all([
-        adminService.getStats(),
-        adminService.getUsers(),
-      ]);
-      setStats(statsData);
-      setUsers(usersData || []);
+      const isFiltered = Boolean(searchQueryRef.current.trim());
+
+      if (isFiltered) {
+        const [statsData, allUsersData, searchData] = await Promise.all([
+          adminService.getStats(),
+          adminService.getUsers(),
+          adminService.getUsers(searchQueryRef.current.trim()),
+        ]);
+        setStats(statsData);
+        setUsers(allUsersData || []);
+        setUserList(searchData || []);
+      } else {
+        const [statsData, usersData] = await Promise.all([
+          adminService.getStats(),
+          adminService.getUsers(),
+        ]);
+        setStats(statsData);
+        setUsers(usersData || []);
+        setUserList(usersData || []);
+      }
     } catch (err) {
       toast.error(`Failed to load admin data: ${getErrorMessage(err)}`);
     } finally {
@@ -60,32 +80,43 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Backend search with debounce for Registered Users directory
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     let isMounted = true;
-    async function init() {
+    const timer = setTimeout(async () => {
       try {
-        const [statsData, usersData] = await Promise.all([
-          adminService.getStats(),
-          adminService.getUsers(),
-        ]);
+        setIsSearching(true);
+        const searchData = await adminService.getUsers(searchQuery.trim() || undefined);
         if (isMounted) {
-          setStats(statsData);
-          setUsers(usersData || []);
+          setUserList(searchData || []);
+          setUserCurrentPage(1);
         }
       } catch (err) {
         if (isMounted) {
-          toast.error(`Failed to load admin data: ${getErrorMessage(err)}`);
+          toast.error(`Search failed: ${getErrorMessage(err)}`);
         }
       } finally {
         if (isMounted) {
-          setLoading(false);
+          setIsSearching(false);
         }
       }
-    }
-    init();
+    }, 300);
+
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
-  }, []);
+  }, [searchQuery]);
+
+
 
   // Handle Approve Identity Verification
   const handleApprove = async (userId: string) => {
@@ -153,17 +184,8 @@ export default function AdminDashboardPage() {
     verificationCurrentPage * verificationPageSize
   );
 
-  const filteredUsers = users.filter((u) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      u.firstName.toLowerCase().includes(q) ||
-      u.lastName.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
-      u.role.toLowerCase().includes(q)
-    );
-  });
-  const totalUserPages = Math.ceil(filteredUsers.length / userPageSize) || 1;
-  const paginatedUsers = filteredUsers.slice(
+  const totalUserPages = Math.ceil(userList.length / userPageSize) || 1;
+  const paginatedUsers = userList.slice(
     (userCurrentPage - 1) * userPageSize,
     userCurrentPage * userPageSize
   );
@@ -511,7 +533,7 @@ export default function AdminDashboardPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <Users className="h-5 w-5 text-indigo-400" />
-              <span>Seekers & Property Owners Directory ({filteredUsers.length})</span>
+              <span>Seekers & Property Owners Directory ({userList.length})</span>
             </h2>
 
             {/* Search Input */}
@@ -522,8 +544,11 @@ export default function AdminDashboardPage() {
                 placeholder="Search by name, email, or role..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-slate-950 border-slate-800 text-slate-200 text-xs rounded-xl"
+                className="pl-9 pr-9 bg-slate-950 border-slate-800 text-slate-200 text-xs rounded-xl"
               />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 animate-spin" />
+              )}
             </div>
           </div>
 
@@ -663,9 +688,9 @@ export default function AdminDashboardPage() {
                   </strong>{' '}
                   to{' '}
                   <strong className="text-slate-200">
-                    {Math.min(userCurrentPage * userPageSize, filteredUsers.length)}
+                    {Math.min(userCurrentPage * userPageSize, userList.length)}
                   </strong>{' '}
-                  of <strong className="text-slate-200">{filteredUsers.length}</strong> users
+                  of <strong className="text-slate-200">{userList.length}</strong> users
                 </span>
 
                 <div className="flex items-center gap-2">

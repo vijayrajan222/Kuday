@@ -52,9 +52,10 @@ export class AdminController implements IAdminController {
         }
     }
 
-    async getUsers(_req: Request, res: Response): Promise<void> {
+    async getUsers(req: Request, res: Response): Promise<void> {
         try {
-            const users = await this.getAllUsersUseCase.execute();
+            const search = typeof req.query.search === "string" ? req.query.search : undefined;
+            const users = await this.getAllUsersUseCase.execute(search);
             const mappedUsers = users.map((u) => ({
                 id: u.id,
                 firstName: u.firstName,
