@@ -31,13 +31,11 @@ import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.type
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
-  const { user, loginSuccess } = useAuth();
+  const { user } = useAuth();
   const firstName = user?.firstName;
 
-  const [isOnboarded, setIsOnboarded] = useState<boolean>(user?.isOnboarded ?? false);
-  const [role, setRole] = useState<'host' | 'seeker' | 'none'>(
-    (user?.role as 'host' | 'seeker' | 'none') || 'none'
-  );
+  const isOnboarded = Boolean(user?.isOnboarded);
+  const role = (user?.role as 'host' | 'seeker' | 'none') || 'none';
 
   const [rooms, setRooms] = useState<RoomEntity[]>([]);
   const [seekers, setSeekers] = useState<SeekerPreferenceEntity[]>([]);
@@ -49,39 +47,12 @@ export default function CustomerDashboard() {
   const [interestedIds, setInterestedIds] = useState<string[]>([]);
   const [submittingInterest, setSubmittingInterest] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user?.id) {
-      onboardingService
-        .getUserProfile(user.id)
-        .then((profile) => {
-          if (profile) {
-            const onboardedState = Boolean(profile.isOnboarded);
-            const userRole = (profile.role as 'host' | 'seeker' | 'none') || 'none';
-
-            setIsOnboarded(onboardedState);
-            setRole(userRole);
-
-            if (
-              profile.isOnboarded !== user.isOnboarded ||
-              profile.role !== user.role
-            ) {
-              loginSuccess(localStorage.getItem('kuday_token') || '', {
-                ...user,
-                isOnboarded: onboardedState,
-                role: userRole,
-              });
-            }
-          }
-        })
-        .catch(() => {});
-    }
-  }, [user, loginSuccess]);
-
   // Fetch real rooms / seeker profiles when onboarded
   useEffect(() => {
     if (!isOnboarded || !user?.id) return;
 
     let isMounted = true;
+    setLoadingMatches(true);
 
     if (role === 'seeker') {
       onboardingService

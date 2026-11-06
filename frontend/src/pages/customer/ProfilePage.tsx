@@ -243,7 +243,7 @@ export default function ProfilePage() {
     return () => {
       active = false;
     };
-  }, [user, refreshKey]);
+  }, [user?.id, refreshKey]);
 
   // Open Profile Edit Modal
   const openEditProfile = () => {

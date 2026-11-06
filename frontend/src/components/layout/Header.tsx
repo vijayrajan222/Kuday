@@ -30,10 +30,11 @@ export const Header = memo(function Header({ onMenuClick, onLogout }: HeaderProp
   }, [user?.id]);
 
   useEffect(() => {
+    if (!user?.id) return;
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000);
+    const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  }, [user?.id, fetchNotifications]);
 
   // Close dropdown on outside click
   useEffect(() => {

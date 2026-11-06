@@ -1,1 +1,0 @@
-import{o as e}from"./button-D37opM0H.js";import{o as t}from"./index-C2XkCtOt.js";function n(n,r=t.GENERIC_ERROR){if(e.isAxiosError(n)){if(!n.response)return t.NETWORK_ERROR;let{message:e,error:i}=n.response.data??{};return e??i??r}return n instanceof Error?n.message:r}export{n as t};

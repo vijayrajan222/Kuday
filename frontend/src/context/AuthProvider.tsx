@@ -57,39 +57,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPending(null);
   }, []);
 
-  // Sync user profile from backend whenever valid user session is present
+  // Sync user profile from backend once per session (using userId to avoid loop)
+  const userId = user?.id;
   useEffect(() => {
-    if (user?.id && token) {
+    if (userId && token) {
       onboardingService
-        .getUserProfile(user.id)
+        .getUserProfile(userId)
         .then((profile) => {
           if (profile) {
-            const updatedUser: AuthUser = {
-              id: profile.id || user.id,
-              email: profile.email || user.email,
-              firstName: profile.firstName || user.firstName,
-              lastName: profile.lastName || user.lastName,
-              dob: profile.dob,
-              gender: profile.gender,
-              occupation: profile.occupation,
-              bio: profile.bio,
-              role: profile.role,
-              isOnboarded: Boolean(profile.isOnboarded),
-              identityVerified: Boolean(profile.identityVerified),
-              selfieUrl: profile.selfieUrl,
-              idCardUrl: profile.idCardUrl,
-            };
+            setUser((currentUser) => {
+              const updatedUser: AuthUser = {
+                id: profile.id || userId,
+                email: profile.email || currentUser?.email || '',
+                firstName: profile.firstName || currentUser?.firstName || '',
+                lastName: profile.lastName || currentUser?.lastName || '',
+                dob: profile.dob,
+                gender: profile.gender,
+                occupation: profile.occupation,
+                bio: profile.bio,
+                role: profile.role,
+                isOnboarded: Boolean(profile.isOnboarded),
+                identityVerified: Boolean(profile.identityVerified),
+                selfieUrl: profile.selfieUrl,
+                idCardUrl: profile.idCardUrl,
+              };
 
-            const isDifferent =
-              user.isOnboarded !== updatedUser.isOnboarded ||
-              user.role !== updatedUser.role ||
-              user.identityVerified !== updatedUser.identityVerified ||
-              user.firstName !== updatedUser.firstName;
+              const isDifferent =
+                !currentUser ||
+                currentUser.isOnboarded !== updatedUser.isOnboarded ||
+                currentUser.role !== updatedUser.role ||
+                currentUser.identityVerified !== updatedUser.identityVerified ||
+                currentUser.firstName !== updatedUser.firstName ||
+                currentUser.lastName !== updatedUser.lastName;
 
-            if (isDifferent) {
-              storage.setUser(updatedUser);
-              setUser(updatedUser);
-            }
+              if (isDifferent) {
+                storage.setUser(updatedUser);
+                return updatedUser;
+              }
+              return currentUser;
+            });
           }
         })
         .catch((err) => {
@@ -100,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
     }
-  }, [user, token, logout]);
+  }, [userId, token, logout]);
 
   // axios interceptor fires this event on 401 -> log out
   useEffect(() => {
