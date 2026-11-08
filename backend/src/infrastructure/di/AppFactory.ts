@@ -7,6 +7,7 @@ import { MongoRoomRepository } from "@infrastructure/repository/MongoRoomReposit
 import { MongoSeekerPreferenceRepository } from "@infrastructure/repository/MongoSeekerPreferenceRepository";
 import { MongoNotificationRepository } from "@infrastructure/repository/MongoNotificationRepository";
 import { MongoOtpRepository } from "@infrastructure/repository/MongoOtpRepository";
+import { MongoInterestRepository } from "@infrastructure/repository/MongoInterestRepository";
 
 // Services
 import { HashService } from "@infrastructure/services/HashingService";
@@ -49,6 +50,12 @@ import { GetNotificationsUseCase } from "@application/use-case/notification/GetN
 import { CreateNotificationUseCase } from "@application/use-case/notification/CreateNotificationUseCase";
 import { MarkNotificationReadUseCase } from "@application/use-case/notification/MarkNotificationReadUseCase";
 
+// Interest Use Cases
+import { SendInterestUseCase } from "@application/use-case/interest/SendInterestUseCase";
+import { UpdateInterestStatusUseCase } from "@application/use-case/interest/UpdateInterestStatusUseCase";
+import { GetReceivedInterestsUseCase } from "@application/use-case/interest/GetReceivedInterestsUseCase";
+import { GetSentInterestsUseCase } from "@application/use-case/interest/GetSentInterestsUseCase";
+
 // Admin Use Cases
 import { AdminLoginUseCase } from "@application/use-case/admin/AdminLoginUseCase";
 import { GetAdminStatsUseCase } from "@application/use-case/admin/GetAdminStatsUseCase";
@@ -64,6 +71,7 @@ import { RoomController } from "@presentation/controller/RoomController";
 import { SeekerPreferenceController } from "@presentation/controller/SeekerPreferenceController";
 import { NotificationController } from "@presentation/controller/NotificationController";
 import { AdminController } from "@presentation/controller/AdminController";
+import { InterestController } from "@presentation/controller/InterestController";
 
 // Routers
 import { createAuthRouter } from "@presentation/router/AuthRouter";
@@ -73,6 +81,7 @@ import { createRoomRouter } from "@presentation/router/RoomRouter";
 import { createSeekerPreferenceRouter } from "@presentation/router/SeekerPreferenceRouter";
 import { createNotificationRouter } from "@presentation/router/NotificationRouter";
 import { createAdminRouter } from "@presentation/router/AdminRouter";
+import { createInterestRouter } from "@presentation/router/InterestRouter";
 
 export function setupAppDependencies(app: Express): void {
     // 1. Repositories
@@ -82,6 +91,7 @@ export function setupAppDependencies(app: Express): void {
     const seekerrepo = new MongoSeekerPreferenceRepository();
     const notificationrepo = new MongoNotificationRepository();
     const otprepo = new MongoOtpRepository();
+    const interestrepo = new MongoInterestRepository();
 
     // 2. Infrastructure Services
     const hasher = new HashService();
@@ -118,6 +128,11 @@ export function setupAppDependencies(app: Express): void {
     const getNotificationsUseCase = new GetNotificationsUseCase(notificationrepo);
     const createNotificationUseCase = new CreateNotificationUseCase(notificationrepo);
     const markNotificationReadUseCase = new MarkNotificationReadUseCase(notificationrepo);
+
+    const sendInterestUseCase = new SendInterestUseCase(interestrepo, userrepo, notificationrepo);
+    const updateInterestStatusUseCase = new UpdateInterestStatusUseCase(interestrepo, userrepo, notificationrepo);
+    const getReceivedInterestsUseCase = new GetReceivedInterestsUseCase(interestrepo, userrepo);
+    const getSentInterestsUseCase = new GetSentInterestsUseCase(interestrepo, userrepo);
 
     const adminLoginUseCase = new AdminLoginUseCase(userrepo, hasher, jwtService);
     const getAdminStatsUseCase = new GetAdminStatsUseCase(userrepo, roomrepo);
@@ -172,6 +187,13 @@ export function setupAppDependencies(app: Express): void {
         toggleBlockUserUseCase
     );
 
+    const interestController = new InterestController(
+        sendInterestUseCase,
+        updateInterestStatusUseCase,
+        getReceivedInterestsUseCase,
+        getSentInterestsUseCase
+    );
+
     // 5. Routers & Route Mounting
     app.use("/auth", createAuthRouter(authController));
     app.use("/users", createUserRouter(userController)); 
@@ -180,6 +202,7 @@ export function setupAppDependencies(app: Express): void {
     app.use("/seeker-preferences", createSeekerPreferenceRouter(seekerController));
     app.use("/notifications", createNotificationRouter(notificationController));
     app.use("/admin", createAdminRouter(adminController));
+    app.use("/interests", createInterestRouter(interestController));
 }
 
 // is there any other place where the router mounting takes place 

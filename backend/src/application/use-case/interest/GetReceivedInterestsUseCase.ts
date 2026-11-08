@@ -1,0 +1,43 @@
+import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { IGetReceivedInterestsUseCase } from "@application/interfaces/use-case/interest/IGetReceivedInterestsUseCase";
+import type { InterestDetailDto } from "@application/dto/interest/InterestDetailDto";
+
+export class GetReceivedInterestsUseCase implements IGetReceivedInterestsUseCase {
+    constructor(
+        private readonly interestRepo: IInterestRepository,
+        private readonly userRepo: IUserRepository
+    ) {}
+
+    async execute(userId: string): Promise<InterestDetailDto[]> {
+        const interests = await this.interestRepo.findByReceiverId(userId);
+
+        const results: InterestDetailDto[] = [];
+        for (const interest of interests) {
+            const sender = await this.userRepo.findById(interest.senderId);
+            results.push({
+                id: interest.id,
+                senderId: interest.senderId,
+                receiverId: interest.receiverId,
+                targetType: interest.targetType,
+                targetId: interest.targetId,
+                status: interest.status,
+                message: interest.message,
+                createdAt: interest.createdAt,
+                updatedAt: interest.updatedAt,
+                sender: sender
+                    ? {
+                          id: sender.id,
+                          firstName: sender.firstName,
+                          lastName: sender.lastName,
+                          email: sender.email,
+                          selfieUrl: sender.selfieUrl,
+                          role: sender.role,
+                      }
+                    : undefined,
+            });
+        }
+
+        return results;
+    }
+}
