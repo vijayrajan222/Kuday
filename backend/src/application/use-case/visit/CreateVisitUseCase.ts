@@ -64,13 +64,17 @@ export class CreateVisitUseCase implements ICreateVisitUseCase {
 
         // Create notification for host
         try {
-            await this.notificationRepo.create({
+            const notif = await this.notificationRepo.create({
                 userId: dto.hostId,
                 title: "New Visit Request 📅",
                 message: `${seekerName} requested to schedule a visit on ${dto.date} (${dto.slotTime}).`,
                 type: "visit_request",
                 isRead: false,
             });
+
+            if (this.socketService) {
+                this.socketService.notifyUser(dto.hostId, "new_notification", notif);
+            }
         } catch (err) {
             console.error("Failed to create visit notification:", err);
         }

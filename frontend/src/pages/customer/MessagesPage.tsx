@@ -85,13 +85,21 @@ export default function MessagesPage() {
     }
     try {
       const allVisits = await visitService.getVisitsByUser(user.id);
-      const match = allVisits.find(
+      const userVisits = allVisits.filter(
         (v) =>
-          ((v.seekerId === user.id && v.hostId === recipient.id) ||
-            (v.hostId === user.id && v.seekerId === recipient.id)) &&
-          ['pending', 'rescheduled', 'confirmed'].includes(v.status)
+          (v.seekerId === user.id && v.hostId === recipient.id) ||
+          (v.hostId === user.id && v.seekerId === recipient.id)
       );
-      setActiveChatVisit(match || null);
+      const active = userVisits.find((v) =>
+        ['pending', 'rescheduled', 'confirmed'].includes(v.status)
+      );
+      if (active) {
+        setActiveChatVisit(active);
+      } else if (userVisits.length > 0) {
+        setActiveChatVisit(userVisits[0]);
+      } else {
+        setActiveChatVisit(null);
+      }
     } catch {
       setActiveChatVisit(null);
     }
@@ -814,6 +822,38 @@ export default function MessagesPage() {
                       </button>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Cancelled / Declined Visit Banner */}
+              {activeChatVisit && (activeChatVisit.status === 'cancelled' || activeChatVisit.status === 'rejected') && (
+                <div className="px-5 py-2.5 border-b border-rose-200 bg-rose-50/70 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <X className="h-4 w-4 text-rose-600 shrink-0" />
+                    <span className="font-semibold text-rose-900">
+                      Visit for {activeChatVisit.date} ({activeChatVisit.slotTime}) was {activeChatVisit.status === 'rejected' ? 'declined' : 'cancelled'}.
+                    </span>
+                  </div>
+                  {activeChatVisit.connectionId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate(ROUTES.SCHEDULE_VISIT.replace(':connectionId', activeChatVisit.connectionId), {
+                          state: {
+                            hostId: activeChatVisit.hostId,
+                            hostName: `${recipient.firstName} ${recipient.lastName || ''}`.trim(),
+                            hostAvatar: recipient.selfieUrl,
+                            isVerified: Boolean(recipient.identityVerified),
+                            occupation: recipient.role,
+                            roomId: activeChatVisit.roomId,
+                          },
+                        });
+                      }}
+                      className="px-3 py-1 rounded-lg bg-black text-white hover:bg-slate-800 text-[11px] font-bold transition-colors cursor-pointer shrink-0"
+                    >
+                      Schedule Visit
+                    </button>
+                  )}
                 </div>
               )}
 

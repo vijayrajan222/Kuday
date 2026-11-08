@@ -142,7 +142,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } else if (visit?.status === 'rejected') {
         toast.info('Visit Declined ❌', `The scheduled visit was declined.`);
       } else if (visit?.status === 'cancelled') {
-        toast.info('Visit Cancelled', `The scheduled visit was cancelled.`);
+        toast.info('Visit Cancelled ❌', `The scheduled visit was cancelled.`);
       }
     });
 

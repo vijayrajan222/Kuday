@@ -52,7 +52,7 @@ export class MongoVisitRepository implements IVisitRepository {
 
     async findByConnectionId(connectionId: string): Promise<VisitEntity[]> {
         const docs = await VisitModel.find({ connectionId })
-            .sort({ createdAt: -1 })
+            .sort({ updatedAt: -1, createdAt: -1 })
             .exec();
         return docs.map((doc) => this.mapToEntity(doc));
     }
@@ -61,7 +61,7 @@ export class MongoVisitRepository implements IVisitRepository {
         const docs = await VisitModel.find({
             $or: [{ seekerId: userId }, { hostId: userId }],
         })
-            .sort({ createdAt: -1 })
+            .sort({ updatedAt: -1, createdAt: -1 })
             .exec();
         return docs.map((doc) => this.mapToEntity(doc));
     }

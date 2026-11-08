@@ -47,6 +47,7 @@ export default function MatchedPage() {
   const [isReschedulingMode, setIsReschedulingMode] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [dismissedCancelledVisits, setDismissedCancelledVisits] = useState<Set<string>>(new Set());
 
   // Reschedule form state
   const [suggestDate, setSuggestDate] = useState('');
@@ -81,13 +82,20 @@ export default function MatchedPage() {
     };
   }, [socket, loadUserVisits]);
 
-  // Map visits by connectionId (latest active visit)
+  // Map visits by connectionId (latest active visit, or latest update)
   const visitsByConnection = useMemo(() => {
     const map = new Map<string, Visit>();
-    visits.forEach((v) => {
-      // Prioritize active visits over cancelled/rejected ones
-      const existing = map.get(v.connectionId);
-      if (!existing || ['pending', 'rescheduled', 'confirmed'].includes(v.status)) {
+    const sorted = [...visits].sort((a, b) => {
+      const aActive = ['pending', 'rescheduled', 'confirmed'].includes(a.status);
+      const bActive = ['pending', 'rescheduled', 'confirmed'].includes(b.status);
+      if (aActive && !bActive) return -1;
+      if (!aActive && bActive) return 1;
+      const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return bTime - aTime;
+    });
+    sorted.forEach((v) => {
+      if (!map.has(v.connectionId)) {
         map.set(v.connectionId, v);
       }
     });
@@ -553,7 +561,7 @@ export default function MatchedPage() {
                   </div>
 
                   {/* Visit Status Banner */}
-                  {activeVisit && activeVisit.status !== 'cancelled' && (
+                  {activeVisit && (
                     <div className="pt-1">
                       {/* 1. Pending Visit */}
                       {activeVisit.status === 'pending' && (
@@ -723,6 +731,102 @@ export default function MatchedPage() {
                               className="px-3.5 py-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold transition-colors cursor-pointer"
                             >
                               Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 4. Cancelled Visit Alert Banner */}
+                      {activeVisit.status === 'cancelled' && !dismissedCancelledVisits.has(activeVisit.id) && (
+                        <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <X className="h-4 w-4 text-rose-600" />
+                              <span className="text-xs font-bold text-rose-950">
+                                Visit Cancelled ❌
+                              </span>
+                            </div>
+                            <p className="text-xs text-rose-700 pl-6">
+                              The scheduled visit for {activeVisit.date} ({activeVisit.slotTime}) was cancelled.
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigate(ROUTES.SCHEDULE_VISIT.replace(':connectionId', item.id), {
+                                  state: {
+                                    hostId: isUserHost ? user?.id : otherUser?.id,
+                                    hostName: otherName,
+                                    hostAvatar: otherUser?.selfieUrl,
+                                    isVerified: Boolean(otherUser?.identityVerified),
+                                    occupation,
+                                    roomId: item.targetType === 'room' ? item.targetId : undefined,
+                                  },
+                                });
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-black text-white hover:bg-slate-800 text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Schedule New Visit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDismissedCancelledVisits((prev) => new Set(prev).add(activeVisit.id))
+                              }
+                              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200/50 transition-colors cursor-pointer"
+                              title="Dismiss notice"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 5. Declined Visit Alert Banner */}
+                      {activeVisit.status === 'rejected' && !dismissedCancelledVisits.has(activeVisit.id) && (
+                        <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <X className="h-4 w-4 text-rose-600" />
+                              <span className="text-xs font-bold text-rose-950">
+                                Visit Request Declined ❌
+                              </span>
+                            </div>
+                            <p className="text-xs text-rose-700 pl-6">
+                              The visit request for {activeVisit.date} ({activeVisit.slotTime}) was declined.
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigate(ROUTES.SCHEDULE_VISIT.replace(':connectionId', item.id), {
+                                  state: {
+                                    hostId: isUserHost ? user?.id : otherUser?.id,
+                                    hostName: otherName,
+                                    hostAvatar: otherUser?.selfieUrl,
+                                    isVerified: Boolean(otherUser?.identityVerified),
+                                    occupation,
+                                    roomId: item.targetType === 'room' ? item.targetId : undefined,
+                                  },
+                                });
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-black text-white hover:bg-slate-800 text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Schedule Again
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDismissedCancelledVisits((prev) => new Set(prev).add(activeVisit.id))
+                              }
+                              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200/50 transition-colors cursor-pointer"
+                              title="Dismiss notice"
+                            >
+                              <X className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         </div>

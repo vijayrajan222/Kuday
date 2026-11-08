@@ -47,18 +47,24 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
 
         // Notification
         try {
-            await this.notificationRepo.create({
+            const notif = await this.notificationRepo.create({
                 userId: recipientId,
                 title:
                     dto.status === "confirmed"
                         ? "Visit Confirmed! ✅"
                         : dto.status === "rejected"
                         ? "Visit Declined ❌"
+                        : dto.status === "cancelled"
+                        ? "Visit Cancelled ❌"
                         : "Visit Status Updated 📅",
                 message: `${actorName} has ${statusText} the scheduled visit for ${visit.date} (${visit.slotTime}).${dto.note ? ` Note: "${dto.note}"` : ""}`,
                 type: "visit_request",
                 isRead: false,
             });
+
+            if (this.socketService) {
+                this.socketService.notifyUser(recipientId, "new_notification", notif);
+            }
         } catch (err) {
             console.error("Failed to notify user of visit status update:", err);
         }
@@ -114,13 +120,17 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
         const actorName = actor ? `${actor.firstName} ${actor.lastName || ""}`.trim() : "Roommate";
 
         try {
-            await this.notificationRepo.create({
+            const notif = await this.notificationRepo.create({
                 userId: recipientId,
                 title: "Visit Reschedule Accepted! 🎉",
                 message: `${actorName} accepted your suggested visit time: ${updated.date} (${updated.slotTime}).`,
                 type: "visit_request",
                 isRead: false,
             });
+
+            if (this.socketService) {
+                this.socketService.notifyUser(recipientId, "new_notification", notif);
+            }
         } catch (err) {
             console.error("Failed to send reschedule accept notification:", err);
         }

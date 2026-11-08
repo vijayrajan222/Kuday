@@ -55,13 +55,17 @@ export class SuggestVisitUseCase implements ISuggestVisitUseCase {
 
         // Notification
         try {
-            await this.notificationRepo.create({
+            const notif = await this.notificationRepo.create({
                 userId: recipientId,
                 title: "Visit Reschedule Suggested 🔄",
                 message: `${actorName} proposed a new visit time: ${dto.suggestedDate} (${dto.suggestedSlotTime}).`,
                 type: "visit_request",
                 isRead: false,
             });
+
+            if (this.socketService) {
+                this.socketService.notifyUser(recipientId, "new_notification", notif);
+            }
         } catch (err) {
             console.error("Failed to send reschedule notification:", err);
         }
