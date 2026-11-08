@@ -6,6 +6,8 @@ export interface VisitEntity {
     connectionId: string;
     seekerId: string;
     hostId: string;
+    createdBy?: string | undefined;
+    suggestedById?: string | undefined;
     roomId?: string | undefined;
     date: string; // YYYY-MM-DD
     timeSlot: TimeSlot;

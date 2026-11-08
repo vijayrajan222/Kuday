@@ -26,6 +26,8 @@ export interface Visit {
   connectionId: string;
   seekerId: string;
   hostId: string;
+  createdBy?: string;
+  suggestedById?: string;
   roomId?: string;
   date: string; // YYYY-MM-DD
   timeSlot: TimeSlot;
@@ -48,6 +50,8 @@ export interface CreateVisitRequest {
   connectionId: string;
   seekerId: string;
   hostId: string;
+  createdBy?: string;
+  suggestedById?: string;
   roomId?: string;
   date: string;
   timeSlot: TimeSlot;

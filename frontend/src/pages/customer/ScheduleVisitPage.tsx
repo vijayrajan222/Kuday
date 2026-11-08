@@ -239,12 +239,26 @@ export default function ScheduleVisitPage() {
     const chosenSlot = TIME_SLOTS.find((s) => s.id === selectedSlot);
     const slotTime = chosenSlot?.time || '02:00 PM';
 
+    const targetHostId =
+      hostId && hostId !== user.id
+        ? hostId
+        : existingVisit && existingVisit.hostId !== user.id
+        ? existingVisit.hostId
+        : existingVisit && existingVisit.seekerId !== user.id
+        ? existingVisit.seekerId
+        : '';
+
+    if (!targetHostId || targetHostId === user.id) {
+      toast.error('Unable to schedule visit: recipient cannot be your own account.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       await visitService.createVisit({
         connectionId,
         seekerId: user.id,
-        hostId: hostId || (existingVisit ? existingVisit.hostId : ''),
+        hostId: targetHostId,
         roomId: stateData.roomId,
         date: selectedDate,
         timeSlot: selectedSlot,

@@ -39,6 +39,7 @@ export class SuggestVisitUseCase implements ISuggestVisitUseCase {
 
         const updated = await this.visitRepo.updateSuggestion(dto.visitId, {
             suggestedBy,
+            suggestedById: dto.userId,
             suggestedDate: dto.suggestedDate,
             suggestedTimeSlot: dto.suggestedTimeSlot,
             suggestedSlotTime: dto.suggestedSlotTime || "02:00 PM",

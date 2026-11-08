@@ -10,6 +10,7 @@ export interface IVisitRepository {
         id: string,
         data: {
             suggestedBy: "seeker" | "host";
+            suggestedById?: string;
             suggestedDate: string;
             suggestedTimeSlot: "morning" | "afternoon" | "evening";
             suggestedSlotTime: string;

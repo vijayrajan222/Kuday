@@ -27,6 +27,11 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
             throw new UnauthorizedError("You are not authorized to update this visit.");
         }
 
+        const requesterId = visit.createdBy || visit.seekerId;
+        if (dto.status === "confirmed" && visit.status === "pending" && dto.userId === requesterId) {
+            throw new ValidationError("You cannot accept your own visit request. The other party must confirm the visit.");
+        }
+
         const updated = await this.visitRepo.updateStatus(dto.visitId, dto.status);
         if (!updated) {
             throw new NotFoundError("Failed to update visit status.");
@@ -108,6 +113,13 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
 
         if (visit.seekerId !== userId && visit.hostId !== userId) {
             throw new UnauthorizedError("You are not authorized to accept this suggestion.");
+        }
+
+        const suggesterId =
+            visit.suggestedById ||
+            (visit.suggestedBy === "host" ? visit.hostId : visit.seekerId);
+        if (userId === suggesterId) {
+            throw new ValidationError("You cannot accept your own proposed reschedule time.");
         }
 
         const updated = await this.visitRepo.applySuggestion(visitId);

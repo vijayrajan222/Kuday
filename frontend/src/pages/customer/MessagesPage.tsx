@@ -755,7 +755,8 @@ export default function MessagesPage() {
 
                   {/* Quick Action Buttons right inside chat */}
                   <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
-                    {activeChatVisit.status === 'pending' && user?.id === activeChatVisit.hostId && (
+                    {activeChatVisit.status === 'pending' &&
+                    user?.id !== (activeChatVisit.createdBy || activeChatVisit.seekerId) && (
                       <>
                         <button
                           type="button"
@@ -787,7 +788,7 @@ export default function MessagesPage() {
                     )}
 
                     {activeChatVisit.status === 'rescheduled' &&
-                    activeChatVisit.suggestedBy !== (user?.id === activeChatVisit.hostId ? 'host' : 'seeker') && (
+                    user?.id !== (activeChatVisit.suggestedById || (activeChatVisit.suggestedBy === 'host' ? activeChatVisit.hostId : activeChatVisit.seekerId)) && (
                       <>
                         <button
                           type="button"
@@ -811,7 +812,7 @@ export default function MessagesPage() {
                       </>
                     )}
 
-                    {((activeChatVisit.status === 'pending' && user?.id === activeChatVisit.seekerId) ||
+                    {((activeChatVisit.status === 'pending' && user?.id === (activeChatVisit.createdBy || activeChatVisit.seekerId)) ||
                     activeChatVisit.status === 'confirmed') && (
                       <button
                         type="button"
@@ -840,7 +841,7 @@ export default function MessagesPage() {
                       onClick={() => {
                         navigate(ROUTES.SCHEDULE_VISIT.replace(':connectionId', activeChatVisit.connectionId), {
                           state: {
-                            hostId: activeChatVisit.hostId,
+                            hostId: recipient.id,
                             hostName: `${recipient.firstName} ${recipient.lastName || ''}`.trim(),
                             hostAvatar: recipient.selfieUrl,
                             isVerified: Boolean(recipient.identityVerified),

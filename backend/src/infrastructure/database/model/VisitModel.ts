@@ -20,6 +20,15 @@ export const VisitSchema = new mongoose.Schema(
             required: true,
             index: true,
         },
+        createdBy: {
+            type: String,
+            default: "",
+            index: true,
+        },
+        suggestedById: {
+            type: String,
+            default: "",
+        },
         roomId: {
             type: String,
             default: "",

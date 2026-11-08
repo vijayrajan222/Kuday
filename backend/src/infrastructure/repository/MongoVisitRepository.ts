@@ -9,6 +9,8 @@ export class MongoVisitRepository implements IVisitRepository {
             connectionId: doc.connectionId,
             seekerId: doc.seekerId,
             hostId: doc.hostId,
+            createdBy: doc.createdBy || undefined,
+            suggestedById: doc.suggestedById || undefined,
             roomId: doc.roomId || undefined,
             date: doc.date,
             timeSlot: doc.timeSlot as "morning" | "afternoon" | "evening",
@@ -30,6 +32,8 @@ export class MongoVisitRepository implements IVisitRepository {
             connectionId: data.connectionId,
             seekerId: data.seekerId,
             hostId: data.hostId,
+            createdBy: data.createdBy ?? data.seekerId,
+            suggestedById: data.suggestedById ?? "",
             roomId: data.roomId ?? "",
             date: data.date,
             timeSlot: data.timeSlot,
@@ -79,6 +83,7 @@ export class MongoVisitRepository implements IVisitRepository {
         id: string,
         data: {
             suggestedBy: "seeker" | "host";
+            suggestedById?: string;
             suggestedDate: string;
             suggestedTimeSlot: "morning" | "afternoon" | "evening";
             suggestedSlotTime: string;
@@ -86,16 +91,20 @@ export class MongoVisitRepository implements IVisitRepository {
             status: "rescheduled";
         }
     ): Promise<VisitEntity | null> {
+        const updateObj: Record<string, unknown> = {
+            suggestedBy: data.suggestedBy,
+            suggestedDate: data.suggestedDate,
+            suggestedTimeSlot: data.suggestedTimeSlot,
+            suggestedSlotTime: data.suggestedSlotTime,
+            suggestedMessage: data.suggestedMessage ?? "",
+            status: data.status,
+        };
+        if (data.suggestedById) {
+            updateObj.suggestedById = data.suggestedById;
+        }
         const doc = await VisitModel.findByIdAndUpdate(
             id,
-            {
-                suggestedBy: data.suggestedBy,
-                suggestedDate: data.suggestedDate,
-                suggestedTimeSlot: data.suggestedTimeSlot,
-                suggestedSlotTime: data.suggestedSlotTime,
-                suggestedMessage: data.suggestedMessage ?? "",
-                status: data.status,
-            },
+            updateObj,
             { new: true }
         ).exec();
         return doc ? this.mapToEntity(doc) : null;

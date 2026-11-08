@@ -441,10 +441,6 @@ export default function MatchedPage() {
               const occupation = otherUser?.occupation?.replace('_', ' ') || otherUser?.role || 'Roommate';
 
               const activeVisit = visitsByConnection.get(item.id);
-              const isUserHost =
-                user?.role === 'host' ||
-                (item.targetType === 'room' && item.receiverId === user?.id) ||
-                (item.targetType === 'seeker' && item.senderId === user?.id);
 
               return (
                 <div
@@ -523,7 +519,7 @@ export default function MatchedPage() {
                           onClick={() => {
                             navigate(ROUTES.SCHEDULE_VISIT.replace(':connectionId', item.id), {
                               state: {
-                                hostId: isUserHost ? user?.id : otherUser?.id,
+                                hostId: otherUser?.id,
                                 hostName: otherName,
                                 hostAvatar: otherUser?.selfieUrl,
                                 isVerified: Boolean(otherUser?.identityVerified),
@@ -565,7 +561,7 @@ export default function MatchedPage() {
                     <div className="pt-1">
                       {/* 1. Pending Visit */}
                       {activeVisit.status === 'pending' && (
-                        user?.id === activeVisit.hostId ? (
+                        user?.id !== (activeVisit.createdBy || activeVisit.seekerId) ? (
                           <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 space-y-3">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               <div className="space-y-1">
@@ -622,7 +618,7 @@ export default function MatchedPage() {
                                 </span>
                               </div>
                               <p className="text-xs text-blue-800 pl-6">
-                                Waiting for host confirmation. You will be notified once accepted.
+                                Waiting for {otherName} to confirm. You will be notified once accepted.
                               </p>
                             </div>
 
@@ -641,7 +637,7 @@ export default function MatchedPage() {
 
                       {/* 2. Rescheduled / Suggested Visit */}
                       {activeVisit.status === 'rescheduled' && (
-                        activeVisit.suggestedBy !== (isUserHost ? 'host' : 'seeker') ? (
+                        user?.id !== (activeVisit.suggestedById || (activeVisit.suggestedBy === 'host' ? activeVisit.hostId : activeVisit.seekerId)) ? (
                           <div className="rounded-2xl border border-purple-200 bg-purple-50/80 p-4 space-y-3">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               <div className="space-y-1">
@@ -757,7 +753,7 @@ export default function MatchedPage() {
                               onClick={() => {
                                 navigate(ROUTES.SCHEDULE_VISIT.replace(':connectionId', item.id), {
                                   state: {
-                                    hostId: isUserHost ? user?.id : otherUser?.id,
+                                    hostId: otherUser?.id,
                                     hostName: otherName,
                                     hostAvatar: otherUser?.selfieUrl,
                                     isVerified: Boolean(otherUser?.identityVerified),
@@ -805,7 +801,7 @@ export default function MatchedPage() {
                               onClick={() => {
                                 navigate(ROUTES.SCHEDULE_VISIT.replace(':connectionId', item.id), {
                                   state: {
-                                    hostId: isUserHost ? user?.id : otherUser?.id,
+                                    hostId: otherUser?.id,
                                     hostName: otherName,
                                     hostAvatar: otherUser?.selfieUrl,
                                     isVerified: Boolean(otherUser?.identityVerified),
@@ -1320,7 +1316,7 @@ export default function MatchedPage() {
               <div className="space-y-2.5 pt-2 border-t border-slate-100">
                 {/* 1. If visit is in suggestion state and user is the recipient of the suggestion */}
                 {manageScheduleVisit.status === 'rescheduled' &&
-                manageScheduleVisit.suggestedBy !== (user?.id === manageScheduleVisit.hostId ? 'host' : 'seeker') ? (
+                user?.id !== (manageScheduleVisit.suggestedById || (manageScheduleVisit.suggestedBy === 'host' ? manageScheduleVisit.hostId : manageScheduleVisit.seekerId)) ? (
                   <button
                     type="button"
                     onClick={() => handleAcceptSuggestion(manageScheduleVisit.id)}
@@ -1331,57 +1327,88 @@ export default function MatchedPage() {
                   </button>
                 ) : null}
 
-                {/* 2. If visit is pending and user is the recipient */}
-                {manageScheduleVisit.status === 'pending' && user?.id === manageScheduleVisit.hostId ? (
-                  <button
-                    type="button"
-                    onClick={() => handleAcceptVisit(manageScheduleVisit.id)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-black py-3 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-colors cursor-pointer shadow-xs"
-                  >
-                    <Check className="h-4 w-4" />
-                    <span>Accept Schedule</span>
-                  </button>
+                {/* 2. If visit is pending and user is the recipient (NOT the creator) */}
+                {manageScheduleVisit.status === 'pending' &&
+                user?.id !== (manageScheduleVisit.createdBy || manageScheduleVisit.seekerId) ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleAcceptVisit(manageScheduleVisit.id)}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-black py-3 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-colors cursor-pointer shadow-xs"
+                    >
+                      <Check className="h-4 w-4" />
+                      <span>Accept Schedule</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsReschedulingMode(true);
+                        setSuggestDate(manageScheduleVisit.suggestedDate || manageScheduleVisit.date);
+                        setSuggestSlot(manageScheduleVisit.suggestedTimeSlot || manageScheduleVisit.timeSlot);
+                        setSuggestMessage('');
+                      }}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white py-3 text-xs font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+                    >
+                      <RotateCcw className="h-4 w-4 text-slate-500" />
+                      <span>Postpone or Prepone (Reschedule)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowRejectInput(true)}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                      <span>Reject / Decline Visit</span>
+                    </button>
+                  </>
                 ) : null}
 
-                {/* 3. Postpone / Prepone (Reschedule) Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsReschedulingMode(true);
-                    setSuggestDate(manageScheduleVisit.suggestedDate || manageScheduleVisit.date);
-                    setSuggestSlot(manageScheduleVisit.suggestedTimeSlot || manageScheduleVisit.timeSlot);
-                    setSuggestMessage('');
-                  }}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white py-3 text-xs font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
-                >
-                  <RotateCcw className="h-4 w-4 text-slate-500" />
-                  <span>Postpone or Prepone (Reschedule)</span>
-                </button>
+                {/* 3. If visit is pending and user IS the creator/requester */}
+                {manageScheduleVisit.status === 'pending' &&
+                user?.id === (manageScheduleVisit.createdBy || manageScheduleVisit.seekerId) && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-blue-900 bg-blue-50 border border-blue-200 p-3 rounded-xl">
+                      You requested this visit. Waiting for the other party to confirm or propose changes.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleCancelVisit(manageScheduleVisit.id)}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white py-2.5 text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                      <span>Cancel Visit Request</span>
+                    </button>
+                  </div>
+                )}
 
-                {/* 4. Reject Request (available to recipient) */}
-                {user?.id === manageScheduleVisit.hostId && manageScheduleVisit.status === 'pending' ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowRejectInput(true)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer"
-                  >
-                    <X className="h-4 w-4" />
-                    <span>Reject / Decline Visit</span>
-                  </button>
-                ) : null}
-
-                {/* 5. Cancel Request (available to sender or either party if confirmed) */}
-                {(user?.id === manageScheduleVisit.seekerId && manageScheduleVisit.status === 'pending') ||
-                manageScheduleVisit.status === 'confirmed' ? (
-                  <button
-                    type="button"
-                    onClick={() => handleCancelVisit(manageScheduleVisit.id)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white py-2.5 text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                  >
-                    <X className="h-4 w-4" />
-                    <span>Cancel Visit Request</span>
-                  </button>
-                ) : null}
+                {/* 4. If visit is confirmed */}
+                {manageScheduleVisit.status === 'confirmed' && (
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsReschedulingMode(true);
+                        setSuggestDate(manageScheduleVisit.date);
+                        setSuggestSlot(manageScheduleVisit.timeSlot);
+                        setSuggestMessage('');
+                      }}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white py-3 text-xs font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+                    >
+                      <RotateCcw className="h-4 w-4 text-slate-500" />
+                      <span>Reschedule Visit</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCancelVisit(manageScheduleVisit.id)}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white py-2.5 text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                      <span>Cancel Confirmed Visit</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

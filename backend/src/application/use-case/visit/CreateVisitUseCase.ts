@@ -36,6 +36,10 @@ export class CreateVisitUseCase implements ICreateVisitUseCase {
             );
         }
 
+        if (dto.seekerId === dto.hostId) {
+            throw new ValidationError("Requester and host cannot be the same user.");
+        }
+
         const seeker = await this.userRepo.findById(dto.seekerId);
         if (!seeker) {
             throw new NotFoundError("Seeker user not found.");
@@ -53,6 +57,7 @@ export class CreateVisitUseCase implements ICreateVisitUseCase {
             connectionId: dto.connectionId,
             seekerId: dto.seekerId,
             hostId: dto.hostId,
+            createdBy: dto.seekerId,
             roomId: dto.roomId || "",
             date: dto.date,
             timeSlot: dto.timeSlot,
