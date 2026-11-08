@@ -85,6 +85,42 @@ export function useInterest(userId?: string) {
     [userId, fetchInterests]
   );
 
+  const cancelInterest = useCallback(
+    async (interestId: string) => {
+      if (!userId) return;
+      try {
+        setProcessingId(interestId);
+        await interestService.updateStatus(interestId, userId, 'cancelled');
+        toast.success('Connection request cancelled.');
+        await fetchInterests();
+      } catch (err: unknown) {
+        const error = err as { response?: { data?: { message?: string } } };
+        toast.error(error.response?.data?.message || 'Failed to cancel request');
+      } finally {
+        setProcessingId(null);
+      }
+    },
+    [userId, fetchInterests]
+  );
+
+  const unmatch = useCallback(
+    async (interestId: string, partnerName?: string) => {
+      if (!userId) return;
+      try {
+        setProcessingId(interestId);
+        await interestService.updateStatus(interestId, userId, 'unmatched');
+        toast.success(partnerName ? `Unmatched with ${partnerName}` : 'Connection removed');
+        await fetchInterests();
+      } catch (err: unknown) {
+        const error = err as { response?: { data?: { message?: string } } };
+        toast.error(error.response?.data?.message || 'Failed to unmatch');
+      } finally {
+        setProcessingId(null);
+      }
+    },
+    [userId, fetchInterests]
+  );
+
   /**
    * Resolves the mutual connection status for a target card and the other user.
    * Priority:
@@ -153,6 +189,8 @@ export function useInterest(userId?: string) {
     sendInterest,
     acceptInterest,
     declineInterest,
+    cancelInterest,
+    unmatch,
     getInterestStatus,
     refreshInterests: fetchInterests,
   };

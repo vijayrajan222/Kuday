@@ -14,8 +14,9 @@ export class UpdateInterestStatusUseCase implements IUpdateInterestStatusUseCase
     ) {}
 
     async execute(dto: UpdateInterestStatusDto): Promise<InterestDetailDto> {
-        if (dto.status !== "accepted" && dto.status !== "declined") {
-            throw new ValidationError("Invalid status. Allowed values: 'accepted' or 'declined'.");
+        const allowedStatuses = ["accepted", "declined", "cancelled", "unmatched"];
+        if (!allowedStatuses.includes(dto.status)) {
+            throw new ValidationError("Invalid status. Allowed values: 'accepted', 'declined', 'cancelled', 'unmatched'.");
         }
 
         const interest = await this.interestRepo.findById(dto.interestId);
@@ -23,11 +24,38 @@ export class UpdateInterestStatusUseCase implements IUpdateInterestStatusUseCase
             throw new NotFoundError("Interest request not found.");
         }
 
-        if (interest.receiverId !== dto.userId) {
-            throw new ForbiddenError("You are not authorized to respond to this interest request.");
+        const isSender = interest.senderId === dto.userId;
+        const isReceiver = interest.receiverId === dto.userId;
+
+        if (!isSender && !isReceiver) {
+            throw new ForbiddenError("You are not authorized to update this interest request.");
         }
 
-        const updated = await this.interestRepo.updateStatus(interest.id, dto.status);
+        // Validate role-specific actions
+        if (dto.status === "accepted" || dto.status === "declined") {
+            if (!isReceiver) {
+                throw new ForbiddenError("Only the recipient can accept or decline this interest request.");
+            }
+        } else if (dto.status === "cancelled") {
+            if (!isSender) {
+                throw new ForbiddenError("Only the sender can cancel this interest request.");
+            }
+        }
+
+        let updated: InterestEntity | null;
+
+        if (dto.status === "unmatched") {
+            // Unmatch mutual connections between both users
+            await this.interestRepo.updateStatusBetweenUsers(
+                interest.senderId,
+                interest.receiverId,
+                "unmatched"
+            );
+            updated = await this.interestRepo.findById(interest.id);
+        } else {
+            updated = await this.interestRepo.updateStatus(interest.id, dto.status);
+        }
+
         if (!updated) {
             throw new ValidationError("Failed to update interest request status.");
         }

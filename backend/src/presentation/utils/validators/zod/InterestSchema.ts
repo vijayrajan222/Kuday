@@ -10,7 +10,7 @@ export const SendInterestSchema = z.object({
 
 export const UpdateInterestStatusSchema = z.object({
     userId: z.string().min(1, "User ID is required"),
-    status: z.enum(["accepted", "declined"]),
+    status: z.enum(["accepted", "declined", "cancelled", "unmatched"]),
 });
 
 export type SendInterestInput = z.infer<typeof SendInterestSchema>;

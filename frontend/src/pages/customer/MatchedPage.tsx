@@ -7,6 +7,7 @@ import {
   MoreVertical,
   X,
   Mail,
+  UserX,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInterest } from '@/hooks/useInterest';
@@ -23,9 +24,12 @@ export default function MatchedPage() {
     processingId,
     acceptInterest,
     declineInterest,
+    cancelInterest,
+    unmatch,
   } = useInterest(user?.id);
 
   const [selectedMatch, setSelectedMatch] = useState<InterestDetail | null>(null);
+  const [unmatchTarget, setUnmatchTarget] = useState<{ id: string; name: string } | null>(null);
 
   // 1. Pending Received Interests
   const pendingReceived = useMemo(() => {
@@ -240,7 +244,7 @@ export default function MatchedPage() {
                     <button
                       type="button"
                       disabled={processingId === item.id}
-                      onClick={() => declineInterest(item.id)}
+                      onClick={() => cancelInterest(item.id)}
                       className="w-full rounded-lg border border-rose-200 bg-white py-2 text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-50"
                     >
                       {processingId === item.id ? 'Cancelling...' : 'Cancel Interest'}
@@ -338,6 +342,16 @@ export default function MatchedPage() {
                       >
                         <Calendar className="h-3.5 w-3.5 text-slate-500" />
                         <span>Schedule Visit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setUnmatchTarget({ id: item.id, name: otherName })}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs"
+                        title="Unmatch connection"
+                      >
+                        <UserX className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Unmatch</span>
                       </button>
 
                       <button
@@ -453,9 +467,66 @@ export default function MatchedPage() {
                       <span>Contact via Email</span>
                     </a>
                   )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnmatchTarget({ id: selectedMatch.id, name: otherName });
+                      setSelectedMatch(null);
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50/60 py-2.5 text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-100 transition-colors"
+                  >
+                    <UserX className="h-3.5 w-3.5" />
+                    <span>Unmatch / Remove Connection</span>
+                  </button>
                 </div>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Unmatch Confirmation Modal */}
+      {unmatchTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-xl border border-slate-200 relative animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <UserX className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">
+                  Unmatch with {unmatchTarget.name}?
+                </h3>
+                <p className="text-xs text-slate-400">This action will disconnect both accounts.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to remove this connection? Both of you will no longer appear in
+              each other&apos;s matched lists.
+            </p>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setUnmatchTarget(null)}
+                className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Keep Connection
+              </button>
+              <button
+                type="button"
+                disabled={processingId === unmatchTarget.id}
+                onClick={async () => {
+                  await unmatch(unmatchTarget.id, unmatchTarget.name);
+                  setUnmatchTarget(null);
+                }}
+                className="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-rose-700 transition-colors disabled:opacity-50"
+              >
+                {processingId === unmatchTarget.id ? 'Unmatching...' : 'Yes, Unmatch'}
+              </button>
+            </div>
           </div>
         </div>
       )}

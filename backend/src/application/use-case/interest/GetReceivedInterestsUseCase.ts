@@ -14,6 +14,11 @@ export class GetReceivedInterestsUseCase implements IGetReceivedInterestsUseCase
 
         const results: InterestDetailDto[] = [];
         for (const interest of interests) {
+            // Ignore cancelled or unmatched requests
+            if (interest.status === "cancelled" || interest.status === "unmatched") {
+                continue;
+            }
+
             const sender = await this.userRepo.findById(interest.senderId);
 
             // Check if there is an accepted connection with this sender in either direction
