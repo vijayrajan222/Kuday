@@ -18,15 +18,15 @@ import {
   User,
   Users,
   MessageSquare,
+  Mail,
 } from 'lucide-react';
 import { StatCard } from '@/components/common/StatCard';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from '@/hooks/useToast';
+import { useInterest } from '@/hooks/useInterest';
 import { ROUTES } from '@/constants/routes';
 import { onboardingService } from '@/services/onboardingService';
-import { notificationService } from '@/services/notificationService';
 import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.types';
 
 export default function CustomerDashboard() {
@@ -41,11 +41,22 @@ export default function CustomerDashboard() {
   const [seekers, setSeekers] = useState<SeekerPreferenceEntity[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
 
+  // Connection & Interest Hook (Send, Accept, Decline)
+  const {
+    sentInterests,
+    receivedInterests,
+    processingId,
+    sendInterest,
+    acceptInterest,
+    declineInterest,
+    getInterestStatus,
+  } = useInterest(user?.id);
+
+  const [interestTab, setInterestTab] = useState<'received' | 'sent'>('received');
+
   // Listing Inspection Modal State
   const [selectedRoom, setSelectedRoom] = useState<RoomEntity | null>(null);
   const [selectedSeeker, setSelectedSeeker] = useState<SeekerPreferenceEntity | null>(null);
-  const [interestedIds, setInterestedIds] = useState<string[]>([]);
-  const [submittingInterest, setSubmittingInterest] = useState<string | null>(null);
 
   // Fetch real rooms / seeker profiles when onboarded
   useEffect(() => {
@@ -91,6 +102,17 @@ export default function CustomerDashboard() {
     };
   }, [isOnboarded, role, user?.id]);
 
+  const connectedCount = useMemo(() => {
+    return (
+      sentInterests.filter((i) => i.status === 'accepted').length +
+      receivedInterests.filter((i) => i.status === 'accepted').length
+    );
+  }, [sentInterests, receivedInterests]);
+
+  const pendingReceivedCount = useMemo(() => {
+    return receivedInterests.filter((i) => i.status === 'pending').length;
+  }, [receivedInterests]);
+
   const dashboardStats = useMemo(() => {
     const matchCount = role === 'seeker' ? rooms.length : seekers.length;
     return [
@@ -102,28 +124,28 @@ export default function CustomerDashboard() {
         icon: Users,
       },
       {
-        id: 'messages',
-        label: 'Messages',
-        value: '5',
-        change: '2 unread',
-        icon: MessageSquare,
+        id: 'connections',
+        label: 'Connected Roommates',
+        value: String(connectedCount),
+        change: connectedCount > 0 ? `${connectedCount} active connection(s)` : 'Send interest to connect',
+        icon: UserCheck,
       },
       {
-        id: 'saved',
-        label: 'Saved Profiles',
-        value: String(interestedIds.length > 0 ? interestedIds.length : 9),
-        change: interestedIds.length > 0 ? `${interestedIds.length} interested` : '+1 today',
+        id: 'requests',
+        label: 'Pending Requests',
+        value: String(pendingReceivedCount),
+        change: pendingReceivedCount > 0 ? `${pendingReceivedCount} awaiting your reply` : 'All caught up',
+        icon: Clock,
+      },
+      {
+        id: 'sent',
+        label: 'Sent Interests',
+        value: String(sentInterests.length),
+        change: `${sentInterests.filter((i) => i.status === 'pending').length} pending reply`,
         icon: Heart,
       },
-      {
-        id: 'views',
-        label: 'Profile Views',
-        value: '148',
-        change: '+23% vs last week',
-        icon: Eye,
-      },
     ];
-  }, [role, rooms.length, seekers.length, interestedIds.length]);
+  }, [role, rooms.length, seekers.length, connectedCount, pendingReceivedCount, sentInterests]);
 
   const dashboardActivities = useMemo(() => {
     return [
@@ -149,29 +171,18 @@ export default function CustomerDashboard() {
 
   const handleSendInterest = useCallback(
     async (targetId: string, recipientName: string, recipientUserId?: string) => {
-      if (!user?.id) return;
-      try {
-        setSubmittingInterest(targetId);
-
-        // Send real notification to recipient if user ID exists
-        if (recipientUserId && recipientUserId !== user.id) {
-          await notificationService.createNotification({
-            userId: recipientUserId,
-            title: "New Interest Request Received 💖",
-            message: `${user.firstName || 'A user'} expressed interest in your profile/listing!`,
-            type: "interest_request",
-          });
-        }
-
-        setInterestedIds((prev) => [...prev, targetId]);
-        toast.success(`Interest successfully sent to ${recipientName}! They have been notified.`);
-      } catch {
-        toast.success(`Interest sent to ${recipientName}!`);
-      } finally {
-        setSubmittingInterest(null);
-      }
+      if (!user?.id || !recipientUserId) return;
+      await sendInterest(
+        {
+          senderId: user.id,
+          receiverId: recipientUserId,
+          targetType: role === 'seeker' ? 'room' : 'seeker',
+          targetId: targetId,
+        },
+        recipientName
+      );
     },
-    [user]
+    [user?.id, role, sendInterest]
   );
 
   return (
@@ -284,7 +295,8 @@ export default function CustomerDashboard() {
               rooms.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {rooms.map((room) => {
-                    const isInterested = interestedIds.includes(room.id);
+                    const hostUserId = room.hostId || room.host?.id || room.userId;
+                    const interestStatus = getInterestStatus(room.id, hostUserId);
                     const matchPercent = room.matchPercentage ?? 85;
                     const hostName = room.host ? `${room.host.firstName} ${room.host.lastName || ''}`.trim() : 'Property Host';
 
@@ -368,19 +380,44 @@ export default function CustomerDashboard() {
                               Details
                             </Button>
 
-                            <Button
-                              size="sm"
-                              disabled={isInterested || submittingInterest === room.id}
-                              className={`text-xs font-semibold ${
-                                isInterested
-                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                              }`}
-                              leftIcon={isInterested ? <Check className="h-3.5 w-3.5" /> : <Heart className="h-3.5 w-3.5" />}
-                              onClick={() => handleSendInterest(room.id, hostName, room.hostId)}
-                            >
-                              {isInterested ? 'Interest Sent' : 'Send Interest'}
-                            </Button>
+                            {interestStatus === 'accepted' ? (
+                              <Button
+                                size="sm"
+                                disabled
+                                className="text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                leftIcon={<Check className="h-3.5 w-3.5 text-emerald-600" />}
+                              >
+                                Connected 🎉
+                              </Button>
+                            ) : interestStatus === 'pending' ? (
+                              <Button
+                                size="sm"
+                                disabled
+                                className="text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300"
+                                leftIcon={<Clock className="h-3.5 w-3.5 text-amber-600" />}
+                              >
+                                Pending ⏳
+                              </Button>
+                            ) : interestStatus === 'received_pending' ? (
+                              <Button
+                                size="sm"
+                                onClick={() => setInterestTab('received')}
+                                className="text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-300 hover:bg-blue-100"
+                                leftIcon={<Heart className="h-3.5 w-3.5 text-blue-600" />}
+                              >
+                                Respond in Requests
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                disabled={processingId === room.id}
+                                className="text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                                leftIcon={<Heart className="h-3.5 w-3.5" />}
+                                onClick={() => handleSendInterest(room.id, hostName, hostUserId)}
+                              >
+                                {processingId === room.id ? 'Sending...' : 'Send Interest'}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </Card>
@@ -404,7 +441,8 @@ export default function CustomerDashboard() {
               seekers.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {seekers.map((seeker) => {
-                    const isInterested = interestedIds.includes(seeker.id);
+                    const seekerUserId = seeker.userId || seeker.seeker?.id;
+                    const interestStatus = getInterestStatus(seeker.id, seekerUserId);
                     const matchPercent = seeker.matchPercentage ?? 85;
                     const seekerName = seeker.seeker ? `${seeker.seeker.firstName} ${seeker.seeker.lastName || ''}`.trim() : 'Room Seeker';
 
@@ -511,19 +549,44 @@ export default function CustomerDashboard() {
                               Details
                             </Button>
 
-                            <Button
-                              size="sm"
-                              disabled={isInterested || submittingInterest === seeker.id}
-                              className={`text-xs font-semibold ${
-                                isInterested
-                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                              }`}
-                              leftIcon={isInterested ? <Check className="h-3.5 w-3.5" /> : <Heart className="h-3.5 w-3.5" />}
-                              onClick={() => handleSendInterest(seeker.id, seekerName, seeker.userId)}
-                            >
-                              {isInterested ? 'Interest Sent' : 'Send Interest'}
-                            </Button>
+                            {interestStatus === 'accepted' ? (
+                              <Button
+                                size="sm"
+                                disabled
+                                className="text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                leftIcon={<Check className="h-3.5 w-3.5 text-emerald-600" />}
+                              >
+                                Connected 🎉
+                              </Button>
+                            ) : interestStatus === 'pending' ? (
+                              <Button
+                                size="sm"
+                                disabled
+                                className="text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300"
+                                leftIcon={<Clock className="h-3.5 w-3.5 text-amber-600" />}
+                              >
+                                Pending ⏳
+                              </Button>
+                            ) : interestStatus === 'received_pending' ? (
+                              <Button
+                                size="sm"
+                                onClick={() => setInterestTab('received')}
+                                className="text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-300 hover:bg-blue-100"
+                                leftIcon={<Heart className="h-3.5 w-3.5 text-blue-600" />}
+                              >
+                                Respond in Requests
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                disabled={processingId === seeker.id}
+                                className="text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                                leftIcon={<Heart className="h-3.5 w-3.5" />}
+                                onClick={() => handleSendInterest(seeker.id, seekerName, seekerUserId)}
+                              >
+                                {processingId === seeker.id ? 'Sending...' : 'Send Interest'}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </Card>
@@ -545,22 +608,204 @@ export default function CustomerDashboard() {
             )}
           </section>
 
-          {/* Activity Column */}
-          <section aria-labelledby="activity-heading" className="space-y-4">
-            <h2 id="activity-heading" className="text-lg font-bold text-slate-900">
-              Recent Activity
-            </h2>
-            <Card className="divide-y divide-slate-100 p-0 border border-slate-200 shadow-sm">
-              {dashboardActivities.map((item) => (
-                <div key={item.id} className="flex gap-3 p-4">
-                  <Clock className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">{item.text}</p>
-                    <p className="mt-0.5 text-xs text-slate-400 font-semibold">{item.time}</p>
-                  </div>
+          {/* Right Column: Connection Requests & Activity */}
+          <section className="space-y-6">
+            {/* Connection Requests Card */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-rose-500 fill-rose-500" /> Connection Requests
+                </h2>
+                {pendingReceivedCount > 0 && (
+                  <span className="rounded-full bg-rose-100 text-rose-700 px-2.5 py-0.5 text-xs font-bold">
+                    {pendingReceivedCount} New
+                  </span>
+                )}
+              </div>
+
+              <Card className="p-4 border border-slate-200 shadow-sm space-y-4">
+                {/* Tabs */}
+                <div className="flex rounded-xl bg-slate-100 p-1 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setInterestTab('received')}
+                    className={`flex-1 py-1.5 rounded-lg transition-all text-center ${
+                      interestTab === 'received'
+                        ? 'bg-white text-emerald-800 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Received ({receivedInterests.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInterestTab('sent')}
+                    className={`flex-1 py-1.5 rounded-lg transition-all text-center ${
+                      interestTab === 'sent'
+                        ? 'bg-white text-emerald-800 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Sent ({sentInterests.length})
+                  </button>
                 </div>
-              ))}
-            </Card>
+
+                {/* Tab Content */}
+                {interestTab === 'received' ? (
+                  receivedInterests.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-slate-400">
+                      No incoming interest requests yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                      {receivedInterests.map((item) => {
+                        const senderName = item.sender
+                          ? `${item.sender.firstName} ${item.sender.lastName || ''}`.trim()
+                          : 'A User';
+                        return (
+                          <div
+                            key={item.id}
+                            className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2 text-xs"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {item.sender?.selfieUrl ? (
+                                  <img
+                                    src={item.sender.selfieUrl}
+                                    alt={senderName}
+                                    className="h-8 w-8 rounded-full object-cover border border-slate-200"
+                                  />
+                                ) : (
+                                  <div className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center">
+                                    {senderName.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="font-bold text-slate-900">{senderName}</p>
+                                  <p className="text-[10px] text-slate-400 capitalize">
+                                    {item.sender?.role || 'User'} • Interested in your{' '}
+                                    {item.targetType === 'room' ? 'Room' : 'Profile'}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  item.status === 'accepted'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : item.status === 'declined'
+                                    ? 'bg-slate-200 text-slate-700'
+                                    : 'bg-amber-100 text-amber-800'
+                                }`}
+                              >
+                                {item.status.toUpperCase()}
+                              </span>
+                            </div>
+
+                            {/* Actions for Pending */}
+                            {item.status === 'pending' && (
+                              <div className="flex items-center gap-2 pt-1">
+                                <Button
+                                  size="sm"
+                                  disabled={processingId === item.id}
+                                  onClick={() => acceptInterest(item.id)}
+                                  className="flex-1 text-[11px] h-7 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                                  leftIcon={<Check className="h-3 w-3" />}
+                                >
+                                  Accept
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={processingId === item.id}
+                                  onClick={() => declineInterest(item.id)}
+                                  className="flex-1 text-[11px] h-7 border-slate-300 text-slate-600 hover:text-rose-600 hover:bg-rose-50"
+                                  leftIcon={<X className="h-3 w-3" />}
+                                >
+                                  Decline
+                                </Button>
+                              </div>
+                            )}
+
+                            {/* Connected View */}
+                            {item.status === 'accepted' && item.sender?.email && (
+                              <a
+                                href={`mailto:${item.sender.email}`}
+                                className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold hover:underline pt-1"
+                              >
+                                <Mail className="h-3 w-3" /> Connect: {item.sender.email}
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )
+                ) : sentInterests.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-slate-400">
+                    You haven't sent any interest requests yet.
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                    {sentInterests.map((item) => {
+                      const receiverName = item.receiver
+                        ? `${item.receiver.firstName} ${item.receiver.lastName || ''}`.trim()
+                        : 'Property / Roommate';
+                      return (
+                        <div
+                          key={item.id}
+                          className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5 text-xs"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-900">{receiverName}</span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                item.status === 'accepted'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : item.status === 'declined'
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {item.status.toUpperCase()}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400">
+                            Sent for {item.targetType === 'room' ? 'Room Listing' : 'Roommate Profile'}
+                          </p>
+                          {item.status === 'accepted' && item.receiver?.email && (
+                            <a
+                              href={`mailto:${item.receiver.email}`}
+                              className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold hover:underline pt-0.5"
+                            >
+                              <Mail className="h-3 w-3" /> Email: {item.receiver.email}
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+            </div>
+
+            {/* Recent Activity Card */}
+            <div className="space-y-3">
+              <h2 id="activity-heading" className="text-lg font-bold text-slate-900">
+                Recent Activity
+              </h2>
+              <Card className="divide-y divide-slate-100 p-0 border border-slate-200 shadow-sm">
+                {dashboardActivities.map((item) => (
+                  <div key={item.id} className="flex gap-3 p-4">
+                    <Clock className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">{item.text}</p>
+                      <p className="mt-0.5 text-xs text-slate-400 font-semibold">{item.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </Card>
+            </div>
           </section>
         </div>
       )}
@@ -743,18 +988,64 @@ export default function CustomerDashboard() {
                 Close Details
               </Button>
 
-              <Button
-                disabled={interestedIds.includes(selectedRoom.id) || submittingInterest === selectedRoom.id}
-                className={interestedIds.includes(selectedRoom.id) ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-600 text-white hover:bg-emerald-700'}
-                leftIcon={interestedIds.includes(selectedRoom.id) ? <Check className="w-4 h-4" /> : <Heart className="w-4 h-4" />}
-                onClick={() => {
-                  const hostName = selectedRoom.host ? `${selectedRoom.host.firstName} ${selectedRoom.host.lastName || ''}`.trim() : selectedRoom.location;
-                  handleSendInterest(selectedRoom.id, hostName, selectedRoom.hostId);
-                  setSelectedRoom(null);
-                }}
-              >
-                {interestedIds.includes(selectedRoom.id) ? 'Interest Sent' : 'Send Interest & Request Room'}
-              </Button>
+              {(() => {
+                const hostUserId = selectedRoom.hostId || selectedRoom.host?.id || selectedRoom.userId;
+                const status = getInterestStatus(selectedRoom.id, hostUserId);
+
+                if (status === 'accepted') {
+                  return (
+                    <Button
+                      size="sm"
+                      disabled
+                      className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold"
+                      leftIcon={<Check className="w-4 h-4 text-emerald-600" />}
+                    >
+                      Connected 🎉
+                    </Button>
+                  );
+                }
+                if (status === 'pending') {
+                  return (
+                    <Button
+                      size="sm"
+                      disabled
+                      className="bg-amber-100 text-amber-800 border border-amber-300 font-semibold"
+                      leftIcon={<Clock className="w-4 h-4 text-amber-600" />}
+                    >
+                      Request Pending ⏳
+                    </Button>
+                  );
+                }
+                if (status === 'received_pending') {
+                  return (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setSelectedRoom(null);
+                        setInterestTab('received');
+                      }}
+                      className="bg-blue-50 text-blue-800 border border-blue-300 font-semibold hover:bg-blue-100"
+                      leftIcon={<Heart className="w-4 h-4 text-blue-600" />}
+                    >
+                      Respond in Requests
+                    </Button>
+                  );
+                }
+                return (
+                  <Button
+                    disabled={processingId === selectedRoom.id}
+                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    leftIcon={<Heart className="w-4 h-4" />}
+                    onClick={() => {
+                      const hostName = selectedRoom.host ? `${selectedRoom.host.firstName} ${selectedRoom.host.lastName || ''}`.trim() : selectedRoom.location;
+                      handleSendInterest(selectedRoom.id, hostName, hostUserId);
+                      setSelectedRoom(null);
+                    }}
+                  >
+                    {processingId === selectedRoom.id ? 'Sending...' : 'Send Interest & Request Room'}
+                  </Button>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -922,18 +1213,64 @@ export default function CustomerDashboard() {
                 Close Details
               </Button>
 
-              <Button
-                disabled={interestedIds.includes(selectedSeeker.id) || submittingInterest === selectedSeeker.id}
-                className={interestedIds.includes(selectedSeeker.id) ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-600 text-white hover:bg-emerald-700'}
-                leftIcon={interestedIds.includes(selectedSeeker.id) ? <Check className="w-4 h-4" /> : <Heart className="w-4 h-4" />}
-                onClick={() => {
-                  const seekerName = selectedSeeker.seeker ? `${selectedSeeker.seeker.firstName} ${selectedSeeker.seeker.lastName || ''}`.trim() : selectedSeeker.preferredLocation;
-                  handleSendInterest(selectedSeeker.id, seekerName, selectedSeeker.userId);
-                  setSelectedSeeker(null);
-                }}
-              >
-                {interestedIds.includes(selectedSeeker.id) ? 'Interest Sent' : 'Send Interest Request'}
-              </Button>
+              {(() => {
+                const seekerUserId = selectedSeeker.userId || selectedSeeker.seeker?.id;
+                const status = getInterestStatus(selectedSeeker.id, seekerUserId);
+
+                if (status === 'accepted') {
+                  return (
+                    <Button
+                      size="sm"
+                      disabled
+                      className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold"
+                      leftIcon={<Check className="w-4 h-4 text-emerald-600" />}
+                    >
+                      Connected 🎉
+                    </Button>
+                  );
+                }
+                if (status === 'pending') {
+                  return (
+                    <Button
+                      size="sm"
+                      disabled
+                      className="bg-amber-100 text-amber-800 border border-amber-300 font-semibold"
+                      leftIcon={<Clock className="w-4 h-4 text-amber-600" />}
+                    >
+                      Request Pending ⏳
+                    </Button>
+                  );
+                }
+                if (status === 'received_pending') {
+                  return (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setSelectedSeeker(null);
+                        setInterestTab('received');
+                      }}
+                      className="bg-blue-50 text-blue-800 border border-blue-300 font-semibold hover:bg-blue-100"
+                      leftIcon={<Heart className="w-4 h-4 text-blue-600" />}
+                    >
+                      Respond in Requests
+                    </Button>
+                  );
+                }
+                return (
+                  <Button
+                    disabled={processingId === selectedSeeker.id}
+                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    leftIcon={<Heart className="w-4 h-4" />}
+                    onClick={() => {
+                      const seekerName = selectedSeeker.seeker ? `${selectedSeeker.seeker.firstName} ${selectedSeeker.seeker.lastName || ''}`.trim() : selectedSeeker.preferredLocation;
+                      handleSendInterest(selectedSeeker.id, seekerName, seekerUserId);
+                      setSelectedSeeker(null);
+                    }}
+                  >
+                    {processingId === selectedSeeker.id ? 'Sending...' : 'Send Interest Request'}
+                  </Button>
+                );
+              })()}
             </div>
           </div>
         </div>

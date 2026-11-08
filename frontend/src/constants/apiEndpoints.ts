@@ -36,6 +36,12 @@ export const API_ENDPOINTS = {
     MARK_READ: (id: string) => `/notifications/${id}/read`,
     MARK_ALL_READ: (userId: string) => `/notifications/${userId}/read-all`,
   },
+  INTEREST: {
+    SEND: '/interests',
+    UPDATE_STATUS: (id: string) => `/interests/${id}/status`,
+    RECEIVED: (userId: string) => `/interests/received/${userId}`,
+    SENT: (userId: string) => `/interests/sent/${userId}`,
+  },
   ADMIN: {
     LOGIN: '/admin/login',
     STATS: '/admin/stats',
