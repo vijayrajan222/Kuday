@@ -76,14 +76,45 @@ Project2.0/
 - **User Management**: Instant search, status filtering, and one-click account blocking/unblocking.
 - **Platform Analytics**: Real-time KPI counters (Total Users, Active Rooms, Verified Hosts, Pending Verifications).
 
-### 5. 🔔 In-App Notifications
-- Real-time in-app alerts for interest requests, admin verification results, and platform updates with mark-as-read and mark-all-read capabilities.
+### 5. 🔔 In-App Real-Time Notifications
+- Real-time in-app alerts for visit updates, reschedule requests, cancellations, interest requests, and admin verification results.
+- Backed by Socket.io (`new_notification` and `visit_update`) with instant unread badges, dropdown notifications, and toast alerts.
 
-### 6. 🤝 Mutual Connection & Interest Management (Send, Accept, Decline)
+### 6. 🤝 Mutual Connection & Interest Management (Send, Accept, Decline, Cancel, Unmatch)
 - **Send Interest**: Users send requests to property listings or seeker profiles with automatic duplicate prevention via compound index `(senderId, receiverId, targetId)`.
-- **Accept Interest**: Designated recipient can accept the request, automatically firing a celebratory notification to the sender and unlocking direct email connectivity.
+- **Accept Interest**: Designated recipient can accept the request, automatically moving the contact into the mutual Matched section and enabling direct messaging and visit scheduling.
 - **Decline Interest**: Designated recipient can decline the request cleanly.
-- **Live UI Connection Tracking**: Dynamic buttons (`Send Interest`, `Request Pending ⏳`, `Connected 🎉`) reflected across all room and seeker match cards in real-time.
+- **Cancel Request**: Users can cancel pending interest requests before the other party acts on them.
+- **Unmatch / Remove Connection**: Users can unmatch with connected contacts at any time with modal confirmation, safely separating both parties.
+- **Privacy & Revenue Protection**: Direct email contact links have been completely removed, steering all communication through verified in-app channels.
+
+### 7. 💬 Real-Time Chat & Socket.io Messaging (`/messages`)
+- **Direct 1-on-1 Real-Time Chat**: WebSockets powered by Socket.io for instantaneous message delivery with zero polling.
+- **Single Thread Deduplication**: Guarantees a single unified conversation thread per user pair across sender and receiver directions.
+- **Live Online Presence & Typing Indicators**: Real-time user status (`Online` / `Offline`) and active typing animations.
+- **Unread Counts & Global Badges**: Accurate unread message tracking with auto-incrementing badges on the navigation bar and sidebar.
+- **Integrated Visit Management**: Active visit schedules, proposals, and action banners embedded directly into the chat header.
+
+### 8. 📅 In-Person Visit Scheduling & Management (`/schedule-visit/:connectionId`)
+- **Interactive Calendar & Time Slots**: Clean date picker paired with 3 distinct daily time slots:
+  - 🌅 *Morning* (10:00 AM)
+  - ☀️ *Afternoon* (02:00 PM)
+  - 🌙 *Evening* (06:00 PM)
+- **Host Availability Card & Intro Note**: Displays host details, identity badge, availability notes, and custom introductory message input.
+- **Single Active Schedule Constraint**: Prevents duplicate visit requests per connection while a request is active.
+- **Strict Role-Based Authorization**: The user who requests a visit is strictly barred from confirming or accepting their own request; only the designated recipient can accept, decline, or propose alternate slots.
+- **Comprehensive Visit Lifecycle**:
+  - `pending` $\rightarrow$ Requester awaits recipient response; can cancel request.
+  - `confirmed` $\rightarrow$ Both parties verified the date and time.
+  - `rescheduled` $\rightarrow$ One party proposed alternate time (`Postpone / Prepone`); other party can accept or counter-propose.
+  - `cancelled` $\rightarrow$ Produces clear cancellation banners and real-time socket alerts instead of silent deletion.
+  - `rejected` $\rightarrow$ Displays decline feedback and allows scheduling again.
+- **Manage Schedule Modal**: Embedded in both Matches page and Messages page for immediate status updates and counter-proposals.
+
+### 9. 🔍 Dedicated Explore & Pagination Page (`/explore`)
+- **"View More" Transition**: One-click navigation from dashboard potential rooms/seekers into a dedicated exploration page.
+- **Advanced Filtering & Sorting**: Multi-criteria filters by budget, room type, location, amenities, and gender preferences with background state management.
+- **Responsive Pagination**: Clean 8-12 card paginated layout for high-density listing browsing.
 
 ---
 
@@ -101,7 +132,7 @@ The matching engine ([`RoomMatchCalculatorService.ts`](file:///c:/Users/ASUS/Des
 
 ---
 
-## ⚓ Custom Hooks Catalog (11 Total)
+## ⚓ Custom Hooks Catalog (13 Total)
 
 | # | Hook Name | Path | What It Handles |
 |---|---|---|---|
@@ -115,7 +146,9 @@ The matching engine ([`RoomMatchCalculatorService.ts`](file:///c:/Users/ASUS/Des
 | 8 | `useToast` | `frontend/src/hooks/useToast.ts` | Notification dispatch wrapper around `react-hot-toast`. |
 | 9 | `useVerifyOtp` | `frontend/src/hooks/useVerifyOtp.ts` | Code validation and resend triggers during signup. |
 | 10 | `useVerifyResetOtp` | `frontend/src/hooks/useVerifyResetOtp.ts` | OTP verification specifically for the password reset flow. |
-| 11 | `useAdminAuth` | `frontend/src/context/AdminAuthContext.tsx` | Dedicated session hook for administrator operations. |
+| 11 | `useInterest` | `frontend/src/hooks/useInterest.ts` | Sending interests, accepting, declining, cancelling sent requests, and unmatching contacts. |
+| 12 | `useSocket` | `frontend/src/context/SocketContext.tsx` | Global WebSocket lifecycle, real-time messaging, typing events, presence tracking, and visit updates. |
+| 13 | `useAdminAuth` | `frontend/src/context/AdminAuthContext.tsx` | Dedicated session hook for administrator operations. |
 
 ---
 
@@ -124,14 +157,14 @@ The matching engine ([`RoomMatchCalculatorService.ts`](file:///c:/Users/ASUS/Des
 ### Frontend Optimizations
 - **Route-Level Code Splitting**: All pages lazy-loaded via `React.lazy` and wrapped in `<Suspense fallback={<PageLoader />}>` in [`AppRoutes.tsx`](file:///c:/Users/ASUS/Desktop/Project2.0/frontend/src/routes/AppRoutes.tsx).
 - **Component Memoization (`React.memo`)**: `Header`, `Sidebar`, `StatCard`, `MatchCard`, `Avatar`, and `PasswordStrength` components are memoized to avoid redundant renders.
-- **Context Memoization (`useMemo`)**: `AuthProvider.tsx` wraps its context payload in `useMemo` so consumers don't re-render unless values change.
+- **Context Memoization (`useMemo`)**: `AuthProvider.tsx` and `SocketContext.tsx` wrap context payloads in `useMemo` so consumers don't re-render unless values change.
 - **Function Stabilization (`useCallback`)**: Handlers across custom hooks, layout containers, and dashboards use `useCallback` to maintain reference stability.
 - **Token Refresh Queueing**: Axios interceptor in [`api.ts`](file:///c:/Users/ASUS/Desktop/Project2.0/frontend/src/services/api.ts) queues simultaneous 401 requests, sending only one refresh request and replaying all waiting calls.
-- **DOM Pagination**: Admin table pagination (`pageSize = 5` and `pageSize = 4`) prevents heavy DOM node creation.
+- **DOM Pagination**: Admin table pagination (`pageSize = 5`) and explore listings pagination (`pageSize = 8/12`) prevent heavy DOM node creation.
 
 ### Backend & Database Optimizations
 - **Automatic TTL Index**: `OtpModel` uses `{ expires: 600 }` on `createdAt`. MongoDB's background task deletes expired OTP records automatically.
-- **Database Indexing**: Unique lowercase index on `UserModel.email` ($O(1)$ lookup); foreign-key indexes on `userId` in `RoomModel`, `SeekerPreferenceModel`, and `NotificationModel` to eliminate full table scans.
+- **Database Indexing**: Unique lowercase index on `UserModel.email` ($O(1)$ lookup); foreign-key and compound indexes on `userId` in `RoomModel`, `SeekerPreferenceModel`, `NotificationModel`, `(connectionId, status)` in `VisitModel`, and `(senderId, receiverId, targetId)` in `InterestModel`.
 - **Centralized Dependency Injection**: All dependencies wired cleanly via [`AppFactory.ts`](file:///c:/Users/ASUS/Desktop/Project2.0/backend/src/infrastructure/di/AppFactory.ts).
 - **Centralized Error Handling**: [`ErrorHandlerMiddleware.ts`](file:///c:/Users/ASUS/Desktop/Project2.0/backend/src/presentation/middleware/ErrorHandlerMiddleware.ts) maps application, validation, and database errors into uniform [`ApiResponse`](file:///c:/Users/ASUS/Desktop/Project2.0/backend/src/presentation/utils/ApiResponse.ts) envelopes.
 
@@ -148,6 +181,9 @@ The matching engine ([`RoomMatchCalculatorService.ts`](file:///c:/Users/ASUS/Des
 | **Lifestyles** (`LifestyleModel.ts`) | `userId`, `smoking`, `drinking`, `sleepSchedule`, `cleanliness`, `diet` | Direct 1:1 ref to user living preferences |
 | **Notifications** (`NotificationModel.ts`) | `userId`, `title`, `message`, `type`, `isRead` | `userId` indexed |
 | **Interests** (`InterestModel.ts`) | `senderId`, `receiverId`, `targetType`, `targetId`, `status`, `message` | Compound unique index `(senderId, receiverId, targetId)` |
+| **Visits** (`VisitModel.ts`) | `connectionId`, `seekerId`, `hostId`, `createdBy`, `date`, `timeSlot`, `slotTime`, `message`, `status`, `suggestedDate`, `suggestedSlotTime` | Compound indexes `(connectionId, status)` & `(seekerId, hostId)` |
+| **Conversations** (`ConversationModel.ts`) | `participants`, `lastMessage` | Compound index on `participants` array, single-thread enforcement |
+| **Messages** (`MessageModel.ts`) | `conversationId`, `senderId`, `receiverId`, `content`, `isRead` | Indexed by `conversationId` and `createdAt` |
 
 ---
 
@@ -193,8 +229,33 @@ The matching engine ([`RoomMatchCalculatorService.ts`](file:///c:/Users/ASUS/Des
 ### Connections & Interests (`/interests`)
 - `POST /interests` — Send interest request
 - `PATCH /interests/:id/status` — Accept or decline request (`status: 'accepted' | 'declined'`)
+- `DELETE /interests/:id/cancel` — Cancel pending sent interest request
+- `POST /interests/:id/unmatch` — Unmatch / sever mutual connection
 - `GET /interests/received/:userId` — Fetch received requests with sender details
 - `GET /interests/sent/:userId` — Fetch sent requests with status tracking
+
+### In-Person Visits (`/visits`)
+- `POST /visits` — Create a visit schedule request (Morning, Afternoon, Evening)
+- `GET /visits/user/:userId` — Fetch all visits for the authenticated user
+- `GET /visits/connection/:connectionId` — Fetch all visits for a specific connection
+- `PATCH /visits/:id/status` — Update visit status (`confirmed`, `cancelled`, `rejected`)
+- `PATCH /visits/:id/suggest` — Propose alternative date/slot (Postpone/Prepone)
+- `PATCH /visits/:id/accept-suggestion` — Accept proposed alternative visit time
+
+### Chat & Messaging (`/messages`, `/conversations`)
+- `GET /conversations/:userId` — Fetch all 1-on-1 conversations for user
+- `POST /conversations` — Get or create a 1-on-1 conversation
+- `GET /messages/:conversationId` — Fetch message history for a conversation
+- `POST /messages` — Send a direct message
+- `PATCH /messages/:conversationId/read` — Mark conversation messages as read
+- `GET /messages/unread/:userId` — Get unread messages count
+
+### Admin (`/admin`)
+- `POST /admin/login` — Admin login
+- `GET /admin/stats` — Retrieve platform KPI metrics
+- `GET /admin/users` — List and search users
+- `PATCH /admin/users/:userId/block` — Toggle user block status
+- `PATCH /admin/users/:userId/verify-identity` — Approve / reject identity documents
 
 ### Admin (`/admin`)
 - `POST /admin/login` — Admin login

@@ -58,15 +58,17 @@ frontend/
 │   ├── context/                  # Global Session State
 │   │   ├── authContext.ts        # Auth React Context Definition
 │   │   ├── AuthProvider.tsx      # User Auth State Provider (Session, Token, User Info, memoized value)
-│   │   └── AdminAuthContext.tsx  # Admin Auth State Provider (Admin Session, Token, useAdminAuth)
+│   │   ├── AdminAuthContext.tsx  # Admin Auth State Provider (Admin Session, Token, useAdminAuth)
+│   │   └── SocketContext.tsx     # Socket.io Context (Real-time Messaging, Online Presence, Badges, Visits)
 │   │
 │   ├── data/                     # Mock Data & Static Presets
 │   │   └── dummyData.ts          # Sample Roommate & House Listings
-│   ├── hooks/                    # Custom React Hooks (10 Auth/App Hooks + 1 Context Hook)
+│   ├── hooks/                    # Custom React Hooks
 │   │   ├── useAuth.ts            # Hook to access global AuthContext
 │   │   ├── useCountdown.ts       # Hook for 60-Second OTP Timer with Auto-Cleanup
 │   │   ├── useForgotPassword.ts   # Hook managing Forgot Password submission
 │   │   ├── useGoogleAuth.ts      # Hook managing Google Auth API & Session activation
+│   │   ├── useInterest.ts        # Hook managing interests (send, accept, decline, cancel, unmatch)
 │   │   ├── useLogin.ts           # Hook managing Login API & Session trigger logic
 │   │   ├── useResetPassword.ts     # Hook managing Password Reset submission
 │   │   ├── useSignUp.ts          # Hook managing Signup submission logic
@@ -90,6 +92,12 @@ frontend/
 │   │       ├── VerifyResetOtp.tsx     # Reset Password OTP Screen
 │   │       ├── ResetPassword.tsx      # New Password Setup Page
 │   │       ├── CustomerDashboard.tsx  # Roommate & Property Discovery Dashboard with Match Scores
+│   │       ├── ExplorePage.tsx        # Dedicated Paginated Listings (8-12 cards) with Search & Filters
+│   │       ├── MatchedPage.tsx        # Interests, Sent/Received, Mutual Matches, Manage Visit Modal
+│   │       ├── MessagesPage.tsx       # Real-Time 1-on-1 Chat with Socket.io, Presence & Visit Banner
+│   │       ├── ScheduleVisitPage.tsx  # Interactive Calendar & Time Slot Visit Scheduler
+│   │       ├── RoomDetailsPage.tsx    # Property Details & Booking Preview
+│   │       ├── UserProfilePage.tsx    # Public Profile Inspection View
 │   │       ├── OnboardingProfilePage.tsx # 3-Step Onboarding (Profile, Lifestyle, Identity Upload)
 │   │       └── ProfilePage.tsx        # User Profile Management & Identity Status View
 │   │
@@ -100,6 +108,8 @@ frontend/
 │   │   ├── api.ts                # Axios Instance with Request/Response Interceptors & Thundering Herd Queueing
 │   │   ├── authService.ts        # Authentication API Calls (Login, Register, OTP, Refresh, Google)
 │   │   ├── adminService.ts       # Admin API Calls (Stats, Users, Block, Verify Identity)
+│   │   ├── chatService.ts        # Chat Conversations, Messages & Unread Counts
+│   │   ├── visitService.ts       # In-Person Visit Scheduling & Status Lifecycle
 │   │   ├── onboardingService.ts  # Onboarding API Calls (Profile, Lifestyle, Identity Documents)
 │   │   └── notificationService.ts # In-App Notification API Calls (Fetch, Mark Read)
 │   │
@@ -145,15 +155,35 @@ A structured 3-step onboarding wizard for newly registered users:
 * **Document Inspection Modal**: Side-by-side modal displaying submitted Government ID and Selfie photos. Admins can **Approve** or **Reject** with a mandatory feedback reason, triggering an instant notification to the user.
 * **Client-Side Pagination**: Efficient pagination for both user directory (`pageSize = 5`) and verification queue (`pageSize = 4`).
 
-### E. Mutual Connection & Interest Management (`CustomerDashboard.tsx`, `useInterest.ts`)
+### E. Mutual Connection & Interest Management (`CustomerDashboard.tsx`, `MatchedPage.tsx`, `useInterest.ts`)
 * **Send Interest**: Users click "Send Interest" on matching room listings or seeker profiles, automatically initiating a request with compound duplicate prevention.
-* **Accept & Decline**: Recipient users manage incoming requests in real-time via the "Connection Requests" dashboard panel with dedicated **Accept** (green) and **Decline** buttons.
-* **Connected State**: Accepting an interest transitions both users into a `"Connected 🎉"` state and exposes their contact emails for direct communication.
-* **Real-time Status Tracking**: Match cards dynamically render `Send Interest`, `Request Pending ⏳`, or `Connected 🎉` based on backend state.
+* **Accept & Decline**: Recipient users manage incoming requests in real-time via the "Connection Requests" dashboard panel or Matched page with dedicated **Accept** (green) and **Decline** buttons.
+* **Cancel Request**: Senders can cancel pending requests before they are accepted.
+* **Unmatch / Remove Connection**: Connected users can cleanly unmatch via a confirmation modal, removing each other from active matched lists.
+* **Privacy & Platform Safety**: Direct email links have been removed in favor of in-app messaging and scheduled in-person visits.
+
+### F. Real-Time Chat & Direct Messaging (`MessagesPage.tsx`, `SocketContext.tsx`)
+* **Socket.io WebSockets**: Instant messaging with zero polling, powered by active room channels.
+* **Unified Conversations**: Guarantees a single conversation thread per matched user pair with intelligent deduplication.
+* **Live Presence & Typing Indicators**: Online/offline green status bubbles and real-time typing dots.
+* **Global Badges & Unread Counters**: Sidebar and header badges automatically update when messages arrive while viewing other pages.
+* **Integrated Visit Banner**: Active visit requests and reschedule options appear right inside the chat header.
+
+### G. In-Person Visit Scheduling (`ScheduleVisitPage.tsx`, `MatchedPage.tsx`)
+* **Interactive Custom Calendar**: Monday-starting calendar with past date protection and month navigators.
+* **3-Slot Time Selector**: Morning (10:00 AM), Afternoon (02:00 PM), and Evening (06:00 PM) interactive cards with selection badges.
+* **Host Card & Availability Note**: Host details, verification badge, host availability quote, and personal intro textarea.
+* **Strict Role Guarding**: Requesters are barred from accepting their own visit request; only the recipient can accept, decline, or propose changes.
+* **Lifecycle Management**: Real-time banners for Pending, Confirmed, Rescheduled, Cancelled, and Declined visits with full modal management.
+
+### H. Dedicated Explore Listings Page (`ExplorePage.tsx`)
+* **"View More" Transition**: Navigates from dashboard 4-card preview to a dedicated, high-density listing view.
+* **Background Search, Filter & Sort**: Filter by location, budget range, room type, and required amenities with clean URL/state persistence.
+* **Responsive Pagination**: Clean 8–12 card paginated grid.
 
 ---
 
-## 4. Custom Hooks Catalog (12 Total)
+## 4. Custom Hooks Catalog (13 Total)
 
 | # | Hook Name | Path | What It Handles |
 |---|---|---|---|
@@ -167,24 +197,25 @@ A structured 3-step onboarding wizard for newly registered users:
 | 8 | `useToast` | `src/hooks/useToast.ts` | Clean wrapper around `react-hot-toast` for consistent notifications. |
 | 9 | `useVerifyOtp` | `src/hooks/useVerifyOtp.ts` | Manages OTP code submission and resend triggers during signup. |
 | 10 | `useVerifyResetOtp` | `src/hooks/useVerifyResetOtp.ts` | Handles OTP verification specifically for the password reset flow. |
-| 11 | `useAdminAuth` | `src/context/AdminAuthContext.tsx` | Provides admin session status, admin token, and admin logout action. |
-| 12 | `useInterest` | `src/hooks/useInterest.ts` | Manages sending, accepting, and declining connection requests, with real-time target status resolution. |
+| 11 | `useInterest` | `src/hooks/useInterest.ts` | Manages sending, accepting, declining, cancelling sent requests, and unmatching connections. |
+| 12 | `useSocket` | `src/context/SocketContext.tsx` | Provides WebSocket connection, real-time message sending/receiving, presence, and visit update toasts. |
+| 13 | `useAdminAuth` | `src/context/AdminAuthContext.tsx` | Provides admin session status, admin token, and admin logout action. |
 
 ---
 
 ## 5. Optimization Techniques Implemented
 
 1. **Route-Level Code Splitting (`React.lazy` + `Suspense`)**:
-   - Implemented in `AppRoutes.tsx`. All 11 pages are loaded on demand via dynamic `import()`, keeping initial bundle size minimal.
+   - Implemented in `AppRoutes.tsx`. All pages are loaded on demand via dynamic `import()`, keeping initial bundle size minimal.
 2. **Component Memoization (`React.memo`)**:
    - `Header`, `Sidebar`, `StatCard`, `MatchCard`, `Avatar`, and `PasswordStrength` components are wrapped with `memo()` to eliminate unnecessary parent-triggered re-renders.
 3. **Context Memoization (`useMemo`)**:
-   - The value object in `AuthProvider.tsx` is wrapped in `useMemo`, preventing all subscribers across the application from re-rendering when unrelated state changes.
+   - The value objects in `AuthProvider.tsx` and `SocketContext.tsx` are wrapped in `useMemo`, preventing all subscribers across the application from re-rendering when unrelated state changes.
 4. **Function Reference Stabilization (`useCallback`)**:
-   - All custom hooks and event handlers (`handleGoogleAuth`, `openSidebar`, `closeSidebar`, `loadData`, `fetchProfileData`) use `useCallback` to prevent function recreations.
+   - All custom hooks and event handlers (`handleGoogleAuth`, `openSidebar`, `closeSidebar`, `loadData`, `fetchProfileData`, `sendSocketMessage`) use `useCallback` to prevent function recreations.
 5. **Thundering Herd Prevention (Axios Request Queue)**:
    - Implemented in `services/api.ts`. If multiple requests hit a 401 simultaneously, only one refresh token call is dispatched while the others wait in `failedQueue`.
 6. **Memory Leak Prevention**:
-   - Proper `useEffect` cleanup functions in `useCountdown.ts` and `Header.tsx` to clear active timers.
+   - Proper `useEffect` cleanup functions in `useCountdown.ts`, `SocketContext.tsx`, and `Header.tsx` to clear active timers and disconnect socket listeners.
 7. **Client-Side DOM Pagination**:
-   - In `AdminDashboardPage.tsx`, large tables are paginated using `.slice()` to prevent rendering hundreds of DOM nodes at once.
+   - In `AdminDashboardPage.tsx` and `ExplorePage.tsx`, large datasets are paginated to prevent rendering hundreds of DOM nodes at once.

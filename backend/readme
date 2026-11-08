@@ -58,7 +58,17 @@ All models are constructed using **Modern Mongoose (`InferSchemaType` + `Hydrate
    - **Fields**: `userId` (ref to User), `smoking`, `drinking`, `sleepSchedule`, `diet`, `cleanliness`, `visitorPolicy`, `roommateGenderPref`.
 
 6. **`NotificationModel.ts`**:
-   - **Fields**: `userId` (`index: true`), `title`, `message`, `type` (`"admin_verification"` | `"interest_request"` | `"system"`), `isRead`.
+   - **Fields**: `userId` (`index: true`), `title`, `message`, `type` (`"admin_verification"` | `"interest_request"` | `"visit_request"` | `"system"`), `isRead`.
+
+7. **`VisitModel.ts`**:
+   - **Fields**: `connectionId` (`index: true`), `seekerId`, `hostId`, `createdBy`, `roomId`, `date`, `timeSlot` (`morning` | `afternoon` | `evening`), `slotTime`, `message`, `status` (`pending` | `confirmed` | `rescheduled` | `cancelled` | `rejected` | `completed`), `suggestedBy`, `suggestedById`, `suggestedDate`, `suggestedTimeSlot`, `suggestedSlotTime`, `suggestedMessage`.
+   - **Compound Indexes**: `(connectionId, status)`, `(seekerId, hostId)`.
+
+8. **`ConversationModel.ts`**:
+   - **Fields**: `participants` (array of user IDs, indexed), `lastMessage` (`content`, `senderId`, `createdAt`).
+
+9. **`MessageModel.ts`**:
+   - **Fields**: `conversationId` (`index: true`), `senderId`, `receiverId`, `content`, `isRead`, `createdAt`.
 
 ---
 
@@ -268,10 +278,32 @@ A dedicated, zero-dependency mathematical algorithm calculating a **0% to 100% c
 |---|---|---|
 | `POST` | `/interests` | Send an interest request to a host/seeker |
 | `PATCH` | `/interests/:id/status` | Accept or decline an interest request (`status: 'accepted' \| 'declined'`) |
+| `DELETE` | `/interests/:id/cancel` | Cancel pending sent interest request |
+| `POST` | `/interests/:id/unmatch` | Remove/unmatch mutual connection cleanly |
 | `GET` | `/interests/received/:userId` | Fetch received interest requests with sender details |
 | `GET` | `/interests/sent/:userId` | Fetch sent interest requests with status |
 
-### 8. Admin (`/admin`)
+### 8. In-Person Visit Scheduling (`/visits`)
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/visits` | Create new visit schedule request with date & slot (Morning, Afternoon, Evening) |
+| `GET` | `/visits/user/:userId` | Retrieve all visits involving authenticated user |
+| `GET` | `/visits/connection/:connectionId` | Retrieve visits for a specific connection |
+| `PATCH` | `/visits/:id/status` | Accept, cancel, or decline visit request |
+| `PATCH` | `/visits/:id/suggest` | Propose alternative date/slot (Postpone/Prepone) |
+| `PATCH` | `/visits/:id/accept-suggestion` | Accept proposed alternative time |
+
+### 9. Real-Time Chat & Direct Messaging (`/messages`, `/conversations`)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/conversations/:userId` | Fetch active 1-on-1 conversations |
+| `POST` | `/conversations` | Get or create single deduplicated thread |
+| `GET` | `/messages/:conversationId` | Fetch historical conversation messages |
+| `POST` | `/messages` | Send direct message and notify via Socket.io |
+| `PATCH` | `/messages/:conversationId/read` | Mark all conversation messages as read |
+| `GET` | `/messages/unread/:userId` | Get global unread message count |
+
+### 10. Admin (`/admin`)
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/admin/login` | Secure admin portal login |
