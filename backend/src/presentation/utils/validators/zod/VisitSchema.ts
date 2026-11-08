@@ -12,7 +12,7 @@ export const createVisitSchema = z.object({
 });
 
 export const updateVisitStatusSchema = z.object({
-    status: z.enum(["confirmed", "cancelled", "completed"]),
+    status: z.enum(["confirmed", "cancelled", "rejected", "completed"]),
     note: z.string().max(500).optional(),
 });
 

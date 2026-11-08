@@ -43,6 +43,10 @@ export default function MatchedPage() {
   // Visits state
   const [visits, setVisits] = useState<Visit[]>([]);
   const [rescheduleModalVisit, setRescheduleModalVisit] = useState<Visit | null>(null);
+  const [manageScheduleVisit, setManageScheduleVisit] = useState<Visit | null>(null);
+  const [isReschedulingMode, setIsReschedulingMode] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [showRejectInput, setShowRejectInput] = useState(false);
 
   // Reschedule form state
   const [suggestDate, setSuggestDate] = useState('');
@@ -81,7 +85,7 @@ export default function MatchedPage() {
   const visitsByConnection = useMemo(() => {
     const map = new Map<string, Visit>();
     visits.forEach((v) => {
-      // Prioritize active visits over cancelled ones
+      // Prioritize active visits over cancelled/rejected ones
       const existing = map.get(v.connectionId);
       if (!existing || ['pending', 'rescheduled', 'confirmed'].includes(v.status)) {
         map.set(v.connectionId, v);
@@ -96,6 +100,7 @@ export default function MatchedPage() {
     try {
       await visitService.updateStatus(visitId, user.id, 'confirmed');
       toast.success('Visit confirmed! ✅');
+      setManageScheduleVisit(null);
       loadUserVisits();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -103,11 +108,27 @@ export default function MatchedPage() {
     }
   };
 
+  const handleRejectVisit = async (visitId: string, note?: string) => {
+    if (!user?.id) return;
+    try {
+      await visitService.updateStatus(visitId, user.id, 'rejected', note);
+      toast.info('Visit request declined.');
+      setManageScheduleVisit(null);
+      setShowRejectInput(false);
+      setRejectReason('');
+      loadUserVisits();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to decline visit');
+    }
+  };
+
   const handleCancelVisit = async (visitId: string) => {
     if (!user?.id) return;
     try {
       await visitService.updateStatus(visitId, user.id, 'cancelled');
-      toast.info('Visit cancelled.');
+      toast.info('Visit request cancelled.');
+      setManageScheduleVisit(null);
       loadUserVisits();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -120,6 +141,7 @@ export default function MatchedPage() {
     try {
       await visitService.acceptSuggestion(visitId, user.id);
       toast.success('Rescheduled visit confirmed! 🎉');
+      setManageScheduleVisit(null);
       loadUserVisits();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -129,7 +151,8 @@ export default function MatchedPage() {
 
   const handleSendSuggestion = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.id || !rescheduleModalVisit) return;
+    const targetVisit = rescheduleModalVisit || manageScheduleVisit;
+    if (!user?.id || !targetVisit) return;
     if (!suggestDate) {
       toast.error('Please pick a date.');
       return;
@@ -140,14 +163,16 @@ export default function MatchedPage() {
 
     try {
       setSubmittingSuggestion(true);
-      await visitService.suggestChanges(rescheduleModalVisit.id, user.id, {
+      await visitService.suggestChanges(targetVisit.id, user.id, {
         suggestedDate: suggestDate,
         suggestedTimeSlot: suggestSlot,
         suggestedSlotTime: slotTime,
         suggestedMessage: suggestMessage.trim(),
       });
-      toast.success('Proposed reschedule sent!');
+      toast.success('Reschedule proposal sent!');
       setRescheduleModalVisit(null);
+      setManageScheduleVisit(null);
+      setIsReschedulingMode(false);
       setSuggestMessage('');
       loadUserVisits();
     } catch (err: unknown) {
@@ -468,7 +493,23 @@ export default function MatchedPage() {
                         <span>Message</span>
                       </button>
 
-                      {(!activeVisit || activeVisit.status === 'cancelled') && (
+                      {activeVisit && ['pending', 'rescheduled', 'confirmed'].includes(activeVisit.status) ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setManageScheduleVisit(activeVisit);
+                            setIsReschedulingMode(false);
+                            setSuggestDate(activeVisit.suggestedDate || activeVisit.date);
+                            setSuggestSlot(activeVisit.suggestedTimeSlot || activeVisit.timeSlot);
+                            setSuggestMessage('');
+                            setShowRejectInput(false);
+                          }}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer"
+                        >
+                          <Calendar className="h-3.5 w-3.5 text-white" />
+                          <span>Manage Schedule</span>
+                        </button>
+                      ) : (
                         <button
                           type="button"
                           onClick={() => {
@@ -957,6 +998,288 @@ export default function MatchedPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Schedule Modal */}
+      {manageScheduleVisit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setManageScheduleVisit(null);
+                setIsReschedulingMode(false);
+                setShowRejectInput(false);
+              }}
+              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-slate-900" />
+                <h3 className="text-lg font-bold text-slate-900">Manage Visit Schedule</h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                View request details, accept, reject, or postpone/prepone the scheduled visit.
+              </p>
+            </div>
+
+            {/* Visit Details Card */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 space-y-3.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-500">Status</span>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    manageScheduleVisit.status === 'confirmed'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : manageScheduleVisit.status === 'rescheduled'
+                      ? 'bg-purple-100 text-purple-800'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  {manageScheduleVisit.status === 'confirmed'
+                    ? 'Confirmed Visit'
+                    : manageScheduleVisit.status === 'rescheduled'
+                    ? 'Reschedule In Discussion'
+                    : 'Pending Confirmation'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-200/60 pt-2.5">
+                <span className="font-semibold text-slate-500">Scheduled Date</span>
+                <span className="font-bold text-slate-900">{manageScheduleVisit.date}</span>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-200/60 pt-2.5">
+                <span className="font-semibold text-slate-500">Time Slot</span>
+                <span className="font-bold text-slate-900 capitalize">
+                  {manageScheduleVisit.slotTime} ({manageScheduleVisit.timeSlot})
+                </span>
+              </div>
+
+              {manageScheduleVisit.message && (
+                <div className="border-t border-slate-200/60 pt-2.5">
+                  <span className="font-semibold text-slate-500 block mb-1">Attached Message</span>
+                  <p className="italic text-slate-700 bg-white p-3 rounded-xl border border-slate-200">
+                    &ldquo;{manageScheduleVisit.message}&rdquo;
+                  </p>
+                </div>
+              )}
+
+              {/* Proposed Reschedule Info if any */}
+              {manageScheduleVisit.suggestedDate && (
+                <div className="border-t border-purple-200 bg-purple-50/80 -mx-4 -mb-4 p-4 rounded-b-2xl space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-purple-900 font-bold text-[11px] uppercase tracking-wider">
+                    <RotateCcw className="h-3.5 w-3.5 text-purple-700" />
+                    Proposed Alternative Time
+                  </div>
+                  <p className="text-slate-800 font-medium">
+                    {manageScheduleVisit.suggestedDate} at {manageScheduleVisit.suggestedSlotTime} (
+                    {manageScheduleVisit.suggestedTimeSlot})
+                  </p>
+                  {manageScheduleVisit.suggestedMessage && (
+                    <p className="text-purple-950 italic text-[11px]">
+                      &ldquo;{manageScheduleVisit.suggestedMessage}&rdquo;
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* If Rescheduling (Postpone / Prepone) Form is Active */}
+            {isReschedulingMode ? (
+              <form onSubmit={handleSendSuggestion} className="space-y-4 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <RotateCcw className="h-3.5 w-3.5 text-slate-700" />
+                    Postpone or Prepone Visit
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsReschedulingMode(false)}
+                    className="text-[11px] text-slate-500 hover:text-slate-900 underline cursor-pointer"
+                  >
+                    Cancel Edit
+                  </button>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                    New Date
+                  </label>
+                  <input
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                    value={suggestDate}
+                    onChange={(e) => setSuggestDate(e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                    New Time Slot
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'morning', label: 'Morning', time: '10:00 AM', icon: Sun },
+                      { id: 'afternoon', label: 'Afternoon', time: '02:00 PM', icon: SunMedium },
+                      { id: 'evening', label: 'Evening', time: '06:00 PM', icon: Moon },
+                    ].map((s) => {
+                      const Icon = s.icon;
+                      const isSelected = suggestSlot === s.id;
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setSuggestSlot(s.id as TimeSlot)}
+                          className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-2 border-black bg-white shadow-xs font-bold text-black'
+                              : 'border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-white'
+                          }`}
+                        >
+                          <Icon className="h-4 w-4 mx-auto mb-1 text-slate-700" />
+                          <span className="text-xs block">{s.label}</span>
+                          <span className="text-[10px] text-slate-400 block">{s.time}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                    Attach Message / Reason
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={suggestMessage}
+                    onChange={(e) => setSuggestMessage(e.target.value)}
+                    placeholder="Explain why you want to postpone or prepone (e.g. shift conflict, weekend availability)..."
+                    maxLength={500}
+                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsReschedulingMode(false)}
+                    className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingSuggestion || !suggestDate}
+                    className="flex-1 rounded-xl bg-black py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {submittingSuggestion ? 'Sending...' : 'Send Reschedule'}
+                  </button>
+                </div>
+              </form>
+            ) : showRejectInput ? (
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <span className="text-xs font-bold text-rose-600 block">Decline Visit Request</span>
+                <textarea
+                  rows={3}
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Optional reason for declining (e.g. room already occupied, schedule incompatible)..."
+                  className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden resize-none"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowRejectInput(false)}
+                    className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRejectVisit(manageScheduleVisit.id, rejectReason)}
+                    className="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-rose-700 transition-colors cursor-pointer"
+                  >
+                    Confirm Decline
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Main Action Buttons */
+              <div className="space-y-2.5 pt-2 border-t border-slate-100">
+                {/* 1. If visit is in suggestion state and user is the recipient of the suggestion */}
+                {manageScheduleVisit.status === 'rescheduled' &&
+                manageScheduleVisit.suggestedBy !== (user?.id === manageScheduleVisit.hostId ? 'host' : 'seeker') ? (
+                  <button
+                    type="button"
+                    onClick={() => handleAcceptSuggestion(manageScheduleVisit.id)}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-black py-3 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Check className="h-4 w-4" />
+                    <span>Accept Proposed Reschedule</span>
+                  </button>
+                ) : null}
+
+                {/* 2. If visit is pending and user is the recipient */}
+                {manageScheduleVisit.status === 'pending' && user?.id === manageScheduleVisit.hostId ? (
+                  <button
+                    type="button"
+                    onClick={() => handleAcceptVisit(manageScheduleVisit.id)}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-black py-3 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Check className="h-4 w-4" />
+                    <span>Accept Schedule</span>
+                  </button>
+                ) : null}
+
+                {/* 3. Postpone / Prepone (Reschedule) Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsReschedulingMode(true);
+                    setSuggestDate(manageScheduleVisit.suggestedDate || manageScheduleVisit.date);
+                    setSuggestSlot(manageScheduleVisit.suggestedTimeSlot || manageScheduleVisit.timeSlot);
+                    setSuggestMessage('');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white py-3 text-xs font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+                >
+                  <RotateCcw className="h-4 w-4 text-slate-500" />
+                  <span>Postpone or Prepone (Reschedule)</span>
+                </button>
+
+                {/* 4. Reject Request (available to recipient) */}
+                {user?.id === manageScheduleVisit.hostId && manageScheduleVisit.status === 'pending' ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowRejectInput(true)}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                    <span>Reject / Decline Visit</span>
+                  </button>
+                ) : null}
+
+                {/* 5. Cancel Request (available to sender or either party if confirmed) */}
+                {(user?.id === manageScheduleVisit.seekerId && manageScheduleVisit.status === 'pending') ||
+                manageScheduleVisit.status === 'confirmed' ? (
+                  <button
+                    type="button"
+                    onClick={() => handleCancelVisit(manageScheduleVisit.id)}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white py-2.5 text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                    <span>Cancel Visit Request</span>
+                  </button>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -139,6 +139,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toast.info('Visit Reschedule Proposed 🔄', `Proposed: ${visit.suggestedDate} at ${visit.suggestedSlotTime}`);
       } else if (visit?.status === 'pending') {
         toast.info('New Visit Request 📅', `Visit requested for ${visit.date} at ${visit.slotTime}`);
+      } else if (visit?.status === 'rejected') {
+        toast.info('Visit Declined ❌', `The scheduled visit was declined.`);
+      } else if (visit?.status === 'cancelled') {
+        toast.info('Visit Cancelled', `The scheduled visit was cancelled.`);
       }
     });
 

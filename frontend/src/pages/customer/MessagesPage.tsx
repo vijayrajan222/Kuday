@@ -11,13 +11,21 @@ import {
   ArrowLeft,
   Circle,
   ExternalLink,
+  Calendar,
+  RotateCcw,
+  X,
+  Sun,
+  SunMedium,
+  Moon,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSocket } from '@/context/SocketContext';
 import { chatService } from '@/services/chatService';
+import { visitService } from '@/services/visitService';
 import { ROUTES } from '@/constants/routes';
 import { toast } from '@/hooks/useToast';
 import type { ChatMessage, Conversation } from '@/types/chat.types';
+import type { Visit, TimeSlot } from '@/types/visit.types';
 
 export default function MessagesPage() {
   const { user } = useAuth();
@@ -60,6 +68,127 @@ export default function MessagesPage() {
       activeConversation.participantDetails?.find((p) => p.id !== user.id) || null
     );
   }, [activeConversation, user?.id]);
+
+  // Active visit between current user and recipient
+  const [activeChatVisit, setActiveChatVisit] = useState<Visit | null>(null);
+  const [isReschedulingMode, setIsReschedulingMode] = useState(false);
+  const [suggestDate, setSuggestDate] = useState('');
+  const [suggestSlot, setSuggestSlot] = useState<TimeSlot>('afternoon');
+  const [suggestMessage, setSuggestMessage] = useState('');
+  const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
+
+  // Load active visit for current conversation
+  const loadChatVisit = useCallback(async () => {
+    if (!user?.id || !recipient?.id) {
+      setActiveChatVisit(null);
+      return;
+    }
+    try {
+      const allVisits = await visitService.getVisitsByUser(user.id);
+      const match = allVisits.find(
+        (v) =>
+          ((v.seekerId === user.id && v.hostId === recipient.id) ||
+            (v.hostId === user.id && v.seekerId === recipient.id)) &&
+          ['pending', 'rescheduled', 'confirmed'].includes(v.status)
+      );
+      setActiveChatVisit(match || null);
+    } catch {
+      setActiveChatVisit(null);
+    }
+  }, [user?.id, recipient?.id]);
+
+  useEffect(() => {
+    loadChatVisit();
+  }, [loadChatVisit]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleVisitUpdate = () => {
+      loadChatVisit();
+    };
+    socket.on('visit_update', handleVisitUpdate);
+    return () => {
+      socket.off('visit_update', handleVisitUpdate);
+    };
+  }, [socket, loadChatVisit]);
+
+  const handleAcceptVisit = async (visitId: string) => {
+    if (!user?.id) return;
+    try {
+      await visitService.updateStatus(visitId, user.id, 'confirmed');
+      toast.success('Visit confirmed! ✅');
+      loadChatVisit();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to accept visit');
+    }
+  };
+
+  const handleRejectVisit = async (visitId: string) => {
+    if (!user?.id) return;
+    try {
+      await visitService.updateStatus(visitId, user.id, 'rejected');
+      toast.info('Visit request declined.');
+      loadChatVisit();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to decline visit');
+    }
+  };
+
+  const handleCancelVisit = async (visitId: string) => {
+    if (!user?.id) return;
+    try {
+      await visitService.updateStatus(visitId, user.id, 'cancelled');
+      toast.info('Visit cancelled.');
+      loadChatVisit();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to cancel visit');
+    }
+  };
+
+  const handleAcceptSuggestion = async (visitId: string) => {
+    if (!user?.id) return;
+    try {
+      await visitService.acceptSuggestion(visitId, user.id);
+      toast.success('Rescheduled visit confirmed! 🎉');
+      loadChatVisit();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to accept reschedule');
+    }
+  };
+
+  const handleSendSuggestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id || !activeChatVisit) return;
+    if (!suggestDate) {
+      toast.error('Please pick a date.');
+      return;
+    }
+    const slotTime =
+      suggestSlot === 'morning' ? '10:00 AM' : suggestSlot === 'afternoon' ? '02:00 PM' : '06:00 PM';
+
+    try {
+      setSubmittingSuggestion(true);
+      await visitService.suggestChanges(activeChatVisit.id, user.id, {
+        suggestedDate: suggestDate,
+        suggestedTimeSlot: suggestSlot,
+        suggestedSlotTime: slotTime,
+        suggestedMessage: suggestMessage.trim(),
+      });
+      toast.success('Reschedule proposal sent!');
+      setIsReschedulingMode(false);
+      setSuggestMessage('');
+      loadChatVisit();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to send proposed time');
+    } finally {
+      setSubmittingSuggestion(false);
+    }
+  };
 
   // Check if recipient is online
   const isRecipientOnline = useMemo(() => {
@@ -579,6 +708,115 @@ export default function MessagesPage() {
                 </button>
               </div>
 
+              {/* Active Visit Schedule Banner */}
+              {activeChatVisit && ['pending', 'rescheduled', 'confirmed'].includes(activeChatVisit.status) && (
+                <div className="px-5 py-3 border-b border-slate-200 bg-slate-50/95 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-slate-800" />
+                      <span className="font-bold text-slate-900">
+                        Visit: {activeChatVisit.date} at {activeChatVisit.slotTime} ({activeChatVisit.timeSlot})
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          activeChatVisit.status === 'confirmed'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : activeChatVisit.status === 'rescheduled'
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {activeChatVisit.status === 'confirmed'
+                          ? 'Confirmed'
+                          : activeChatVisit.status === 'rescheduled'
+                          ? 'Reschedule Proposed'
+                          : 'Pending Response'}
+                      </span>
+                    </div>
+                    {activeChatVisit.message && (
+                      <p className="text-slate-600 italic text-[11px] pl-6">&ldquo;{activeChatVisit.message}&rdquo;</p>
+                    )}
+                    {activeChatVisit.suggestedDate && (
+                      <p className="text-purple-800 font-medium text-[11px] pl-6">
+                        Proposed: {activeChatVisit.suggestedDate} at {activeChatVisit.suggestedSlotTime} (
+                        {activeChatVisit.suggestedTimeSlot})
+                        {activeChatVisit.suggestedMessage ? ` - "${activeChatVisit.suggestedMessage}"` : ''}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Quick Action Buttons right inside chat */}
+                  <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                    {activeChatVisit.status === 'pending' && user?.id === activeChatVisit.hostId && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleAcceptVisit(activeChatVisit.id)}
+                          className="px-3 py-1.5 rounded-lg bg-black text-white hover:bg-slate-800 font-bold shadow-2xs cursor-pointer"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsReschedulingMode(true);
+                            setSuggestDate(activeChatVisit.date);
+                            setSuggestSlot(activeChatVisit.timeSlot);
+                            setSuggestMessage('');
+                          }}
+                          className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 font-bold shadow-2xs cursor-pointer"
+                        >
+                          Postpone / Prepone
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRejectVisit(activeChatVisit.id)}
+                          className="px-2.5 py-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold cursor-pointer"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+
+                    {activeChatVisit.status === 'rescheduled' &&
+                    activeChatVisit.suggestedBy !== (user?.id === activeChatVisit.hostId ? 'host' : 'seeker') && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleAcceptSuggestion(activeChatVisit.id)}
+                          className="px-3 py-1.5 rounded-lg bg-black text-white hover:bg-slate-800 font-bold shadow-2xs cursor-pointer"
+                        >
+                          Accept Proposal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsReschedulingMode(true);
+                            setSuggestDate(activeChatVisit.suggestedDate || activeChatVisit.date);
+                            setSuggestSlot(activeChatVisit.suggestedTimeSlot || activeChatVisit.timeSlot);
+                            setSuggestMessage('');
+                          }}
+                          className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 font-bold shadow-2xs cursor-pointer"
+                        >
+                          Counter Propose
+                        </button>
+                      </>
+                    )}
+
+                    {((activeChatVisit.status === 'pending' && user?.id === activeChatVisit.seekerId) ||
+                    activeChatVisit.status === 'confirmed') && (
+                      <button
+                        type="button"
+                        onClick={() => handleCancelVisit(activeChatVisit.id)}
+                        className="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 font-semibold cursor-pointer"
+                      >
+                        Cancel Visit
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Message Stream */}
               <div className="flex-1 p-5 overflow-y-auto space-y-4 bg-slate-50/40">
                 {loadingMessages ? (
@@ -688,6 +926,109 @@ export default function MessagesPage() {
           )}
         </main>
       </div>
+
+      {/* Reschedule Modal inside Chat */}
+      {isReschedulingMode && activeChatVisit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in-95">
+            <button
+              type="button"
+              onClick={() => setIsReschedulingMode(false)}
+              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <RotateCcw className="h-4 w-4 text-slate-700" /> Postpone or Prepone Visit
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Select an alternative date and time slot and attach a note.
+              </p>
+            </div>
+
+            <form onSubmit={handleSendSuggestion} className="space-y-4">
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  Proposed Date
+                </label>
+                <input
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  value={suggestDate}
+                  onChange={(e) => setSuggestDate(e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  Proposed Time Slot
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'morning', label: 'Morning', time: '10:00 AM', icon: Sun },
+                    { id: 'afternoon', label: 'Afternoon', time: '02:00 PM', icon: SunMedium },
+                    { id: 'evening', label: 'Evening', time: '06:00 PM', icon: Moon },
+                  ].map((s) => {
+                    const Icon = s.icon;
+                    const isSelected = suggestSlot === s.id;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setSuggestSlot(s.id as TimeSlot)}
+                        className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-2 border-black bg-white shadow-xs font-bold text-black'
+                            : 'border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-white'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 mx-auto mb-1 text-slate-700" />
+                        <span className="text-xs block">{s.label}</span>
+                        <span className="text-[10px] text-slate-400 block">{s.time}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  Attach Message / Reason
+                </label>
+                <textarea
+                  rows={3}
+                  value={suggestMessage}
+                  onChange={(e) => setSuggestMessage(e.target.value)}
+                  placeholder="Explain why you want to postpone or prepone..."
+                  maxLength={500}
+                  className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsReschedulingMode(false)}
+                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingSuggestion || !suggestDate}
+                  className="flex-1 rounded-xl bg-black py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {submittingSuggestion ? 'Sending...' : 'Send Proposal'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

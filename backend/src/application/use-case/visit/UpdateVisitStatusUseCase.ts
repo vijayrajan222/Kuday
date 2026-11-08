@@ -41,14 +41,21 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
                 ? "confirmed"
                 : dto.status === "cancelled"
                 ? "cancelled"
+                : dto.status === "rejected"
+                ? "declined"
                 : dto.status;
 
         // Notification
         try {
             await this.notificationRepo.create({
                 userId: recipientId,
-                title: dto.status === "confirmed" ? "Visit Confirmed! ✅" : "Visit Status Updated 📅",
-                message: `${actorName} has ${statusText} the scheduled visit for ${visit.date} (${visit.slotTime}).`,
+                title:
+                    dto.status === "confirmed"
+                        ? "Visit Confirmed! ✅"
+                        : dto.status === "rejected"
+                        ? "Visit Declined ❌"
+                        : "Visit Status Updated 📅",
+                message: `${actorName} has ${statusText} the scheduled visit for ${visit.date} (${visit.slotTime}).${dto.note ? ` Note: "${dto.note}"` : ""}`,
                 type: "visit_request",
                 isRead: false,
             });
@@ -64,6 +71,8 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
                     chatMessage = `✅ Visit Confirmed: Visit on ${visit.date} at ${visit.slotTime} (${visit.timeSlot}) is confirmed!`;
                 } else if (dto.status === "cancelled") {
                     chatMessage = `❌ Visit Cancelled: The scheduled visit for ${visit.date} was cancelled.${dto.note ? ` Reason: "${dto.note}"` : ""}`;
+                } else if (dto.status === "rejected") {
+                    chatMessage = `❌ Visit Declined: The scheduled visit for ${visit.date} was declined.${dto.note ? ` Reason: "${dto.note}"` : ""}`;
                 }
                 if (chatMessage) {
                     await this.sendMessageUseCase.execute({
@@ -79,6 +88,7 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
 
         if (this.socketService) {
             this.socketService.notifyUser(recipientId, "visit_update", updated);
+            this.socketService.notifyUser(dto.userId, "visit_update", updated);
         }
 
         return updated;
@@ -129,6 +139,7 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
 
         if (this.socketService) {
             this.socketService.notifyUser(recipientId, "visit_update", updated);
+            this.socketService.notifyUser(userId, "visit_update", updated);
         }
 
         return updated;

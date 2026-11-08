@@ -1,4 +1,4 @@
-export type VisitStatus = 'pending' | 'confirmed' | 'rescheduled' | 'cancelled' | 'completed';
+export type VisitStatus = 'pending' | 'confirmed' | 'rescheduled' | 'cancelled' | 'rejected' | 'completed';
 export type TimeSlot = 'morning' | 'afternoon' | 'evening';
 
 export interface VisitParticipant {

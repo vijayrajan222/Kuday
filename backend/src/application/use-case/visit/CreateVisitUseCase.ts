@@ -6,7 +6,7 @@ import type { ISocketNotificationService } from "@application/interfaces/service
 import type { ICreateVisitUseCase } from "@application/interfaces/use-case/visit/ICreateVisitUseCase";
 import type { CreateVisitDto } from "@application/dto/visit/CreateVisitDto";
 import type { VisitEntity } from "@domain/entities/VisitEntity";
-import { NotFoundError, ValidationError } from "@application/errors/AppError";
+import { NotFoundError, ValidationError, ConflictError } from "@application/errors/AppError";
 
 export class CreateVisitUseCase implements ICreateVisitUseCase {
     constructor(
@@ -23,6 +23,17 @@ export class CreateVisitUseCase implements ICreateVisitUseCase {
         }
         if (!dto.timeSlot) {
             throw new ValidationError("Time slot is required.");
+        }
+
+        // Check if an active visit schedule already exists for this connection
+        const existingVisits = await this.visitRepo.findByConnectionId(dto.connectionId);
+        const activeExisting = existingVisits.find((v) =>
+            ["pending", "rescheduled", "confirmed"].includes(v.status)
+        );
+        if (activeExisting) {
+            throw new ConflictError(
+                "An active visit schedule already exists for this connection. Please manage the existing visit request."
+            );
         }
 
         const seeker = await this.userRepo.findById(dto.seekerId);
@@ -81,6 +92,7 @@ export class CreateVisitUseCase implements ICreateVisitUseCase {
         // Notify over socket
         if (this.socketService) {
             this.socketService.notifyUser(dto.hostId, "visit_update", visit);
+            this.socketService.notifyUser(dto.seekerId, "visit_update", visit);
         }
 
         return visit;

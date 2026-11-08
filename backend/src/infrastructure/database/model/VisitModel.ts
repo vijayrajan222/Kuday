@@ -43,7 +43,7 @@ export const VisitSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["pending", "confirmed", "rescheduled", "cancelled", "completed"],
+            enum: ["pending", "confirmed", "rescheduled", "cancelled", "rejected", "completed"],
             default: "pending",
             index: true,
         },

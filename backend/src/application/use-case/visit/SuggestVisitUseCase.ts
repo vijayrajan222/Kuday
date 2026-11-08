@@ -82,6 +82,7 @@ export class SuggestVisitUseCase implements ISuggestVisitUseCase {
 
         if (this.socketService) {
             this.socketService.notifyUser(recipientId, "visit_update", updated);
+            this.socketService.notifyUser(dto.userId, "visit_update", updated);
         }
 
         return updated;
