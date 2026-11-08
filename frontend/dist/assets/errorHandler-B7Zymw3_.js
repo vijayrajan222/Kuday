@@ -1,1 +1,0 @@
-import{i as e}from"./api-Y4xdPrVv.js";import{o as t}from"./index-BSyW3tre.js";function n(n,r=t.GENERIC_ERROR){if(e.isAxiosError(n)){if(!n.response)return t.NETWORK_ERROR;let{message:e,error:i}=n.response.data??{};return e??i??r}return n instanceof Error?n.message:r}export{n as t};

@@ -22,6 +22,7 @@ const VerifyResetOtp = lazy(() => import('@/pages/customer/VerifyResetOtp'));
 const ResetPassword = lazy(() => import('@/pages/customer/ResetPassword'));
 const CustomerDashboard = lazy(() => import('@/pages/customer/CustomerDashboard'));
 const MatchedPage = lazy(() => import('@/pages/customer/MatchedPage'));
+const MessagesPage = lazy(() => import('@/pages/customer/MessagesPage'));
 const RoomDetailsPage = lazy(() => import('@/pages/customer/RoomDetailsPage'));
 const UserProfilePage = lazy(() => import('@/pages/customer/UserProfilePage'));
 const OnboardingProfilePage = lazy(() => import('@/pages/onboarding/OnboardingProfilePage'));
@@ -69,11 +70,12 @@ export function AppRoutes() {
           <Route path={ROUTES.ONBOARDING_PROFILE} element={<OnboardingProfilePage />} />
         </Route>
 
-        {/* Customer Authenticated Protected Routes (Dashboard, Profile) */}
+        {/* Customer Authenticated Protected Routes (Dashboard, Matched, Messages, Profile) */}
         <Route element={<AuthProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.DASHBOARD} element={<CustomerDashboard />} />
             <Route path={ROUTES.MATCHED} element={<MatchedPage />} />
+            <Route path={ROUTES.MESSAGES} element={<MessagesPage />} />
             <Route path={ROUTES.ROOM_DETAILS} element={<RoomDetailsPage />} />
             <Route path={ROUTES.USER_PROFILE} element={<UserProfilePage />} />
             <Route path={ROUTES.PROFILE} element={<ProfilePage />} />

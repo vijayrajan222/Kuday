@@ -8,6 +8,7 @@ export const ROUTES = {
   RESET_PASSWORD: '/reset-password',
   DASHBOARD: '/dashboard',
   MATCHED: '/matched',
+  MESSAGES: '/messages',
   ROOM_DETAILS: '/rooms/:roomId',
   USER_PROFILE: '/users/:userId',
   PROFILE: '/profile',

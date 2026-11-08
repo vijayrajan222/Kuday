@@ -8,6 +8,8 @@ import { MongoSeekerPreferenceRepository } from "@infrastructure/repository/Mong
 import { MongoNotificationRepository } from "@infrastructure/repository/MongoNotificationRepository";
 import { MongoOtpRepository } from "@infrastructure/repository/MongoOtpRepository";
 import { MongoInterestRepository } from "@infrastructure/repository/MongoInterestRepository";
+import { MongoMessageRepository } from "@infrastructure/repository/MongoMessageRepository";
+import { MongoConversationRepository } from "@infrastructure/repository/MongoConversationRepository";
 
 // Services
 import { HashService } from "@infrastructure/services/HashingService";
@@ -64,6 +66,16 @@ import { GetAllUsersUseCase } from "@application/use-case/admin/GetAllUsersUseCa
 import { VerifyUserIdentityUseCase } from "@application/use-case/admin/VerifyUserIdentityUseCase";
 import { ToggleBlockUserUseCase } from "@application/use-case/admin/ToggleBlockUserUseCase";
 
+// Chat Use Cases
+import { SendMessageUseCase } from "@application/use-case/chat/SendMessageUseCase";
+import { GetMessagesUseCase } from "@application/use-case/chat/GetMessagesUseCase";
+import { GetConversationsUseCase } from "@application/use-case/chat/GetConversationsUseCase";
+import { MarkMessagesAsReadUseCase } from "@application/use-case/chat/MarkMessagesAsReadUseCase";
+import { StartConversationUseCase } from "@application/use-case/chat/StartConversationUseCase";
+
+// Socket Service
+import { SocketService } from "@infrastructure/socket/SocketService";
+
 // Controllers
 import { AuthController } from "@presentation/controller/AuthController";
 import { UserController } from "@presentation/controller/UserController";
@@ -73,6 +85,7 @@ import { SeekerPreferenceController } from "@presentation/controller/SeekerPrefe
 import { NotificationController } from "@presentation/controller/NotificationController";
 import { AdminController } from "@presentation/controller/AdminController";
 import { InterestController } from "@presentation/controller/InterestController";
+import { ChatController } from "@presentation/controller/ChatController";
 
 // Routers
 import { createAuthRouter } from "@presentation/router/AuthRouter";
@@ -83,8 +96,9 @@ import { createSeekerPreferenceRouter } from "@presentation/router/SeekerPrefere
 import { createNotificationRouter } from "@presentation/router/NotificationRouter";
 import { createAdminRouter } from "@presentation/router/AdminRouter";
 import { createInterestRouter } from "@presentation/router/InterestRouter";
+import { createChatRouter } from "@presentation/router/ChatRouter";
 
-export function setupAppDependencies(app: Express): void {
+export function setupAppDependencies(app: Express): SocketService {
     // 1. Repositories
     const userrepo = new MongoUserRepository();
     const lifestylerepo = new MongoLifestyleRepository();
@@ -93,6 +107,8 @@ export function setupAppDependencies(app: Express): void {
     const notificationrepo = new MongoNotificationRepository();
     const otprepo = new MongoOtpRepository();
     const interestrepo = new MongoInterestRepository();
+    const messagerepo = new MongoMessageRepository();
+    const conversationrepo = new MongoConversationRepository();
 
     // 2. Infrastructure Services
     const hasher = new HashService();
@@ -146,6 +162,15 @@ export function setupAppDependencies(app: Express): void {
     const getAllUsersUseCase = new GetAllUsersUseCase(userrepo);
     const verifyUserIdentityUseCase = new VerifyUserIdentityUseCase(userrepo, notificationrepo);
     const toggleBlockUserUseCase = new ToggleBlockUserUseCase(userrepo);
+
+    // Chat Use Cases
+    const sendMessageUseCase = new SendMessageUseCase(messagerepo, conversationrepo);
+    const getMessagesUseCase = new GetMessagesUseCase(messagerepo, conversationrepo);
+    const getConversationsUseCase = new GetConversationsUseCase(conversationrepo, messagerepo, userrepo);
+    const markMessagesAsReadUseCase = new MarkMessagesAsReadUseCase(messagerepo);
+    const startConversationUseCase = new StartConversationUseCase(conversationrepo, userrepo);
+
+    const socketService = new SocketService(sendMessageUseCase, markMessagesAsReadUseCase);
 
     // 4. Controllers
     const authController = new AuthController(
@@ -202,6 +227,15 @@ export function setupAppDependencies(app: Express): void {
         getSentInterestsUseCase
     );
 
+    const chatController = new ChatController(
+        sendMessageUseCase,
+        getMessagesUseCase,
+        getConversationsUseCase,
+        markMessagesAsReadUseCase,
+        startConversationUseCase,
+        socketService
+    );
+
     // 5. Routers & Route Mounting
     app.use("/auth", createAuthRouter(authController));
     app.use("/users", createUserRouter(userController)); 
@@ -211,6 +245,9 @@ export function setupAppDependencies(app: Express): void {
     app.use("/notifications", createNotificationRouter(notificationController));
     app.use("/admin", createAdminRouter(adminController));
     app.use("/interests", createInterestRouter(interestController));
+    app.use("/chat", createChatRouter(chatController));
+
+    return socketService;
 }
 
 // is there any other place where the router mounting takes place 

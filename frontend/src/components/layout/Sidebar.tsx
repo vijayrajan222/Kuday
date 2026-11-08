@@ -58,9 +58,9 @@ export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) 
     },
     {
       label: 'Messages',
-      to: '/messages',
+      to: ROUTES.MESSAGES,
       icon: MessageSquare,
-      badge: 'Active',
+      badge: 'Live',
     },
     {
       label: 'Profile & Preferences',

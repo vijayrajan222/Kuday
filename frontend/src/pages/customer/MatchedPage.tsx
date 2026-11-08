@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle2,
   MessageSquare,
@@ -10,9 +11,11 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useInterest } from '@/hooks/useInterest';
 import { toast } from '@/hooks/useToast';
+import { ROUTES } from '@/constants/routes';
 import type { InterestDetail } from '@/types/interest.types';
 
 export default function MatchedPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const {
     sentInterests,
@@ -311,24 +314,22 @@ export default function MatchedPage() {
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2 shrink-0">
-                      {otherUser?.email ? (
-                        <a
-                          href={`mailto:${otherUser.email}`}
-                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-black text-white hover:bg-slate-800 text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs"
-                        >
-                          <MessageSquare className="h-3.5 w-3.5" />
-                          <span>Message</span>
-                        </a>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedMatch(item)}
-                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-black text-white hover:bg-slate-800 text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs"
-                        >
-                          <MessageSquare className="h-3.5 w-3.5" />
-                          <span>Message</span>
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (otherUser?.id) {
+                            navigate(ROUTES.MESSAGES, {
+                              state: { recipientId: otherUser.id, recipientName: otherName },
+                            });
+                          } else {
+                            navigate(ROUTES.MESSAGES);
+                          }
+                        }}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-black text-white hover:bg-slate-800 text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        <span>Message</span>
+                      </button>
 
                       <button
                         type="button"

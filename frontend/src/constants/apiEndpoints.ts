@@ -53,4 +53,11 @@ export const API_ENDPOINTS = {
     VERIFY_IDENTITY: (userId: string) => `/admin/users/${userId}/verify-identity`,
     TOGGLE_BLOCK: (userId: string) => `/admin/users/${userId}/toggle-block`,
   },
+  CHAT: {
+    CONVERSATIONS: (userId: string) => `/chat/conversations?userId=${userId}`,
+    START_CONVERSATION: '/chat/conversations',
+    MESSAGES: (convId: string, userId: string) => `/chat/conversations/${convId}/messages?userId=${userId}`,
+    SEND_MESSAGE: '/chat/messages',
+    MARK_READ: (convId: string) => `/chat/conversations/${convId}/read`,
+  },
 } as const;

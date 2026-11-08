@@ -376,10 +376,12 @@ export default function CustomerDashboard() {
                       matchScore={94}
                       messageSnippet={snippet}
                       onMessage={() => {
-                        if (person?.email) {
-                          window.location.href = `mailto:${person.email}`;
+                        if (person?.id) {
+                          navigate(ROUTES.MESSAGES, {
+                            state: { recipientId: person.id, recipientName: personName },
+                          });
                         } else {
-                          setShowAllInterestsModal(true);
+                          navigate(ROUTES.MESSAGES);
                         }
                       }}
                       onViewProfile={() => {
