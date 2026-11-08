@@ -15,13 +15,24 @@ export class GetReceivedInterestsUseCase implements IGetReceivedInterestsUseCase
         const results: InterestDetailDto[] = [];
         for (const interest of interests) {
             const sender = await this.userRepo.findById(interest.senderId);
+
+            // Check if there is an accepted connection with this sender in either direction
+            const mutual = await this.interestRepo.findBetweenUsers(userId, interest.senderId);
+            const isAccepted = mutual.some((m) => m.status === "accepted");
+            const effectiveStatus = isAccepted ? "accepted" : interest.status;
+
+            // Self-heal the database document if it was still 'pending'
+            if (isAccepted && interest.status !== "accepted") {
+                await this.interestRepo.updateStatusBetweenUsers(userId, interest.senderId, "accepted");
+            }
+
             results.push({
                 id: interest.id,
                 senderId: interest.senderId,
                 receiverId: interest.receiverId,
                 targetType: interest.targetType,
                 targetId: interest.targetId,
-                status: interest.status,
+                status: effectiveStatus,
                 message: interest.message,
                 createdAt: interest.createdAt,
                 updatedAt: interest.updatedAt,

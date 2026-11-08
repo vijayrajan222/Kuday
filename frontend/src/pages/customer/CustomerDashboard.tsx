@@ -662,6 +662,20 @@ export default function CustomerDashboard() {
                         const senderName = item.sender
                           ? `${item.sender.firstName} ${item.sender.lastName || ''}`.trim()
                           : 'A User';
+
+                        const isConnected =
+                          item.status === 'accepted' ||
+                          sentInterests.some(
+                            (s) =>
+                              (s.receiverId === item.senderId || s.senderId === item.senderId) &&
+                              s.status === 'accepted'
+                          ) ||
+                          receivedInterests.some(
+                            (r) => r.senderId === item.senderId && r.status === 'accepted'
+                          );
+
+                        const displayStatus = isConnected ? 'accepted' : item.status;
+
                         return (
                           <div
                             key={item.id}
@@ -691,19 +705,19 @@ export default function CustomerDashboard() {
 
                               <span
                                 className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  item.status === 'accepted'
+                                  displayStatus === 'accepted'
                                     ? 'bg-emerald-100 text-emerald-800'
-                                    : item.status === 'declined'
+                                    : displayStatus === 'declined'
                                     ? 'bg-slate-200 text-slate-700'
                                     : 'bg-amber-100 text-amber-800'
                                 }`}
                               >
-                                {item.status.toUpperCase()}
+                                {displayStatus.toUpperCase()}
                               </span>
                             </div>
 
                             {/* Actions for Pending */}
-                            {item.status === 'pending' && (
+                            {displayStatus === 'pending' && (
                               <div className="flex items-center gap-2 pt-1">
                                 <Button
                                   size="sm"
@@ -728,7 +742,7 @@ export default function CustomerDashboard() {
                             )}
 
                             {/* Connected View */}
-                            {item.status === 'accepted' && item.sender?.email && (
+                            {displayStatus === 'accepted' && item.sender?.email && (
                               <a
                                 href={`mailto:${item.sender.email}`}
                                 className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold hover:underline pt-1"
@@ -751,6 +765,20 @@ export default function CustomerDashboard() {
                       const receiverName = item.receiver
                         ? `${item.receiver.firstName} ${item.receiver.lastName || ''}`.trim()
                         : 'Property / Roommate';
+
+                      const isConnected =
+                        item.status === 'accepted' ||
+                        receivedInterests.some(
+                          (r) =>
+                            (r.senderId === item.receiverId || r.receiverId === item.receiverId) &&
+                            r.status === 'accepted'
+                        ) ||
+                        sentInterests.some(
+                          (s) => s.receiverId === item.receiverId && s.status === 'accepted'
+                        );
+
+                      const displayStatus = isConnected ? 'accepted' : item.status;
+
                       return (
                         <div
                           key={item.id}
@@ -760,20 +788,20 @@ export default function CustomerDashboard() {
                             <span className="font-bold text-slate-900">{receiverName}</span>
                             <span
                               className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                item.status === 'accepted'
+                                displayStatus === 'accepted'
                                   ? 'bg-emerald-100 text-emerald-800'
-                                  : item.status === 'declined'
+                                  : displayStatus === 'declined'
                                   ? 'bg-rose-100 text-rose-800'
                                   : 'bg-amber-100 text-amber-800'
                               }`}
                             >
-                              {item.status.toUpperCase()}
+                              {displayStatus.toUpperCase()}
                             </span>
                           </div>
                           <p className="text-[10px] text-slate-400">
                             Sent for {item.targetType === 'room' ? 'Room Listing' : 'Roommate Profile'}
                           </p>
-                          {item.status === 'accepted' && item.receiver?.email && (
+                          {displayStatus === 'accepted' && item.receiver?.email && (
                             <a
                               href={`mailto:${item.receiver.email}`}
                               className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold hover:underline pt-0.5"
