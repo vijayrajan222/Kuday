@@ -42,4 +42,27 @@ export class RoomController implements IRoomController {
             );
         }
     }
+
+    async getRoomById(req: Request, res: Response): Promise<void> {
+        try {
+            const roomId = req.params.id;
+            const seekerUserId = (req.query.seekerUserId || req.query.userId) as string | undefined;
+
+            const room = await this.getRoomsUseCase.getById(roomId, seekerUserId);
+            if (!room) {
+                res.status(HttpStatusCodes.NOT_FOUND).json(
+                    ApiResponse.error("Room not found")
+                );
+                return;
+            }
+
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(room, "Room details fetched successfully")
+            );
+        } catch (error: unknown) {
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to fetch room")
+            );
+        }
+    }
 }

@@ -85,7 +85,7 @@ function compressImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 
 }
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchProfileData = useCallback(() => {
@@ -455,6 +455,7 @@ export default function ProfilePage() {
       setIsRoleSwitchModalOpen(false);
       toast.info(`Switching active role to ${targetRole === 'host' ? 'Room Host' : 'Room Seeker'}...`);
       await onboardingService.updateRole(user.id, targetRole);
+      updateUser({ role: targetRole });
 
       setUserProfile((prev) => ({ ...prev, role: targetRole }));
       toast.success(

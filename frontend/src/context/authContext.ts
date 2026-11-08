@@ -8,6 +8,7 @@ export interface AuthContextValue {
   pendingSignup: PendingSignup | null;
   setPendingSignup: (pending: PendingSignup) => void;
   loginSuccess: (token: string, user: AuthUser) => void;
+  updateUser: (updatedUser: Partial<AuthUser>) => void;
   logout: () => void;
 }
 

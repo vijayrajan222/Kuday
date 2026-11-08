@@ -142,4 +142,70 @@ export class GetRoomsUseCase implements IGetRoomsUseCase {
             return roomDto;
         });
     }
+
+    async getById(id: string, seekerUserId?: string): Promise<RoomWithHostDto | null> {
+        const room = await this.roomRepository.findById(id);
+        if (!room) return null;
+
+        const hostUser = await this.userRepository.findById(room.hostId);
+        if (!hostUser) return null;
+
+        const hostLifestyle = await this.lifestyleRepository.findByUserId(room.hostId);
+
+        let seekerPreference = null;
+        let seekerLifestyle = null;
+
+        if (seekerUserId) {
+            try {
+                seekerPreference = await this.seekerPreferenceRepository.findByUserId(seekerUserId);
+                seekerLifestyle = await this.lifestyleRepository.findByUserId(seekerUserId);
+            } catch {
+                // Ignore
+            }
+        }
+
+        const matchPercentage = MatchCalculatorService.calculateRoomMatch(
+            room,
+            hostLifestyle,
+            { seekerPreference, seekerLifestyle }
+        );
+
+        const hostProfile: HostProfileDto = {
+            id: hostUser.id,
+            firstName: hostUser.firstName,
+            email: hostUser.email,
+            identityVerified: Boolean(hostUser.identityVerified),
+        };
+
+        if (hostUser.lastName) hostProfile.lastName = hostUser.lastName;
+        if (hostUser.gender) hostProfile.gender = hostUser.gender;
+        if (hostUser.occupation) hostProfile.occupation = hostUser.occupation;
+        if (hostUser.bio) hostProfile.bio = hostUser.bio;
+        if (hostUser.selfieUrl) hostProfile.selfieUrl = hostUser.selfieUrl;
+        if (hostUser.idCardUrl) hostProfile.idCardUrl = hostUser.idCardUrl;
+        if (hostUser.identityStatus) hostProfile.identityStatus = hostUser.identityStatus;
+        if (hostLifestyle) hostProfile.lifestyle = hostLifestyle;
+
+        const roomDto: RoomWithHostDto = {
+            id: room.id,
+            hostId: room.hostId,
+            roomType: room.roomType,
+            monthlyRent: room.monthlyRent,
+            location: room.location,
+            capacity: room.capacity,
+            availabilityNotes: room.availabilityNotes,
+            amenities: room.amenities,
+            images: room.images,
+            host: hostProfile,
+            matchPercentage,
+        };
+
+        if (room.title) roomDto.title = room.title;
+        if (room.description) roomDto.description = room.description;
+        if (room.isActive !== undefined) roomDto.isActive = room.isActive;
+        if (room.createdAt) roomDto.createdAt = room.createdAt;
+        if (room.updatedAt) roomDto.updatedAt = room.updatedAt;
+
+        return roomDto;
+    }
 }

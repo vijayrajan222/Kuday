@@ -44,6 +44,8 @@ export class GetSentInterestsUseCase implements IGetSentInterestsUseCase {
                           email: receiver.email,
                           selfieUrl: receiver.selfieUrl,
                           role: receiver.role,
+                          occupation: receiver.occupation,
+                          identityVerified: Boolean(receiver.identityVerified),
                       }
                     : undefined,
             });

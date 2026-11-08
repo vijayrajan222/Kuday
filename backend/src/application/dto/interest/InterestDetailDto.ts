@@ -17,6 +17,8 @@ export interface InterestDetailDto {
         email: string;
         selfieUrl?: string | undefined;
         role?: string | undefined;
+        occupation?: string | undefined;
+        identityVerified?: boolean | undefined;
     } | undefined;
     receiver?: {
         id: string;
@@ -25,6 +27,8 @@ export interface InterestDetailDto {
         email: string;
         selfieUrl?: string | undefined;
         role?: string | undefined;
+        occupation?: string | undefined;
+        identityVerified?: boolean | undefined;
     } | undefined;
     targetTitle?: string | undefined;
 }

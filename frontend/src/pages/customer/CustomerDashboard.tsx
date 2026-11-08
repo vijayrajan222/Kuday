@@ -7,7 +7,6 @@ import {
   UserCheck,
   MapPin,
   Heart,
-  SlidersHorizontal,
   ArrowUpDown,
   Search,
   X,
@@ -24,18 +23,35 @@ import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.type
 
 // Memoized modular subcomponents
 import { MetricCard } from '@/components/dashboard/MetricCard';
-import { VisitItem } from '@/components/dashboard/VisitItem';
 import { RecentInterestCard } from '@/components/dashboard/RecentInterestCard';
 import { ActiveListingCard } from '@/components/dashboard/ActiveListingCard';
 import { PotentialMatchCard } from '@/components/dashboard/PotentialMatchCard';
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const firstName = user?.firstName;
 
   const isOnboarded = Boolean(user?.isOnboarded);
   const role = (user?.role as 'host' | 'seeker' | 'none') || 'none';
+
+  // Sync active role from backend on mount so switching between host & seeker is always in sync
+  useEffect(() => {
+    if (!user?.id) return;
+    let isMounted = true;
+    onboardingService
+      .getUserProfile(user.id)
+      .then((profile) => {
+        if (isMounted && profile?.role && profile.role !== user.role) {
+          updateUser({ role: profile.role });
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id, user?.role, updateUser]);
 
   // Matches state
   const [rooms, setRooms] = useState<RoomEntity[]>([]);
@@ -220,13 +236,13 @@ export default function CustomerDashboard() {
     return list;
   }, [role, seekers, searchQuery, sortBy]);
 
-  // Top 3 or all items for display
+  // Top 4 or all items for display in the 4-column row
   const displayedRooms = useMemo(() => {
-    return showAllMatches ? filteredRooms : filteredRooms.slice(0, 3);
+    return showAllMatches ? filteredRooms : filteredRooms.slice(0, 4);
   }, [filteredRooms, showAllMatches]);
 
   const displayedSeekers = useMemo(() => {
-    return showAllMatches ? filteredSeekers : filteredSeekers.slice(0, 3);
+    return showAllMatches ? filteredSeekers : filteredSeekers.slice(0, 4);
   }, [filteredSeekers, showAllMatches]);
 
   // Recent interests items to showcase in the middle grid (up to 2)
@@ -282,60 +298,34 @@ export default function CustomerDashboard() {
         </div>
       </section>
 
-      {/* 2. Metric Cards (Aesthetic minimalist stats) */}
+      {/* 2. Metric Cards (100% Real Dynamic Data) */}
       <section aria-label="Metrics" className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard label="Total Interests" value={totalInterestsCount || '0'} />
-        <MetricCard label="Scheduled Visits" value={connectedCount > 0 ? `0${connectedCount}` : '02'} />
+        <MetricCard
+          label={role === 'host' ? 'Verified Seekers' : 'Available Rooms'}
+          value={role === 'host' ? seekers.length : rooms.length}
+        />
+        <MetricCard label="Connected" value={connectedCount} />
         <MetricCard label="Pending Requests" value={pendingReceivedCount} />
-        <MetricCard label="Profile Views" value="1.2k" />
+        <MetricCard label="Sent Interests" value={sentInterests.length} />
       </section>
 
       {/* 3. Middle Section: 2 Columns */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2 Cols wide on desktop): Upcoming Visits + Recent Interests */}
+        {/* Left Column (2 Cols wide on desktop): Recent Interests */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Upcoming Visits */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Upcoming Visits</h2>
-              <button
-                type="button"
-                onClick={() => navigate(ROUTES.PROFILE)}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-              >
-                View Calendar
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              <VisitItem
-                name="Ananya Rao"
-                subtitle="Architect • Shared Values Match"
-                date="Oct 14, 2024"
-                time="10:30 AM"
-                avatarUrl="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
-              />
-              <VisitItem
-                name="Ishan Mehta"
-                subtitle="UI Designer • Lifestyle Match"
-                date="Oct 15, 2024"
-                time="02:00 PM"
-                avatarUrl="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80"
-              />
-            </div>
-          </div>
-
           {/* Recent Interests */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900">Recent Interests</h2>
-              <button
-                type="button"
-                onClick={() => setShowAllInterestsModal(true)}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-              >
-                See all ({totalInterestsCount})
-              </button>
+              {totalInterestsCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllInterestsModal(true)}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+                >
+                  See all ({totalInterestsCount})
+                </button>
+              )}
             </div>
 
             {recentShowcaseInterests.length > 0 ? (
@@ -373,7 +363,7 @@ export default function CustomerDashboard() {
                           else setShowAllInterestsModal(true);
                         } else {
                           const found = rooms.find((r) => r.id === item.targetId);
-                          if (found) setSelectedRoom(found);
+                          if (found) navigate(ROUTES.ROOM_DETAILS.replace(':roomId', found.id));
                           else setShowAllInterestsModal(true);
                         }
                       }}
@@ -382,90 +372,40 @@ export default function CustomerDashboard() {
                 })}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <RecentInterestCard
-                  name="Ananya Rao"
-                  avatarUrl="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
-                  matchScore={94}
-                  messageSnippet="Love the minimalist aesthetic of your space. I'm a quiet professional..."
-                  onMessage={() => setShowAllInterestsModal(true)}
-                  onViewProfile={() => setShowAllInterestsModal(true)}
-                />
-                <RecentInterestCard
-                  name="Ishan Mehta"
-                  avatarUrl="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80"
-                  matchScore={89}
-                  messageSnippet="The space looks amazing. I enjoy cooking and keep shared spaces tidy..."
-                  onMessage={() => setShowAllInterestsModal(true)}
-                  onViewProfile={() => setShowAllInterestsModal(true)}
-                />
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-8 text-center text-xs text-slate-500">
+                <p className="font-semibold text-slate-700">No connection requests yet</p>
+                <p className="mt-1 text-slate-400">
+                  {role === 'seeker'
+                    ? 'Explore verified rooms below and send interest to get connected.'
+                    : 'Explore verified seekers below and send interest to connect.'}
+                </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Column: Active Listing + Quick Actions */}
-        <div className="space-y-6">
-          {/* Active Listing / Active Preference Card */}
-          <div className="space-y-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              {role === 'host' ? 'Active Listing' : 'Active Preference'}
-            </span>
-            <ActiveListingCard
-              title={
-                role === 'host'
-                  ? myRoom?.title || 'Modern Minimalist Flat'
-                  : myPreference?.roomTypePreference?.replace('_', ' ') || 'Private Bedroom'
-              }
-              subtitle={
-                role === 'host'
-                  ? `${myRoom?.location || 'Indiranagar, Bangalore'} • ₹${myRoom?.monthlyRent || '45,000'}/mo`
-                  : `${myPreference?.preferredLocation || 'Koramangala, Bangalore'} • Max ₹${myPreference?.maxBudget || '25,000'}/mo`
-              }
-              imageUrl={myRoom?.images?.[0]}
-              badgeText="Active"
-              buttonText={role === 'host' ? 'Manage Listing' : 'Manage Preferences'}
-              onManage={() => navigate(ROUTES.PROFILE)}
-            />
-          </div>
-
-          {/* Quick Actions */}
-          <div className="space-y-2.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              Quick Actions
-            </span>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => navigate(ROUTES.PROFILE)}
-                className="w-full flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-3 text-xs font-semibold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-colors shadow-2xs"
-              >
-                <span>{role === 'host' ? 'Edit Listing' : 'Edit Preferences'}</span>
-                <span>✏️</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const elem = document.getElementById('potential-matches-section');
-                  elem?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="w-full flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-3 text-xs font-semibold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-colors shadow-2xs"
-              >
-                <span>View Mutual Matches</span>
-                <span>👥</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowAllInterestsModal(true)}
-                className="w-full flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-3 text-xs font-semibold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-colors shadow-2xs"
-              >
-                <span>Post New Update</span>
-                <span>📢</span>
-              </button>
-            </div>
-          </div>
+        {/* Right Column: Active Listing / Preference Card */}
+        <div className="space-y-2">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+            {role === 'host' ? 'Active Listing' : 'Active Preference'}
+          </span>
+          <ActiveListingCard
+            title={
+              role === 'host'
+                ? myRoom?.title || myRoom?.roomType?.replace('_', ' ') || 'Property Listing'
+                : myPreference?.roomTypePreference?.replace('_', ' ') || 'Roommate Preference'
+            }
+            subtitle={
+              role === 'host'
+                ? `${myRoom?.location || 'Indiranagar, Bangalore'} • ₹${myRoom?.monthlyRent || '45,000'}/mo`
+                : `${myPreference?.preferredLocation || 'Preferred Location'} • Max ₹${myPreference?.maxBudget || '0'}/mo`
+            }
+            imageUrl={role === 'host' ? myRoom?.images?.[0] : user?.selfieUrl}
+            fallbackInitial={firstName || user?.email || (role === 'host' ? 'H' : 'S')}
+            badgeText="Active"
+            buttonText={role === 'host' ? 'Manage Listing' : 'Manage Preferences'}
+            onManage={() => navigate(ROUTES.PROFILE)}
+          />
         </div>
       </section>
 
@@ -514,15 +454,6 @@ export default function CustomerDashboard() {
                   : 'Price: High-Low'}
               </span>
             </button>
-
-            <button
-              type="button"
-              onClick={() => navigate(ROUTES.PROFILE)}
-              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400" />
-              <span>Filter</span>
-            </button>
           </div>
         </div>
 
@@ -533,7 +464,7 @@ export default function CustomerDashboard() {
           /* SEEKER VIEW: Room Listings Grid */
           filteredRooms.length > 0 ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {displayedRooms.map((room) => {
                   const hostUserId = room.hostId || room.host?.id || '';
                   const interestStatus = getInterestStatus(room.id, hostUserId);
@@ -556,7 +487,7 @@ export default function CustomerDashboard() {
                       isVerified={Boolean(room.host?.identityVerified)}
                       status={interestStatus}
                       isProcessing={processingId === room.id}
-                      onDetails={() => setSelectedRoom(room)}
+                      onDetails={() => navigate(ROUTES.ROOM_DETAILS.replace(':roomId', room.id))}
                       onAction={() => {
                         if (interestStatus === 'received_pending') {
                           setShowAllInterestsModal(true);
@@ -569,7 +500,7 @@ export default function CustomerDashboard() {
                 })}
               </div>
 
-              {filteredRooms.length > 3 && (
+              {filteredRooms.length > 4 && (
                 <div className="text-center pt-2">
                   <button
                     type="button"
@@ -578,7 +509,7 @@ export default function CustomerDashboard() {
                   >
                     {showAllMatches ? (
                       <>
-                        Show Top 3 Matches <ChevronUp className="h-4 w-4" />
+                        Show Top 4 Matches <ChevronUp className="h-4 w-4" />
                       </>
                     ) : (
                       <>
@@ -598,7 +529,7 @@ export default function CustomerDashboard() {
           /* HOST VIEW: Seeker Preferences Grid */
           filteredSeekers.length > 0 ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {displayedSeekers.map((seeker) => {
                   const seekerUserId = seeker.userId || seeker.seeker?.id;
                   const interestStatus = getInterestStatus(seeker.id, seekerUserId);
@@ -634,7 +565,7 @@ export default function CustomerDashboard() {
                 })}
               </div>
 
-              {filteredSeekers.length > 3 && (
+              {filteredSeekers.length > 4 && (
                 <div className="text-center pt-2">
                   <button
                     type="button"
@@ -643,7 +574,7 @@ export default function CustomerDashboard() {
                   >
                     {showAllMatches ? (
                       <>
-                        Show Top 3 Matches <ChevronUp className="h-4 w-4" />
+                        Show Top 4 Matches <ChevronUp className="h-4 w-4" />
                       </>
                     ) : (
                       <>

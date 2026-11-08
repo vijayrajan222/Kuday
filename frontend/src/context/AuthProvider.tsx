@@ -48,6 +48,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPending(null);
   }, []);
 
+  const updateUser = useCallback((updatedFields: Partial<AuthUser>) => {
+    setUser((currentUser) => {
+      if (!currentUser) return null;
+      const updatedUser: AuthUser = { ...currentUser, ...updatedFields };
+      storage.setUser(updatedUser);
+      return updatedUser;
+    });
+  }, []);
+
   const logout = useCallback(() => {
     storage.setToken(null);
     storage.setUser(null);
@@ -117,8 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = Boolean(token && user?.id);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, token, isAuthenticated, pendingSignup, setPendingSignup, loginSuccess, logout }),
-    [user, token, isAuthenticated, pendingSignup, setPendingSignup, loginSuccess, logout],
+    () => ({ user, token, isAuthenticated, pendingSignup, setPendingSignup, loginSuccess, updateUser, logout }),
+    [user, token, isAuthenticated, pendingSignup, setPendingSignup, loginSuccess, updateUser, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

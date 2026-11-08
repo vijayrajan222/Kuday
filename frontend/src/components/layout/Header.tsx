@@ -9,37 +9,29 @@ import {
   Settings,
   LogOut,
   User as UserIcon,
-  RefreshCw,
+  Menu,
 } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from '@/hooks/useToast';
 import { ROUTES } from '@/constants/routes';
 import { notificationService } from '@/services/notificationService';
-import { onboardingService } from '@/services/onboardingService';
-import { storage } from '@/utils/storage';
 import type { NotificationItem } from '@/types/notification.types';
 
 interface HeaderProps {
+  onMenuClick?: () => void;
   onLogout: () => void;
-  activeNavTab?: string;
-  onNavTabChange?: (tab: string) => void;
 }
 
 export const Header = memo(function Header({
+  onMenuClick,
   onLogout,
-  activeNavTab = 'discover',
-  onNavTabChange,
 }: HeaderProps) {
   const { user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [switchingRole, setSwitchingRole] = useState(false);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -98,115 +90,43 @@ export const Header = memo(function Header({
     }
   };
 
-  const handleRoleSwitch = async () => {
-    if (!user?.id) return;
-    const currentRole = user.role === 'host' ? 'host' : 'seeker';
-    const targetRole = currentRole === 'host' ? 'seeker' : 'host';
-    try {
-      setSwitchingRole(true);
-      await onboardingService.updateRole(user.id, targetRole);
-      storage.setUser({ ...user, role: targetRole });
-      toast.success(
-        `Switched to ${targetRole === 'host' ? 'Host' : 'Seeker'} mode successfully!`
-      );
-      window.location.reload();
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || 'Failed to switch role');
-    } finally {
-      setSwitchingRole(false);
-    }
-  };
-
-  const isDiscover = location.pathname === ROUTES.DASHBOARD;
-
   return (
     <header className="sticky top-0 z-30 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-8">
-        {/* Left: Brand + Navigation Tabs */}
-        <div className="flex items-center gap-6 sm:gap-10">
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* Left: Mobile menu toggle + Brand (mobile only) */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            aria-label="Open menu"
+            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
           <Link
             to={ROUTES.DASHBOARD}
-            className="text-2xl font-black tracking-tight text-slate-900 transition-opacity hover:opacity-85"
+            className="text-xl font-black tracking-tight text-slate-900 lg:hidden"
           >
             kudai
           </Link>
-
-          <nav className="flex items-center gap-6 text-sm">
-            <Link
-              to={ROUTES.DASHBOARD}
-              onClick={() => onNavTabChange?.('discover')}
-              className={`pb-1 font-semibold transition-colors ${
-                isDiscover && activeNavTab === 'discover'
-                  ? 'border-b-2 border-slate-900 text-slate-900'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Discover
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => {
-                onNavTabChange?.('matched');
-                if (!isDiscover) navigate(ROUTES.DASHBOARD);
-              }}
-              className={`pb-1 font-semibold transition-colors ${
-                activeNavTab === 'matched'
-                  ? 'border-b-2 border-slate-900 text-slate-900'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Matched
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                onNavTabChange?.('messages');
-                if (!isDiscover) navigate(ROUTES.DASHBOARD);
-              }}
-              className={`pb-1 font-semibold transition-colors ${
-                activeNavTab === 'messages'
-                  ? 'border-b-2 border-slate-900 text-slate-900'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Messages
-            </button>
-          </nav>
         </div>
 
-        {/* Right: Role Switcher + Notification + Settings + Profile */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          {/* Role Switcher Pill */}
-          {user && (
-            <button
-              type="button"
-              disabled={switchingRole}
-              onClick={handleRoleSwitch}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-400 transition-all disabled:opacity-60"
-            >
-              <RefreshCw
-                className={`h-3 w-3 text-slate-500 ${switchingRole ? 'animate-spin' : ''}`}
-              />
-              Switch to {user.role === 'host' ? 'Seeker' : 'Host'}
-            </button>
-          )}
-
+        {/* Right: Notifications + Settings + Profile */}
+        <div className="flex items-center gap-2.5 sm:gap-4 ml-auto">
           {/* Notification Bell Dropdown */}
           {user && (
             <div className="relative" ref={notifRef}>
               <button
                 type="button"
                 onClick={() => setIsNotifOpen((prev) => !prev)}
-                className="relative rounded-full p-2 text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none"
+                className="relative rounded-full p-2 text-slate-600 hover:bg-slate-100 transition-colors focus:outline-hidden"
                 title="Notifications"
                 aria-label="Notifications"
               >
                 <Bell className="h-5 w-5 text-slate-700" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow">
+                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-xs">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -301,13 +221,13 @@ export const Header = memo(function Header({
             </div>
           )}
 
-          {/* Settings Menu Gear */}
+          {/* Settings Gear Dropdown */}
           <div className="relative" ref={settingsRef}>
             <button
               type="button"
               onClick={() => setIsSettingsOpen((prev) => !prev)}
-              className="rounded-full p-2 text-slate-600 hover:bg-slate-100 transition-colors"
-              title="Settings & Options"
+              className="rounded-full p-2 text-slate-600 hover:bg-slate-100 transition-colors focus:outline-hidden"
+              title="Settings & Account"
               aria-label="Settings"
             >
               <Settings className="h-5 w-5 text-slate-700" />
@@ -323,17 +243,6 @@ export const Header = memo(function Header({
                   <UserIcon className="h-4 w-4 text-slate-500" />
                   Account Profile
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSettingsOpen(false);
-                    handleRoleSwitch();
-                  }}
-                  className="flex w-full items-center gap-2.5 px-4 py-2 hover:bg-slate-50 text-slate-800 font-medium"
-                >
-                  <RefreshCw className="h-4 w-4 text-slate-500" />
-                  Switch to {user?.role === 'host' ? 'Seeker' : 'Host'}
-                </button>
                 <div className="my-1 border-t border-slate-100" />
                 <button
                   type="button"
@@ -354,15 +263,23 @@ export const Header = memo(function Header({
           {user && (
             <Link
               to={ROUTES.PROFILE}
-              className="flex items-center gap-2 rounded-full p-1 pl-1.5 hover:bg-slate-100 text-slate-700 transition-all"
-              title="View Profile"
+              className="flex items-center gap-2 rounded-full p-1 pl-1.5 pr-2.5 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800 transition-all cursor-pointer shadow-2xs"
+              title="View Profile & Preferences"
             >
-              <Avatar name={user.firstName || 'User'} size="sm" />
-              <span className="hidden sm:inline-block text-xs font-bold text-slate-800">
-                Profile
+              {user.selfieUrl ? (
+                <img
+                  src={user.selfieUrl}
+                  alt={user.firstName || 'User'}
+                  className="h-7 w-7 rounded-full object-cover border border-slate-200"
+                />
+              ) : (
+                <Avatar name={user.firstName || 'User'} size="sm" />
+              )}
+              <span className="hidden sm:inline-block text-xs font-bold text-slate-800 max-w-[120px] truncate">
+                {user.firstName || 'Profile'}
               </span>
               {user.identityVerified && (
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 -ml-1" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
               )}
             </Link>
           )}

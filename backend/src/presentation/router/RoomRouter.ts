@@ -13,5 +13,9 @@ export function createRoomRouter(roomController: IRoomController): Router {
         return await roomController.getRooms(req, res);
     });
 
+    router.get("/:id", async (req: Request, res: Response) => {
+        return await roomController.getRoomById(req, res);
+    });
+
     return router;
 }

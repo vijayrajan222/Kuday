@@ -25,6 +25,8 @@ export const API_ENDPOINTS = {
   ROOM: {
     CREATE: '/rooms',
     GET_ALL: '/rooms',
+    GET_BY_ID: (id: string, userId?: string) =>
+      userId ? `/rooms/${id}?userId=${userId}` : `/rooms/${id}`,
   },
   SEEKER: {
     SAVE_PREFERENCES: '/seeker-preferences',

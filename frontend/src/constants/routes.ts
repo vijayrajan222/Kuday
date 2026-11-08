@@ -7,6 +7,8 @@ export const ROUTES = {
   VERIFY_RESET_OTP: '/verify-reset-otp',
   RESET_PASSWORD: '/reset-password',
   DASHBOARD: '/dashboard',
+  MATCHED: '/matched',
+  ROOM_DETAILS: '/rooms/:roomId',
   PROFILE: '/profile',
   ONBOARDING_PROFILE: '/onboarding/profile',
   ADMIN_LOGIN: '/admin/login',

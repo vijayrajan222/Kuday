@@ -8,6 +8,8 @@ export interface InterestUser {
   email: string;
   selfieUrl?: string;
   role?: string;
+  occupation?: string;
+  identityVerified?: boolean;
 }
 
 export interface InterestDetail {

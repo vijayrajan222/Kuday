@@ -39,13 +39,13 @@ export const PotentialMatchCard = memo(function PotentialMatchCard({
         {/* Photo header with overlay badges */}
         <div
           onClick={onDetails}
-          className="relative h-56 w-full bg-slate-100 cursor-pointer overflow-hidden"
+          className="relative aspect-[4/3] w-full bg-slate-100 cursor-pointer overflow-hidden"
         >
           {imageUrl ? (
             <img
               src={imageUrl}
               alt={name}
-              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+              className="h-full w-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
             <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400 font-bold text-2xl">

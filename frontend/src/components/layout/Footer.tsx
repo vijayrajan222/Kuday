@@ -5,7 +5,7 @@ import { ROUTES } from '@/constants/routes';
 export const Footer = memo(function Footer() {
   return (
     <footer className="border-t border-slate-200/80 bg-white py-10 mt-16 text-slate-600">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 flex flex-col md:flex-row items-center justify-between gap-6 text-xs">
+      <div className="max-w-[1720px] mx-auto px-4 sm:px-8 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-6 text-xs">
         <div className="flex items-center gap-3">
           <span className="text-lg font-black tracking-tight text-slate-900">kudai</span>
           <span className="text-slate-400">|</span>

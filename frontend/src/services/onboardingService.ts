@@ -62,6 +62,11 @@ export const onboardingService = {
     return data.data;
   },
 
+  async getRoomById(id: string, userId?: string) {
+    const { data } = await api.get(API_ENDPOINTS.ROOM.GET_BY_ID(id, userId));
+    return data.data;
+  },
+
   async saveSeekerPreferences(payload: SeekerPreferencePayload) {
     const { data } = await api.post(API_ENDPOINTS.SEEKER.SAVE_PREFERENCES, payload);
     return data;
