@@ -45,10 +45,24 @@ export class GetConversationsUseCase implements IGetConversationsUseCase {
         }
 
         // Sort by last message or updated timestamp descending
-        return enriched.sort((a, b) => {
+        enriched.sort((a, b) => {
             const timeA = a.lastMessage?.createdAt || a.updatedAt || "";
             const timeB = b.lastMessage?.createdAt || b.updatedAt || "";
             return timeB.localeCompare(timeA);
         });
+
+        // Ensure absolute uniqueness per conversation partner
+        const seenOtherUsers = new Set<string>();
+        const uniqueEnriched: ConversationEntity[] = [];
+
+        for (const item of enriched) {
+            const other = item.participants.find((p) => p !== userId) || item.participants[0] || item.id;
+            if (!seenOtherUsers.has(other)) {
+                seenOtherUsers.add(other);
+                uniqueEnriched.push(item);
+            }
+        }
+
+        return uniqueEnriched;
     }
 }

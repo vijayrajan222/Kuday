@@ -20,18 +20,43 @@ export class MongoConversationRepository implements IConversationRepository {
     }
 
     async findOrCreate(participant1: string, participant2: string): Promise<ConversationEntity> {
-        // Look for conversation where participants array contains both users
-        let doc = await ConversationModel.findOne({
-            participants: { $all: [participant1, participant2], $size: 2 },
-        }).exec();
+        const sorted = [participant1, participant2].sort();
 
-        if (!doc) {
-            doc = await ConversationModel.create({
-                participants: [participant1, participant2],
-            });
+        // Check if a conversation with both participants already exists
+        const existingDocs = await ConversationModel.find({
+            participants: { $all: [participant1, participant2], $size: 2 },
+        })
+            .sort({ updatedAt: -1, createdAt: -1 })
+            .exec();
+
+        if (existingDocs.length > 0) {
+            // Keep the one that contains messages or is the most recently updated
+            const primary = existingDocs.find((d) => Boolean(d.lastMessage?.content)) || existingDocs[0];
+
+            // Clean up any empty ghost duplicates in the background
+            if (existingDocs.length > 1) {
+                const duplicateIds = existingDocs
+                    .filter((d) => d._id.toString() !== primary._id.toString())
+                    .map((d) => d._id);
+                ConversationModel.deleteMany({ _id: { $in: duplicateIds } }).exec().catch(() => {});
+            }
+
+            return this.mapToEntity(primary);
         }
 
-        return this.mapToEntity(doc);
+        // Atomically upsert with deterministic sorted participants array to prevent race conditions
+        const doc = await ConversationModel.findOneAndUpdate(
+            { participants: sorted },
+            {
+                $setOnInsert: {
+                    participants: sorted,
+                    lastMessage: { content: "", senderId: "", createdAt: "" },
+                },
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        ).exec();
+
+        return this.mapToEntity(doc!);
     }
 
     async findById(id: string): Promise<ConversationEntity | null> {
@@ -43,18 +68,39 @@ export class MongoConversationRepository implements IConversationRepository {
         const docs = await ConversationModel.find({
             participants: userId,
         })
-            .sort({ updatedAt: -1 })
+            .sort({ updatedAt: -1, createdAt: -1 })
             .exec();
 
-        return docs.map((doc) => this.mapToEntity(doc));
+        // Deduplicate in memory by other participant so there is never more than 1 conversation per person
+        const seenOtherParticipants = new Set<string>();
+        const uniqueDocs: ConversationDoc[] = [];
+
+        for (const doc of docs) {
+            const other = doc.participants.find((p) => p !== userId) || doc.participants[0] || doc._id.toString();
+            if (!seenOtherParticipants.has(other)) {
+                seenOtherParticipants.add(other);
+                uniqueDocs.push(doc);
+            } else {
+                // If it's a duplicate and empty, clean it up
+                if (!doc.lastMessage?.content) {
+                    ConversationModel.findByIdAndDelete(doc._id).exec().catch(() => {});
+                }
+            }
+        }
+
+        return uniqueDocs.map((doc) => this.mapToEntity(doc));
     }
 
     async findByParticipants(participant1: string, participant2: string): Promise<ConversationEntity | null> {
-        const doc = await ConversationModel.findOne({
+        const docs = await ConversationModel.find({
             participants: { $all: [participant1, participant2], $size: 2 },
-        }).exec();
+        })
+            .sort({ updatedAt: -1, createdAt: -1 })
+            .exec();
 
-        return doc ? this.mapToEntity(doc) : null;
+        if (docs.length === 0) return null;
+        const primary = docs.find((d) => Boolean(d.lastMessage?.content)) || docs[0];
+        return this.mapToEntity(primary);
     }
 
     async updateLastMessage(

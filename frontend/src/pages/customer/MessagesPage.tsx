@@ -92,11 +92,17 @@ export default function MessagesPage() {
         if (existing) {
           setActiveConversationId(existing.id);
         } else {
-          // Start a new conversation
+          // Start a new conversation safely
           chatService
             .startConversation(user.id, state.recipientId)
             .then((newConv) => {
-              setConversations((prev) => [newConv, ...prev.filter((c) => c.id !== newConv.id)]);
+              setConversations((prev) => {
+                const alreadyExists = prev.some(
+                  (c) => c.id === newConv.id || c.participants.includes(state.recipientId!)
+                );
+                if (alreadyExists) return prev;
+                return [newConv, ...prev];
+              });
               setActiveConversationId(newConv.id);
             })
             .catch(() => {
@@ -205,12 +211,16 @@ export default function MessagesPage() {
       conversation: Conversation;
     }) => {
       setConversations((prev) => {
-        const exists = prev.some((c) => c.id === conversation.id);
+        const otherParticipantId = conversation.participants.find((p) => p !== user?.id);
+        const exists = prev.some(
+          (c) => c.id === conversation.id || (otherParticipantId && c.participants.includes(otherParticipantId))
+        );
         if (exists) {
           return prev.map((c) =>
-            c.id === conversation.id
+            c.id === conversation.id || (otherParticipantId && c.participants.includes(otherParticipantId))
               ? {
                   ...c,
+                  id: conversation.id,
                   lastMessage: {
                     content: message.content,
                     senderId: message.senderId,
@@ -221,7 +231,8 @@ export default function MessagesPage() {
               : c
           );
         }
-        return [conversation, ...prev];
+        fetchConversations();
+        return prev;
       });
     };
 
@@ -341,11 +352,25 @@ export default function MessagesPage() {
     }
   };
 
-  // Filtered conversations
+  // Filtered & deduplicated conversations
   const filteredConversations = useMemo(() => {
-    if (!searchQuery.trim()) return conversations;
+    // Deduplicate conversations by other participant id
+    const seenParticipants = new Set<string>();
+    const deduplicated: Conversation[] = [];
+
+    for (const c of conversations) {
+      const other = c.participantDetails?.find((p) => p.id !== user?.id) ||
+                    c.participants.find((p) => p !== user?.id);
+      const otherKey = typeof other === 'string' ? other : other?.id || c.id;
+      if (!seenParticipants.has(otherKey)) {
+        seenParticipants.add(otherKey);
+        deduplicated.push(c);
+      }
+    }
+
+    if (!searchQuery.trim()) return deduplicated;
     const q = searchQuery.toLowerCase();
-    return conversations.filter((c) => {
+    return deduplicated.filter((c) => {
       const other = c.participantDetails?.find((p) => p.id !== user?.id);
       const name = `${other?.firstName || ''} ${other?.lastName || ''}`.toLowerCase();
       const snippet = c.lastMessage?.content?.toLowerCase() || '';
@@ -376,7 +401,7 @@ export default function MessagesPage() {
                 <MessageSquare className="h-5 w-5 text-slate-900" /> Messages
               </h2>
               <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                {conversations.length}
+                {filteredConversations.length}
               </span>
             </div>
 
