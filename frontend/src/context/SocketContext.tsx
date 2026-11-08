@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/hooks/useAuth';
+import { chatService } from '@/services/chatService';
+import { toast } from '@/hooks/useToast';
 import type { ChatMessage, Conversation } from '@/types/chat.types';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
@@ -9,6 +11,10 @@ interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   onlineUserIds: Set<string>;
+  unreadMessageCount: number;
+  activeChatConvId: string | null;
+  setActiveChatConvId: (convId: string | null) => void;
+  refreshUnreadCount: () => Promise<void>;
   joinConversation: (conversationId: string) => void;
   leaveConversation: (conversationId: string) => void;
   sendSocketMessage: (data: {
@@ -29,8 +35,34 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const [unreadMessageCount, setUnreadMessageCount] = useState<number>(0);
+  const [activeChatConvId, setActiveChatConvIdState] = useState<string | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
+  const activeChatConvIdRef = useRef<string | null>(null);
+
+  const setActiveChatConvId = useCallback((convId: string | null) => {
+    activeChatConvIdRef.current = convId;
+    setActiveChatConvIdState(convId);
+  }, []);
+
+  const refreshUnreadCount = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const count = await chatService.getUnreadCount(user.id);
+      setUnreadMessageCount(count);
+    } catch {
+      // Ignored
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      refreshUnreadCount();
+    } else {
+      setUnreadMessageCount(0);
+    }
+  }, [user?.id, refreshUnreadCount]);
 
   useEffect(() => {
     if (!isAuthenticated || !user?.id) {
@@ -60,6 +92,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     newSocket.on('connect', () => {
       setIsConnected(true);
+      refreshUnreadCount();
     });
 
     newSocket.on('disconnect', () => {
@@ -78,11 +111,32 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
     });
 
+    // Global listener for incoming message notification
+    newSocket.on(
+      'message_notification',
+      (data: { message: ChatMessage; conversation: Conversation; senderName?: string }) => {
+        // If not actively looking at this conversation, bump unread count and show toast
+        if (activeChatConvIdRef.current !== data.conversation.id) {
+          setUnreadMessageCount((prev) => prev + 1);
+          const sender = data.senderName || 'Someone';
+          const snippet =
+            data.message.content.length > 55
+              ? `${data.message.content.slice(0, 52)}...`
+              : data.message.content;
+          toast.info(`Message from ${sender}`, snippet);
+        }
+      }
+    );
+
+    newSocket.on('messages_read', () => {
+      refreshUnreadCount();
+    });
+
     return () => {
       newSocket.disconnect();
       socketRef.current = null;
     };
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, user?.id, refreshUnreadCount]);
 
   const joinConversation = useCallback((conversationId: string) => {
     if (socketRef.current?.connected && conversationId) {
@@ -153,6 +207,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     socket,
     isConnected,
     onlineUserIds,
+    unreadMessageCount,
+    activeChatConvId,
+    setActiveChatConvId,
+    refreshUnreadCount,
     joinConversation,
     leaveConversation,
     sendSocketMessage,

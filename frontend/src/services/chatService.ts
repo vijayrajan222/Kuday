@@ -37,4 +37,9 @@ export const chatService = {
   async markAsRead(conversationId: string, userId: string): Promise<void> {
     await api.patch(API_ENDPOINTS.CHAT.MARK_READ(conversationId), { userId });
   },
+
+  async getUnreadCount(userId: string): Promise<number> {
+    const { data } = await api.get(API_ENDPOINTS.CHAT.UNREAD_COUNT(userId));
+    return data.data?.unreadCount ?? 0;
+  },
 };

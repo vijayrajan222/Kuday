@@ -5,6 +5,10 @@ import type { IChatController } from "@presentation/interface/IChatController";
 export function createChatRouter(chatController: IChatController): Router {
     const router = Router();
 
+    router.get("/unread-count", async (req: Request, res: Response) => {
+        return await chatController.getUnreadCount(req, res);
+    });
+
     router.get("/conversations", async (req: Request, res: Response) => {
         return await chatController.getConversations(req, res);
     });

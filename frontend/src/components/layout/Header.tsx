@@ -10,10 +10,12 @@ import {
   LogOut,
   User as UserIcon,
   Menu,
+  MessageSquare,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Avatar } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
+import { useSocket } from '@/context/SocketContext';
 import { ROUTES } from '@/constants/routes';
 import { notificationService } from '@/services/notificationService';
 import type { NotificationItem } from '@/types/notification.types';
@@ -28,6 +30,8 @@ export const Header = memo(function Header({
   onLogout,
 }: HeaderProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { socket } = useSocket();
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -52,6 +56,18 @@ export const Header = memo(function Header({
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [user?.id, fetchNotifications]);
+
+  // Real-time notification updates via socket
+  useEffect(() => {
+    if (!socket) return;
+    const handleNewNotification = (notif: NotificationItem) => {
+      setNotifications((prev) => [notif, ...prev.filter((item) => item.id !== notif.id)]);
+    };
+    socket.on('new_notification', handleNewNotification);
+    return () => {
+      socket.off('new_notification', handleNewNotification);
+    };
+  }, [socket]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -87,6 +103,18 @@ export const Header = memo(function Header({
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch {
       // Ignored
+    }
+  };
+
+  const handleNotificationClick = async (n: NotificationItem) => {
+    if (!n.isRead) {
+      await handleMarkAsRead(n.id);
+    }
+    setIsNotifOpen(false);
+    if (n.type === 'chat_message') {
+      navigate(ROUTES.MESSAGES);
+    } else if (n.type === 'interest_request') {
+      navigate(ROUTES.MATCHED);
     }
   };
 
@@ -162,7 +190,8 @@ export const Header = memo(function Header({
                       notifications.map((n) => (
                         <div
                           key={n.id}
-                          className={`p-3.5 transition-colors flex items-start gap-3 ${
+                          onClick={() => handleNotificationClick(n)}
+                          className={`p-3.5 transition-colors flex items-start gap-3 cursor-pointer hover:bg-slate-50 ${
                             n.isRead
                               ? 'bg-white text-slate-600'
                               : 'bg-emerald-50/40 text-slate-900 font-medium'
@@ -176,6 +205,10 @@ export const Header = memo(function Header({
                             ) : n.type === 'interest_request' ? (
                               <div className="rounded-full bg-rose-100 p-1.5 text-rose-600">
                                 <Heart className="h-4 w-4" />
+                              </div>
+                            ) : n.type === 'chat_message' ? (
+                              <div className="rounded-full bg-sky-100 p-1.5 text-sky-600">
+                                <MessageSquare className="h-4 w-4" />
                               </div>
                             ) : (
                               <div className="rounded-full bg-slate-100 p-1.5 text-slate-600">

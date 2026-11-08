@@ -13,6 +13,7 @@ import { BrandLogo } from '@/components/common/BrandLogo';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/hooks/useAuth';
+import { useSocket } from '@/context/SocketContext';
 import { onboardingService } from '@/services/onboardingService';
 import { toast } from '@/hooks/useToast';
 
@@ -23,6 +24,7 @@ interface SidebarProps {
 
 export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, updateUser } = useAuth();
+  const { unreadMessageCount } = useSocket();
   const [switchingRole, setSwitchingRole] = useState(false);
 
   const role = (user?.role as 'host' | 'seeker') || 'seeker';
@@ -60,7 +62,11 @@ export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) 
       label: 'Messages',
       to: ROUTES.MESSAGES,
       icon: MessageSquare,
-      badge: 'Live',
+      badge:
+        unreadMessageCount > 0
+          ? `${unreadMessageCount > 9 ? '9+' : unreadMessageCount} pending`
+          : undefined,
+      isPending: unreadMessageCount > 0,
     },
     {
       label: 'Profile & Preferences',
@@ -108,7 +114,7 @@ export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) 
 
         {/* Navigation items */}
         <nav aria-label="Main" className="flex-1 space-y-1.5 px-3 py-3">
-          {navLinks.map(({ label, to, icon: Icon, badge }) => (
+          {navLinks.map(({ label, to, icon: Icon, badge, isPending }) => (
             <NavLink
               key={label}
               to={to}
@@ -125,7 +131,14 @@ export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) 
               <Icon className="h-4 w-4 shrink-0" />
               <span>{label}</span>
               {badge && (
-                <span className="ml-auto rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
+                <span
+                  className={cn(
+                    'ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold transition-all',
+                    isPending
+                      ? 'bg-rose-500 text-white shadow-xs animate-pulse ring-2 ring-rose-200'
+                      : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                  )}
+                >
                   {badge}
                 </span>
               )}

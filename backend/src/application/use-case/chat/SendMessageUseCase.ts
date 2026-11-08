@@ -1,12 +1,17 @@
 import type { ISendMessageUseCase } from "@application/interfaces/use-case/chat/ISendMessageUseCase";
 import type { IMessageRepository } from "@application/interfaces/repository/IMessageRepository";
 import type { IConversationRepository } from "@application/interfaces/repository/IConversationRepository";
+import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { SendMessageDto, SendMessageResponseDto } from "@application/dto/chat/ChatDto";
+import type { NotificationEntity } from "@domain/entities/NotificationEntity";
 
 export class SendMessageUseCase implements ISendMessageUseCase {
     constructor(
         private messageRepository: IMessageRepository,
-        private conversationRepository: IConversationRepository
+        private conversationRepository: IConversationRepository,
+        private notificationRepository?: INotificationRepository,
+        private userRepository?: IUserRepository
     ) {}
 
     async execute(dto: SendMessageDto): Promise<SendMessageResponseDto> {
@@ -54,9 +59,36 @@ export class SendMessageUseCase implements ISendMessageUseCase {
             createdAt: now,
         };
 
+        // Create notification for receiver
+        let notification: NotificationEntity | undefined = undefined;
+        let senderName = "Someone";
+
+        try {
+            if (this.userRepository) {
+                const sender = await this.userRepository.findById(dto.senderId);
+                if (sender) {
+                    senderName = `${sender.firstName || ""} ${sender.lastName || ""}`.trim() || sender.email;
+                }
+            }
+
+            if (this.notificationRepository) {
+                notification = await this.notificationRepository.create({
+                    userId: dto.receiverId,
+                    title: `New message from ${senderName}`,
+                    message: dto.content.trim(),
+                    type: "chat_message",
+                    isRead: false,
+                });
+            }
+        } catch (notifErr) {
+            console.error("Failed to create notification for message:", notifErr);
+        }
+
         return {
             message,
             conversation,
+            notification,
+            senderName,
         };
     }
 }

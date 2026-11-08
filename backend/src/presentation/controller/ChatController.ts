@@ -5,6 +5,7 @@ import type { IGetMessagesUseCase } from "@application/interfaces/use-case/chat/
 import type { IGetConversationsUseCase } from "@application/interfaces/use-case/chat/IGetConversationsUseCase";
 import type { IMarkMessagesAsReadUseCase } from "@application/interfaces/use-case/chat/IMarkMessagesAsReadUseCase";
 import type { IStartConversationUseCase } from "@application/interfaces/use-case/chat/IStartConversationUseCase";
+import type { IGetUnreadCountUseCase } from "@application/interfaces/use-case/chat/IGetUnreadCountUseCase";
 import { ApiResponse } from "@presentation/utils/ApiResponse";
 import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
 import type { SocketService } from "@infrastructure/socket/SocketService";
@@ -16,6 +17,7 @@ export class ChatController implements IChatController {
         private getConversationsUseCase: IGetConversationsUseCase,
         private markMessagesAsReadUseCase: IMarkMessagesAsReadUseCase,
         private startConversationUseCase: IStartConversationUseCase,
+        private getUnreadCountUseCase: IGetUnreadCountUseCase,
         private socketService?: SocketService
     ) {}
 
@@ -96,9 +98,19 @@ export class ChatController implements IChatController {
             });
 
             // Also emit via Socket.io if active
-            const io = this.socketService?.getIo();
-            if (io) {
-                io.to(`conv_${result.conversation.id}`).emit("new_message", result.message);
+            if (this.socketService) {
+                const io = this.socketService.getIo();
+                if (io) {
+                    io.to(`conv_${result.conversation.id}`).emit("new_message", result.message);
+                }
+                this.socketService.notifyUser(receiverId, "message_notification", {
+                    message: result.message,
+                    conversation: result.conversation,
+                    senderName: result.senderName,
+                });
+                if (result.notification) {
+                    this.socketService.notifyUser(receiverId, "new_notification", result.notification);
+                }
             }
 
             res.status(HttpStatusCodes.CREATED).json(
@@ -159,6 +171,28 @@ export class ChatController implements IChatController {
         } catch (error: unknown) {
             res.status(HttpStatusCodes.BAD_REQUEST).json(
                 ApiResponse.error(error instanceof Error ? error.message : "Failed to mark messages as read")
+            );
+        }
+    }
+
+    async getUnreadCount(req: Request, res: Response): Promise<void> {
+        try {
+            const userId = (req.query.userId as string) || (req.headers["x-user-id"] as string);
+            if (!userId) {
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error("userId query parameter or header is required", HttpStatusCodes.BAD_REQUEST)
+                );
+                return;
+            }
+
+            const unreadCount = await this.getUnreadCountUseCase.execute(userId);
+
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success({ unreadCount }, "Unread message count retrieved")
+            );
+        } catch (error: unknown) {
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to get unread count")
             );
         }
     }

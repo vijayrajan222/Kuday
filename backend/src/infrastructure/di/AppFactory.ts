@@ -72,6 +72,7 @@ import { GetMessagesUseCase } from "@application/use-case/chat/GetMessagesUseCas
 import { GetConversationsUseCase } from "@application/use-case/chat/GetConversationsUseCase";
 import { MarkMessagesAsReadUseCase } from "@application/use-case/chat/MarkMessagesAsReadUseCase";
 import { StartConversationUseCase } from "@application/use-case/chat/StartConversationUseCase";
+import { GetUnreadCountUseCase } from "@application/use-case/chat/GetUnreadCountUseCase";
 
 // Socket Service
 import { SocketService } from "@infrastructure/socket/SocketService";
@@ -164,11 +165,12 @@ export function setupAppDependencies(app: Express): SocketService {
     const toggleBlockUserUseCase = new ToggleBlockUserUseCase(userrepo);
 
     // Chat Use Cases
-    const sendMessageUseCase = new SendMessageUseCase(messagerepo, conversationrepo);
+    const sendMessageUseCase = new SendMessageUseCase(messagerepo, conversationrepo, notificationrepo, userrepo);
     const getMessagesUseCase = new GetMessagesUseCase(messagerepo, conversationrepo);
     const getConversationsUseCase = new GetConversationsUseCase(conversationrepo, messagerepo, userrepo);
     const markMessagesAsReadUseCase = new MarkMessagesAsReadUseCase(messagerepo);
     const startConversationUseCase = new StartConversationUseCase(conversationrepo, userrepo);
+    const getUnreadCountUseCase = new GetUnreadCountUseCase(messagerepo);
 
     const socketService = new SocketService(sendMessageUseCase, markMessagesAsReadUseCase);
 
@@ -233,6 +235,7 @@ export function setupAppDependencies(app: Express): SocketService {
         getConversationsUseCase,
         markMessagesAsReadUseCase,
         startConversationUseCase,
+        getUnreadCountUseCase,
         socketService
     );
 

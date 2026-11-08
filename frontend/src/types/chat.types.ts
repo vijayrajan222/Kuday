@@ -41,3 +41,7 @@ export interface SendMessagePayload {
   content: string;
   conversationId?: string;
 }
+
+export interface UnreadCountResponse {
+  unreadCount: number;
+}

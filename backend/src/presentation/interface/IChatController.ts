@@ -6,4 +6,5 @@ export interface IChatController {
     sendMessage(req: Request, res: Response): Promise<void>;
     startConversation(req: Request, res: Response): Promise<void>;
     markAsRead(req: Request, res: Response): Promise<void>;
+    getUnreadCount(req: Request, res: Response): Promise<void>;
 }

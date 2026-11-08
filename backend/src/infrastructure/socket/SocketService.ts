@@ -66,14 +66,14 @@ export class SocketService {
                     this.io?.to(`conv_${result.conversation.id}`).emit("new_message", result.message);
 
                     // Also notify receiver individually for badge / push update
-                    const receiverSockets = this.userSocketMap.get(data.receiverId);
-                    if (receiverSockets) {
-                        receiverSockets.forEach((sockId) => {
-                            this.io?.to(sockId).emit("message_notification", {
-                                message: result.message,
-                                conversation: result.conversation,
-                            });
-                        });
+                    this.notifyUser(data.receiverId, "message_notification", {
+                        message: result.message,
+                        conversation: result.conversation,
+                        senderName: result.senderName,
+                    });
+
+                    if (result.notification) {
+                        this.notifyUser(data.receiverId, "new_notification", result.notification);
                     }
 
                     if (callback) {
@@ -141,5 +141,14 @@ export class SocketService {
     isUserOnline(userId: string): boolean {
         const sockets = this.userSocketMap.get(userId);
         return Boolean(sockets && sockets.size > 0);
+    }
+
+    notifyUser(userId: string, event: string, payload: unknown): void {
+        const receiverSockets = this.userSocketMap.get(userId);
+        if (receiverSockets && this.io) {
+            receiverSockets.forEach((sockId) => {
+                this.io?.to(sockId).emit(event, payload);
+            });
+        }
     }
 }

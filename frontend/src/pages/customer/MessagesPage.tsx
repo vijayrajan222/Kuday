@@ -32,6 +32,8 @@ export default function MessagesPage() {
     emitStopTyping,
     markConversationAsRead,
     onlineUserIds,
+    setActiveChatConvId,
+    refreshUnreadCount,
   } = useSocket();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -108,6 +110,14 @@ export default function MessagesPage() {
     });
   }, [user?.id, location.state, fetchConversations]);
 
+  // Track active chat in global context
+  useEffect(() => {
+    setActiveChatConvId(activeConversationId);
+    return () => {
+      setActiveChatConvId(null);
+    };
+  }, [activeConversationId, setActiveChatConvId]);
+
   // 2. Fetch Messages and Join Room when activeConversation changes
   useEffect(() => {
     if (!activeConversationId || !user?.id) return;
@@ -117,6 +127,9 @@ export default function MessagesPage() {
 
     joinConversation(activeConversationId);
     markConversationAsRead(activeConversationId);
+    chatService.markAsRead(activeConversationId, user.id).then(() => {
+      refreshUnreadCount();
+    }).catch(() => {});
 
     // REST fetch historical messages
     chatService
@@ -143,7 +156,7 @@ export default function MessagesPage() {
       isMounted = false;
       leaveConversation(activeConversationId);
     };
-  }, [activeConversationId, user?.id, joinConversation, leaveConversation, markConversationAsRead]);
+  }, [activeConversationId, user?.id, joinConversation, leaveConversation, markConversationAsRead, refreshUnreadCount]);
 
   // 3. Socket Event Listeners (new_message, typing, messages_read)
   useEffect(() => {

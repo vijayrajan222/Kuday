@@ -1,5 +1,6 @@
 import type { MessageEntity } from "@domain/entities/MessageEntity";
 import type { ConversationEntity } from "@domain/entities/ConversationEntity";
+import type { NotificationEntity } from "@domain/entities/NotificationEntity";
 
 export interface SendMessageDto {
     senderId: string;
@@ -11,4 +12,6 @@ export interface SendMessageDto {
 export interface SendMessageResponseDto {
     message: MessageEntity;
     conversation: ConversationEntity;
+    notification?: NotificationEntity;
+    senderName?: string;
 }
