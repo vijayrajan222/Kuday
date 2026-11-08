@@ -4,6 +4,7 @@ import type { INotificationRepository } from "@application/interfaces/repository
 import type { IUpdateInterestStatusUseCase } from "@application/interfaces/use-case/interest/IUpdateInterestStatusUseCase";
 import type { UpdateInterestStatusDto } from "@application/dto/interest/UpdateInterestStatusDto";
 import type { InterestDetailDto } from "@application/dto/interest/InterestDetailDto";
+import type { InterestEntity } from "@domain/entities/InterestEntity";
 import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError";
 
 export class UpdateInterestStatusUseCase implements IUpdateInterestStatusUseCase {

@@ -61,4 +61,12 @@ export const API_ENDPOINTS = {
     MARK_READ: (convId: string) => `/chat/conversations/${convId}/read`,
     UNREAD_COUNT: (userId: string) => `/chat/unread-count?userId=${userId}`,
   },
+  VISIT: {
+    CREATE: '/visits',
+    BY_CONNECTION: (connectionId: string) => `/visits/connection/${connectionId}`,
+    BY_USER: (userId: string) => `/visits/user/${userId}`,
+    UPDATE_STATUS: (visitId: string) => `/visits/${visitId}/status`,
+    SUGGEST: (visitId: string) => `/visits/${visitId}/suggest`,
+    ACCEPT_SUGGESTION: (visitId: string) => `/visits/${visitId}/accept-suggestion`,
+  },
 } as const;

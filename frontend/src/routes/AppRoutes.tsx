@@ -26,6 +26,7 @@ const MatchedPage = lazy(() => import('@/pages/customer/MatchedPage'));
 const MessagesPage = lazy(() => import('@/pages/customer/MessagesPage'));
 const RoomDetailsPage = lazy(() => import('@/pages/customer/RoomDetailsPage'));
 const UserProfilePage = lazy(() => import('@/pages/customer/UserProfilePage'));
+const ScheduleVisitPage = lazy(() => import('@/pages/customer/ScheduleVisitPage'));
 const OnboardingProfilePage = lazy(() => import('@/pages/onboarding/OnboardingProfilePage'));
 const ProfilePage = lazy(() => import('@/pages/customer/ProfilePage'));
 
@@ -79,6 +80,7 @@ export function AppRoutes() {
             <Route path={ROUTES.EXPLORE_ROOMS} element={<ExplorePage defaultTab="rooms" />} />
             <Route path={ROUTES.EXPLORE_SEEKERS} element={<ExplorePage defaultTab="seekers" />} />
             <Route path={ROUTES.MATCHED} element={<MatchedPage />} />
+            <Route path={ROUTES.SCHEDULE_VISIT} element={<ScheduleVisitPage />} />
             <Route path={ROUTES.MESSAGES} element={<MessagesPage />} />
             <Route path={ROUTES.ROOM_DETAILS} element={<RoomDetailsPage />} />
             <Route path={ROUTES.USER_PROFILE} element={<UserProfilePage />} />

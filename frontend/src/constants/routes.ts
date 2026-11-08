@@ -11,6 +11,7 @@ export const ROUTES = {
   EXPLORE_ROOMS: '/explore/rooms',
   EXPLORE_SEEKERS: '/explore/seekers',
   MATCHED: '/matched',
+  SCHEDULE_VISIT: '/schedule-visit/:connectionId',
   MESSAGES: '/messages',
   ROOM_DETAILS: '/rooms/:roomId',
   USER_PROFILE: '/users/:userId',

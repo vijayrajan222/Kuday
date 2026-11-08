@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle2,
@@ -7,16 +7,26 @@ import {
   MoreVertical,
   X,
   UserX,
+  Clock,
+  RotateCcw,
+  Check,
+  Sun,
+  SunMedium,
+  Moon,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInterest } from '@/hooks/useInterest';
+import { useSocket } from '@/context/SocketContext';
+import { visitService } from '@/services/visitService';
 import { toast } from '@/hooks/useToast';
 import { ROUTES } from '@/constants/routes';
 import type { InterestDetail } from '@/types/interest.types';
+import type { Visit, TimeSlot } from '@/types/visit.types';
 
 export default function MatchedPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { socket } = useSocket();
   const {
     sentInterests,
     receivedInterests,
@@ -29,6 +39,124 @@ export default function MatchedPage() {
 
   const [selectedMatch, setSelectedMatch] = useState<InterestDetail | null>(null);
   const [unmatchTarget, setUnmatchTarget] = useState<{ id: string; name: string } | null>(null);
+
+  // Visits state
+  const [visits, setVisits] = useState<Visit[]>([]);
+  const [rescheduleModalVisit, setRescheduleModalVisit] = useState<Visit | null>(null);
+
+  // Reschedule form state
+  const [suggestDate, setSuggestDate] = useState('');
+  const [suggestSlot, setSuggestSlot] = useState<TimeSlot>('afternoon');
+  const [suggestMessage, setSuggestMessage] = useState('');
+  const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
+
+  // Load visits
+  const loadUserVisits = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await visitService.getVisitsByUser(user.id);
+      setVisits(res || []);
+    } catch {
+      // ignore
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadUserVisits();
+  }, [loadUserVisits]);
+
+  // Listen to socket visit events to refresh in real-time
+  useEffect(() => {
+    if (!socket) return;
+    const handleVisitUpdate = () => {
+      loadUserVisits();
+    };
+    socket.on('visit_update', handleVisitUpdate);
+    return () => {
+      socket.off('visit_update', handleVisitUpdate);
+    };
+  }, [socket, loadUserVisits]);
+
+  // Map visits by connectionId (latest active visit)
+  const visitsByConnection = useMemo(() => {
+    const map = new Map<string, Visit>();
+    visits.forEach((v) => {
+      // Prioritize active visits over cancelled ones
+      const existing = map.get(v.connectionId);
+      if (!existing || ['pending', 'rescheduled', 'confirmed'].includes(v.status)) {
+        map.set(v.connectionId, v);
+      }
+    });
+    return map;
+  }, [visits]);
+
+  // Handle visit actions
+  const handleAcceptVisit = async (visitId: string) => {
+    if (!user?.id) return;
+    try {
+      await visitService.updateStatus(visitId, user.id, 'confirmed');
+      toast.success('Visit confirmed! ✅');
+      loadUserVisits();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to accept visit');
+    }
+  };
+
+  const handleCancelVisit = async (visitId: string) => {
+    if (!user?.id) return;
+    try {
+      await visitService.updateStatus(visitId, user.id, 'cancelled');
+      toast.info('Visit cancelled.');
+      loadUserVisits();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to cancel visit');
+    }
+  };
+
+  const handleAcceptSuggestion = async (visitId: string) => {
+    if (!user?.id) return;
+    try {
+      await visitService.acceptSuggestion(visitId, user.id);
+      toast.success('Rescheduled visit confirmed! 🎉');
+      loadUserVisits();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to accept reschedule');
+    }
+  };
+
+  const handleSendSuggestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id || !rescheduleModalVisit) return;
+    if (!suggestDate) {
+      toast.error('Please pick a date.');
+      return;
+    }
+
+    const slotTime =
+      suggestSlot === 'morning' ? '10:00 AM' : suggestSlot === 'afternoon' ? '02:00 PM' : '06:00 PM';
+
+    try {
+      setSubmittingSuggestion(true);
+      await visitService.suggestChanges(rescheduleModalVisit.id, user.id, {
+        suggestedDate: suggestDate,
+        suggestedTimeSlot: suggestSlot,
+        suggestedSlotTime: slotTime,
+        suggestedMessage: suggestMessage.trim(),
+      });
+      toast.success('Proposed reschedule sent!');
+      setRescheduleModalVisit(null);
+      setSuggestMessage('');
+      loadUserVisits();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to send proposed time');
+    } finally {
+      setSubmittingSuggestion(false);
+    }
+  };
 
   // 1. Pending Received Interests
   const pendingReceived = useMemo(() => {
@@ -271,7 +399,7 @@ export default function MatchedPage() {
         </div>
 
         {mutualMatches.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {mutualMatches.map((item) => {
               const otherUser = item.senderId === user?.id ? item.receiver : item.sender;
               const otherName = otherUser
@@ -279,10 +407,16 @@ export default function MatchedPage() {
                 : 'Connected Flatmate';
               const occupation = otherUser?.occupation?.replace('_', ' ') || otherUser?.role || 'Roommate';
 
+              const activeVisit = visitsByConnection.get(item.id);
+              const isUserHost =
+                user?.role === 'host' ||
+                (item.targetType === 'room' && item.receiverId === user?.id) ||
+                (item.targetType === 'seeker' && item.senderId === user?.id);
+
               return (
                 <div
                   key={item.id}
-                  className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs hover:border-slate-300 transition-colors flex flex-col gap-3"
+                  className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs hover:border-slate-300 transition-colors flex flex-col gap-4"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     {/* User Info with Active Green Indicator */}
@@ -328,25 +462,38 @@ export default function MatchedPage() {
                             navigate(ROUTES.MESSAGES);
                           }
                         }}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-black text-white hover:bg-slate-800 text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-black text-white hover:bg-slate-800 text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer"
                       >
                         <MessageSquare className="h-3.5 w-3.5" />
                         <span>Message</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => toast.info('Visit scheduling calendar will be available shortly!')}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs"
-                      >
-                        <Calendar className="h-3.5 w-3.5 text-slate-500" />
-                        <span>Schedule Visit</span>
-                      </button>
+                      {(!activeVisit || activeVisit.status === 'cancelled') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigate(ROUTES.SCHEDULE_VISIT.replace(':connectionId', item.id), {
+                              state: {
+                                hostId: isUserHost ? user?.id : otherUser?.id,
+                                hostName: otherName,
+                                hostAvatar: otherUser?.selfieUrl,
+                                isVerified: Boolean(otherUser?.identityVerified),
+                                occupation,
+                                roomId: item.targetType === 'room' ? item.targetId : undefined,
+                              },
+                            });
+                          }}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer"
+                        >
+                          <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Schedule Visit</span>
+                        </button>
+                      )}
 
                       <button
                         type="button"
                         onClick={() => setUnmatchTarget({ id: item.id, name: otherName })}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer"
                         title="Unmatch connection"
                       >
                         <UserX className="h-3.5 w-3.5" />
@@ -356,13 +503,191 @@ export default function MatchedPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedMatch(item)}
-                        className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 transition-colors"
+                        className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 transition-colors cursor-pointer"
                         title="View details"
                       >
                         <MoreVertical className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
+
+                  {/* Visit Status Banner */}
+                  {activeVisit && activeVisit.status !== 'cancelled' && (
+                    <div className="pt-1">
+                      {/* 1. Pending Visit */}
+                      {activeVisit.status === 'pending' && (
+                        user?.id === activeVisit.hostId ? (
+                          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4 text-amber-700" />
+                                  <span className="text-xs font-bold text-amber-950">
+                                    Visit Requested by {otherName}: {activeVisit.date} at {activeVisit.slotTime} ({activeVisit.timeSlot})
+                                  </span>
+                                </div>
+                                {activeVisit.message && (
+                                  <p className="text-xs text-amber-800 italic pl-6">&ldquo;{activeVisit.message}&rdquo;</p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleAcceptVisit(activeVisit.id)}
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-black text-white hover:bg-slate-800 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                  <span>Accept Visit</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRescheduleModalVisit(activeVisit);
+                                    setSuggestDate(activeVisit.date);
+                                    setSuggestSlot(activeVisit.timeSlot);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                                  <span>Suggest Changes</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCancelVisit(activeVisit.id)}
+                                  className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                                  title="Decline visit request"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-blue-700" />
+                                <span className="text-xs font-bold text-blue-950">
+                                  Visit Requested: {activeVisit.date} at {activeVisit.slotTime} ({activeVisit.timeSlot})
+                                </span>
+                              </div>
+                              <p className="text-xs text-blue-800 pl-6">
+                                Waiting for host confirmation. You will be notified once accepted.
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleCancelVisit(activeVisit.id)}
+                                className="px-3.5 py-1.5 rounded-xl border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 text-xs font-bold transition-colors cursor-pointer"
+                              >
+                                Cancel Request
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      )}
+
+                      {/* 2. Rescheduled / Suggested Visit */}
+                      {activeVisit.status === 'rescheduled' && (
+                        activeVisit.suggestedBy !== (isUserHost ? 'host' : 'seeker') ? (
+                          <div className="rounded-2xl border border-purple-200 bg-purple-50/80 p-4 space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <RotateCcw className="h-4 w-4 text-purple-700" />
+                                  <span className="text-xs font-bold text-purple-950">
+                                    {otherName} Proposed New Time: {activeVisit.suggestedDate} at {activeVisit.suggestedSlotTime} ({activeVisit.suggestedTimeSlot})
+                                  </span>
+                                </div>
+                                {activeVisit.suggestedMessage && (
+                                  <p className="text-xs text-purple-800 italic pl-6">&ldquo;{activeVisit.suggestedMessage}&rdquo;</p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleAcceptSuggestion(activeVisit.id)}
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-black text-white hover:bg-slate-800 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                  <span>Accept Proposal</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRescheduleModalVisit(activeVisit);
+                                    setSuggestDate(activeVisit.suggestedDate || activeVisit.date);
+                                    setSuggestSlot(activeVisit.suggestedTimeSlot || activeVisit.timeSlot);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                                >
+                                  <span>Counter Propose</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-slate-500" />
+                              <span className="text-xs font-medium text-slate-700">
+                                You proposed {activeVisit.suggestedDate} at {activeVisit.suggestedSlotTime} ({activeVisit.suggestedTimeSlot}) - Waiting for {otherName}&apos;s reply.
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleCancelVisit(activeVisit.id)}
+                              className="text-xs font-semibold text-rose-600 hover:underline cursor-pointer"
+                            >
+                              Cancel Visit
+                            </button>
+                          </div>
+                        )
+                      )}
+
+                      {/* 3. Confirmed Visit */}
+                      {activeVisit.status === 'confirmed' && (
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                              <span className="text-xs font-bold text-emerald-950">
+                                ✓ Confirmed Visit: {activeVisit.date} at {activeVisit.slotTime} ({activeVisit.timeSlot})
+                              </span>
+                            </div>
+                            <p className="text-xs text-emerald-800 pl-6">
+                              Both parties have confirmed this visit. Message each other in-app to coordinate entry.
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRescheduleModalVisit(activeVisit);
+                                setSuggestDate(activeVisit.date);
+                                setSuggestSlot(activeVisit.timeSlot);
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 text-xs font-semibold transition-colors cursor-pointer"
+                            >
+                              Reschedule
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCancelVisit(activeVisit.id)}
+                              className="px-3.5 py-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-end pt-1 border-t border-slate-100">
                     <button
@@ -529,6 +854,109 @@ export default function MatchedPage() {
                 {processingId === unmatchTarget.id ? 'Unmatching...' : 'Yes, Unmatch'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Suggest Changes / Reschedule Modal */}
+      {rescheduleModalVisit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setRescheduleModalVisit(null)}
+              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <RotateCcw className="h-5 w-5 text-slate-700" /> Propose New Visit Time
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Select an alternative date and time slot that fits your schedule better.
+              </p>
+            </div>
+
+            <form onSubmit={handleSendSuggestion} className="space-y-4">
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  Proposed Date
+                </label>
+                <input
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  value={suggestDate}
+                  onChange={(e) => setSuggestDate(e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  Proposed Time Slot
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'morning', label: 'Morning', time: '10:00 AM', icon: Sun },
+                    { id: 'afternoon', label: 'Afternoon', time: '02:00 PM', icon: SunMedium },
+                    { id: 'evening', label: 'Evening', time: '06:00 PM', icon: Moon },
+                  ].map((s) => {
+                    const Icon = s.icon;
+                    const isSelected = suggestSlot === s.id;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setSuggestSlot(s.id as TimeSlot)}
+                        className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-2 border-black bg-white shadow-xs font-bold text-black'
+                            : 'border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-white'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 mx-auto mb-1 text-slate-700" />
+                        <span className="text-xs block">{s.label}</span>
+                        <span className="text-[10px] text-slate-400 block">{s.time}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  Note / Reason (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={suggestMessage}
+                  onChange={(e) => setSuggestMessage(e.target.value)}
+                  placeholder="e.g., I have office meetings until 5 PM, evening works better for me..."
+                  maxLength={500}
+                  className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRescheduleModalVisit(null)}
+                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingSuggestion || !suggestDate}
+                  className="flex-1 rounded-xl bg-black py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {submittingSuggestion ? 'Sending...' : 'Send Proposal'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -10,6 +10,7 @@ import { MongoOtpRepository } from "@infrastructure/repository/MongoOtpRepositor
 import { MongoInterestRepository } from "@infrastructure/repository/MongoInterestRepository";
 import { MongoMessageRepository } from "@infrastructure/repository/MongoMessageRepository";
 import { MongoConversationRepository } from "@infrastructure/repository/MongoConversationRepository";
+import { MongoVisitRepository } from "@infrastructure/repository/MongoVisitRepository";
 
 // Services
 import { HashService } from "@infrastructure/services/HashingService";
@@ -59,6 +60,12 @@ import { UpdateInterestStatusUseCase } from "@application/use-case/interest/Upda
 import { GetReceivedInterestsUseCase } from "@application/use-case/interest/GetReceivedInterestsUseCase";
 import { GetSentInterestsUseCase } from "@application/use-case/interest/GetSentInterestsUseCase";
 
+// Visit Use Cases
+import { CreateVisitUseCase } from "@application/use-case/visit/CreateVisitUseCase";
+import { GetVisitsUseCase } from "@application/use-case/visit/GetVisitsUseCase";
+import { UpdateVisitStatusUseCase } from "@application/use-case/visit/UpdateVisitStatusUseCase";
+import { SuggestVisitUseCase } from "@application/use-case/visit/SuggestVisitUseCase";
+
 // Admin Use Cases
 import { AdminLoginUseCase } from "@application/use-case/admin/AdminLoginUseCase";
 import { GetAdminStatsUseCase } from "@application/use-case/admin/GetAdminStatsUseCase";
@@ -87,6 +94,7 @@ import { NotificationController } from "@presentation/controller/NotificationCon
 import { AdminController } from "@presentation/controller/AdminController";
 import { InterestController } from "@presentation/controller/InterestController";
 import { ChatController } from "@presentation/controller/ChatController";
+import { VisitController } from "@presentation/controller/VisitController";
 
 // Routers
 import { createAuthRouter } from "@presentation/router/AuthRouter";
@@ -98,6 +106,7 @@ import { createNotificationRouter } from "@presentation/router/NotificationRoute
 import { createAdminRouter } from "@presentation/router/AdminRouter";
 import { createInterestRouter } from "@presentation/router/InterestRouter";
 import { createChatRouter } from "@presentation/router/ChatRouter";
+import { createVisitRouter } from "@presentation/router/VisitRouter";
 
 export function setupAppDependencies(app: Express): SocketService {
     // 1. Repositories
@@ -110,6 +119,7 @@ export function setupAppDependencies(app: Express): SocketService {
     const interestrepo = new MongoInterestRepository();
     const messagerepo = new MongoMessageRepository();
     const conversationrepo = new MongoConversationRepository();
+    const visitrepo = new MongoVisitRepository();
 
     // 2. Infrastructure Services
     const hasher = new HashService();
@@ -173,6 +183,30 @@ export function setupAppDependencies(app: Express): SocketService {
     const getUnreadCountUseCase = new GetUnreadCountUseCase(messagerepo);
 
     const socketService = new SocketService(sendMessageUseCase, markMessagesAsReadUseCase);
+
+    // Visit Use Cases
+    const createVisitUseCase = new CreateVisitUseCase(
+        visitrepo,
+        userrepo,
+        notificationrepo,
+        sendMessageUseCase,
+        socketService
+    );
+    const getVisitsUseCase = new GetVisitsUseCase(visitrepo, userrepo, roomrepo);
+    const updateVisitStatusUseCase = new UpdateVisitStatusUseCase(
+        visitrepo,
+        userrepo,
+        notificationrepo,
+        sendMessageUseCase,
+        socketService
+    );
+    const suggestVisitUseCase = new SuggestVisitUseCase(
+        visitrepo,
+        userrepo,
+        notificationrepo,
+        sendMessageUseCase,
+        socketService
+    );
 
     // 4. Controllers
     const authController = new AuthController(
@@ -239,6 +273,13 @@ export function setupAppDependencies(app: Express): SocketService {
         socketService
     );
 
+    const visitController = new VisitController(
+        createVisitUseCase,
+        getVisitsUseCase,
+        updateVisitStatusUseCase,
+        suggestVisitUseCase
+    );
+
     // 5. Routers & Route Mounting
     app.use("/auth", createAuthRouter(authController));
     app.use("/users", createUserRouter(userController)); 
@@ -249,6 +290,7 @@ export function setupAppDependencies(app: Express): SocketService {
     app.use("/admin", createAdminRouter(adminController));
     app.use("/interests", createInterestRouter(interestController));
     app.use("/chat", createChatRouter(chatController));
+    app.use("/visits", createVisitRouter(visitController));
 
     return socketService;
 }

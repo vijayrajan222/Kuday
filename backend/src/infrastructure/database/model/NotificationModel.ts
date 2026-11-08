@@ -25,7 +25,7 @@ export const NotificationSchema = new mongoose.Schema(
         // Classification & Delivery
         type: {
             type: String,
-            enum: ["admin_verification", "interest_request", "system", "chat_message"],
+            enum: ["admin_verification", "interest_request", "system", "chat_message", "visit_request"],
             default: "system",
         },
         isRead: {

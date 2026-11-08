@@ -3,7 +3,7 @@ export interface NotificationEntity {
     userId: string;
     title: string;
     message: string;
-    type: "admin_verification" | "interest_request" | "system" | "chat_message";
+    type: "admin_verification" | "interest_request" | "system" | "chat_message" | "visit_request";
     isRead: boolean;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;

@@ -132,6 +132,16 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       refreshUnreadCount();
     });
 
+    newSocket.on('visit_update', (visit: { date?: string; slotTime?: string; status?: string; suggestedDate?: string; suggestedSlotTime?: string }) => {
+      if (visit?.status === 'confirmed') {
+        toast.success('Visit Confirmed! ✅', `Scheduled for ${visit.date} at ${visit.slotTime}`);
+      } else if (visit?.status === 'rescheduled') {
+        toast.info('Visit Reschedule Proposed 🔄', `Proposed: ${visit.suggestedDate} at ${visit.suggestedSlotTime}`);
+      } else if (visit?.status === 'pending') {
+        toast.info('New Visit Request 📅', `Visit requested for ${visit.date} at ${visit.slotTime}`);
+      }
+    });
+
     return () => {
       newSocket.disconnect();
       socketRef.current = null;
