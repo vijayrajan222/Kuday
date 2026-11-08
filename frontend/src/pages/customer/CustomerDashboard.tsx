@@ -12,8 +12,10 @@ import {
   X,
   Building2,
   Check,
-  ChevronDown,
-  ChevronUp,
+  SlidersHorizontal,
+  ArrowRight,
+  RotateCcw,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInterest } from '@/hooks/useInterest';
@@ -66,7 +68,15 @@ export default function CustomerDashboard() {
   // Search, filter, and sort state for potential matches
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'match' | 'priceAsc' | 'priceDesc'>('match');
-  const [showAllMatches, setShowAllMatches] = useState(false);
+  const [roomTypeFilter, setRoomTypeFilter] = useState<string>('all');
+  const [verifiedOnlyFilter, setVerifiedOnlyFilter] = useState(false);
+  const [maxPriceFilter, setMaxPriceFilter] = useState<string>('all');
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+
+  const activeDashboardFilterCount =
+    (roomTypeFilter !== 'all' ? 1 : 0) +
+    (verifiedOnlyFilter ? 1 : 0) +
+    (maxPriceFilter !== 'all' ? 1 : 0);
 
   // Connection & Interest Hook (Send, Accept, Decline)
   const {
@@ -199,6 +209,22 @@ export default function CustomerDashboard() {
       );
     }
 
+    if (roomTypeFilter !== 'all') {
+      list = list.filter((r) => r.roomType === roomTypeFilter);
+    }
+
+    if (verifiedOnlyFilter) {
+      list = list.filter((r) => Boolean(r.host?.identityVerified));
+    }
+
+    if (maxPriceFilter === 'under15k') {
+      list = list.filter((r) => r.monthlyRent <= 15000);
+    } else if (maxPriceFilter === '15k-30k') {
+      list = list.filter((r) => r.monthlyRent >= 15000 && r.monthlyRent <= 30000);
+    } else if (maxPriceFilter === 'above30k') {
+      list = list.filter((r) => r.monthlyRent > 30000);
+    }
+
     if (sortBy === 'priceAsc') {
       list.sort((a, b) => a.monthlyRent - b.monthlyRent);
     } else if (sortBy === 'priceDesc') {
@@ -208,7 +234,7 @@ export default function CustomerDashboard() {
     }
 
     return list;
-  }, [role, rooms, searchQuery, sortBy]);
+  }, [role, rooms, searchQuery, sortBy, roomTypeFilter, verifiedOnlyFilter, maxPriceFilter]);
 
   const filteredSeekers = useMemo(() => {
     if (role !== 'host') return [];
@@ -226,6 +252,22 @@ export default function CustomerDashboard() {
       );
     }
 
+    if (roomTypeFilter !== 'all') {
+      list = list.filter((s) => s.roomTypePreference === roomTypeFilter);
+    }
+
+    if (verifiedOnlyFilter) {
+      list = list.filter((s) => Boolean(s.seeker?.identityVerified));
+    }
+
+    if (maxPriceFilter === 'under15k') {
+      list = list.filter((s) => s.maxBudget <= 15000);
+    } else if (maxPriceFilter === '15k-30k') {
+      list = list.filter((s) => s.maxBudget >= 15000 && s.maxBudget <= 30000);
+    } else if (maxPriceFilter === 'above30k') {
+      list = list.filter((s) => s.maxBudget > 30000);
+    }
+
     if (sortBy === 'priceAsc') {
       list.sort((a, b) => a.maxBudget - b.maxBudget);
     } else if (sortBy === 'priceDesc') {
@@ -235,16 +277,16 @@ export default function CustomerDashboard() {
     }
 
     return list;
-  }, [role, seekers, searchQuery, sortBy]);
+  }, [role, seekers, searchQuery, sortBy, roomTypeFilter, verifiedOnlyFilter, maxPriceFilter]);
 
-  // Top 4 or all items for display in the 4-column row
+  // Top 4 items for display in the dashboard 4-column row
   const displayedRooms = useMemo(() => {
-    return showAllMatches ? filteredRooms : filteredRooms.slice(0, 4);
-  }, [filteredRooms, showAllMatches]);
+    return filteredRooms.slice(0, 4);
+  }, [filteredRooms]);
 
   const displayedSeekers = useMemo(() => {
-    return showAllMatches ? filteredSeekers : filteredSeekers.slice(0, 4);
-  }, [filteredSeekers, showAllMatches]);
+    return filteredSeekers.slice(0, 4);
+  }, [filteredSeekers]);
 
   // Recent interests items to showcase in the middle grid (up to 2)
   const recentShowcaseInterests = useMemo(() => {
@@ -465,17 +507,30 @@ export default function CustomerDashboard() {
         </div>
       </section>
 
-      {/* 4. Bottom Section: Potential Seekers / Potential Rooms (Top 3 Grid) */}
+      {/* 4. Bottom Section: Potential Seekers / Potential Rooms (Top 4 Grid + View More) */}
       <section id="potential-matches-section" className="space-y-5 pt-4 border-t border-slate-200/80">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-            {role === 'host' ? 'Potential Seekers' : 'Potential Rooms'}
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {role === 'host'
-              ? "Matches based on your space's architectural profile and house rules."
-              : 'Matches tailored to your budget, preferred location, and lifestyle.'}
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+              {role === 'host' ? 'Potential Seekers' : 'Potential Rooms'}
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {role === 'host'
+                ? "Matches based on your space's architectural profile and house rules."
+                : 'Matches tailored to your budget, preferred location, and lifestyle.'}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate(role === 'host' ? ROUTES.EXPLORE_SEEKERS : ROUTES.EXPLORE_ROOMS)
+            }
+            className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          >
+            <span>View More ({role === 'host' ? seekers.length : rooms.length})</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         {/* Search Bar & Filter Controls */}
@@ -492,6 +547,94 @@ export default function CustomerDashboard() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Filter Dropdown Popover */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsFilterDropdownOpen((prev) => !prev)}
+                className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors shadow-2xs cursor-pointer ${
+                  activeDashboardFilterCount > 0
+                    ? 'border-slate-900 bg-slate-900 text-white'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span>Filters</span>
+                {activeDashboardFilterCount > 0 && (
+                  <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-slate-900">
+                    {activeDashboardFilterCount}
+                  </span>
+                )}
+              </button>
+
+              {isFilterDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl z-20 space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span className="text-xs font-bold text-slate-900">Filter Matches</span>
+                    {activeDashboardFilterCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRoomTypeFilter('all');
+                          setVerifiedOnlyFilter(false);
+                          setMaxPriceFilter('all');
+                        }}
+                        className="text-[11px] font-semibold text-rose-600 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <RotateCcw className="h-3 w-3" /> Reset
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Space Type */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      Space Type
+                    </label>
+                    <select
+                      value={roomTypeFilter}
+                      onChange={(e) => setRoomTypeFilter(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-hidden"
+                    >
+                      <option value="all">All Types</option>
+                      <option value="private_room">Private Room</option>
+                      <option value="shared_room">Shared Room</option>
+                      <option value="entire_flat">Entire Apartment</option>
+                    </select>
+                  </div>
+
+                  {/* Rent / Budget */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      {role === 'host' ? 'Max Budget' : 'Monthly Rent'}
+                    </label>
+                    <select
+                      value={maxPriceFilter}
+                      onChange={(e) => setMaxPriceFilter(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-hidden"
+                    >
+                      <option value="all">Any Price</option>
+                      <option value="under15k">Under ₹15,000</option>
+                      <option value="15k-30k">₹15,000 - ₹30,000</option>
+                      <option value="above30k">Above ₹30,000</option>
+                    </select>
+                  </div>
+
+                  {/* Verified Only */}
+                  <label className="flex items-center gap-2 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={verifiedOnlyFilter}
+                      onChange={(e) => setVerifiedOnlyFilter(e.target.checked)}
+                      className="rounded border-slate-300 text-slate-900 focus:ring-0"
+                    />
+                    <span className="text-xs font-medium text-slate-700">Verified Profiles Only</span>
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* Sort Toggle */}
             <button
               type="button"
               onClick={() => {
@@ -499,7 +642,7 @@ export default function CustomerDashboard() {
                   prev === 'match' ? 'priceAsc' : prev === 'priceAsc' ? 'priceDesc' : 'match'
                 );
               }}
-              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
+              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
             >
               <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
               <span>
@@ -513,13 +656,56 @@ export default function CustomerDashboard() {
           </div>
         </div>
 
-        {/* Top 3 Matches Grid */}
+        {/* Active filter chips */}
+        {activeDashboardFilterCount > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span className="text-[11px] font-medium text-slate-400">Active filters:</span>
+            {roomTypeFilter !== 'all' && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700">
+                Type: {roomTypeFilter.replace('_', ' ')}
+                <button
+                  type="button"
+                  onClick={() => setRoomTypeFilter('all')}
+                  className="hover:text-slate-950"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {maxPriceFilter !== 'all' && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700">
+                Price: {maxPriceFilter}
+                <button
+                  type="button"
+                  onClick={() => setMaxPriceFilter('all')}
+                  className="hover:text-slate-950"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {verifiedOnlyFilter && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700">
+                Verified Only
+                <button
+                  type="button"
+                  onClick={() => setVerifiedOnlyFilter(false)}
+                  className="hover:text-slate-950"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Top Matches Grid */}
         {loadingMatches ? (
           <div className="py-12 text-center text-xs text-slate-400">Loading matches...</div>
         ) : role === 'seeker' ? (
           /* SEEKER VIEW: Room Listings Grid */
           filteredRooms.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {displayedRooms.map((room) => {
                   const hostUserId = room.hostId || room.host?.id || '';
@@ -560,18 +746,13 @@ export default function CustomerDashboard() {
                 <div className="text-center pt-2">
                   <button
                     type="button"
-                    onClick={() => setShowAllMatches((prev) => !prev)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-900 hover:underline"
+                    onClick={() => navigate(ROUTES.EXPLORE_ROOMS)}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white hover:bg-slate-50 px-5 py-2.5 text-xs font-bold text-slate-900 shadow-2xs transition-colors cursor-pointer"
                   >
-                    {showAllMatches ? (
-                      <>
-                        Show Top 4 Matches <ChevronUp className="h-4 w-4" />
-                      </>
-                    ) : (
-                      <>
-                        Show all ({filteredRooms.length}) rooms <ChevronDown className="h-4 w-4" />
-                      </>
-                    )}
+                    <span>
+                      Explore all {filteredRooms.length} available rooms with full filters &amp; pagination
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
               )}
@@ -584,7 +765,7 @@ export default function CustomerDashboard() {
         ) : (
           /* HOST VIEW: Seeker Preferences Grid */
           filteredSeekers.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {displayedSeekers.map((seeker) => {
                   const seekerUserId = seeker.userId || seeker.seeker?.id;
@@ -631,18 +812,13 @@ export default function CustomerDashboard() {
                 <div className="text-center pt-2">
                   <button
                     type="button"
-                    onClick={() => setShowAllMatches((prev) => !prev)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-900 hover:underline"
+                    onClick={() => navigate(ROUTES.EXPLORE_SEEKERS)}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white hover:bg-slate-50 px-5 py-2.5 text-xs font-bold text-slate-900 shadow-2xs transition-colors cursor-pointer"
                   >
-                    {showAllMatches ? (
-                      <>
-                        Show Top 4 Matches <ChevronUp className="h-4 w-4" />
-                      </>
-                    ) : (
-                      <>
-                        Show all ({filteredSeekers.length}) seekers <ChevronDown className="h-4 w-4" />
-                      </>
-                    )}
+                    <span>
+                      Explore all {filteredSeekers.length} available seekers with full filters &amp; pagination
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
               )}
@@ -752,13 +928,27 @@ export default function CustomerDashboard() {
                           </div>
                         )}
 
-                        {isConnected && item.sender?.email && (
-                          <a
-                            href={`mailto:${item.sender.email}`}
-                            className="text-[11px] font-semibold text-emerald-700 hover:underline block pt-0.5"
+                        {isConnected && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAllInterestsModal(false);
+                              if (item.sender?.id) {
+                                navigate(ROUTES.MESSAGES, {
+                                  state: {
+                                    recipientId: item.sender.id,
+                                    recipientName: senderName,
+                                  },
+                                });
+                              } else {
+                                navigate(ROUTES.MESSAGES);
+                              }
+                            }}
+                            className="text-[11px] font-semibold text-slate-900 hover:underline flex items-center gap-1 pt-0.5"
                           >
-                            Connect: {item.sender.email}
-                          </a>
+                            <MessageSquare className="h-3 w-3 text-slate-700" />
+                            Message in App
+                          </button>
                         )}
                       </div>
                     );
@@ -804,13 +994,27 @@ export default function CustomerDashboard() {
                         <p className="text-[10px] text-slate-400">
                           Sent for {item.targetType === 'room' ? 'Room Listing' : 'Roommate Profile'}
                         </p>
-                        {isConnected && item.receiver?.email && (
-                          <a
-                            href={`mailto:${item.receiver.email}`}
-                            className="text-[11px] font-semibold text-emerald-700 hover:underline block pt-0.5"
+                        {isConnected && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAllInterestsModal(false);
+                              if (item.receiver?.id) {
+                                navigate(ROUTES.MESSAGES, {
+                                  state: {
+                                    recipientId: item.receiver.id,
+                                    recipientName: receiverName,
+                                  },
+                                });
+                              } else {
+                                navigate(ROUTES.MESSAGES);
+                              }
+                            }}
+                            className="text-[11px] font-semibold text-slate-900 hover:underline flex items-center gap-1 pt-0.5"
                           >
-                            Email: {item.receiver.email}
-                          </a>
+                            <MessageSquare className="h-3 w-3 text-slate-700" />
+                            Message in App
+                          </button>
                         )}
                       </div>
                     );

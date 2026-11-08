@@ -6,7 +6,6 @@ import {
   Calendar,
   MoreVertical,
   X,
-  Mail,
   UserX,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -444,29 +443,32 @@ export default function MatchedPage() {
                       </span>
                     </div>
 
-                    {otherUser?.email && (
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-slate-500">Email:</span>
-                        <a
-                          href={`mailto:${otherUser.email}`}
-                          className="font-bold text-emerald-700 hover:underline flex items-center gap-1"
-                        >
-                          <Mail className="h-3 w-3" />
-                          {otherUser.email}
-                        </a>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-slate-500">In-App Chat:</span>
+                      <span className="font-semibold text-emerald-600 flex items-center gap-1">
+                        <MessageSquare className="h-3 w-3" />
+                        Active &amp; Connected
+                      </span>
+                    </div>
                   </div>
 
-                  {otherUser?.email && (
-                    <a
-                      href={`mailto:${otherUser.email}`}
-                      className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-black py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-colors"
-                    >
-                      <Mail className="h-3.5 w-3.5" />
-                      <span>Contact via Email</span>
-                    </a>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedMatch(null);
+                      if (otherUser?.id) {
+                        navigate(ROUTES.MESSAGES, {
+                          state: { recipientId: otherUser.id, recipientName: otherName },
+                        });
+                      } else {
+                        navigate(ROUTES.MESSAGES);
+                      }
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-black py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-colors shadow-2xs"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    <span>Open Messages</span>
+                  </button>
 
                   <button
                     type="button"

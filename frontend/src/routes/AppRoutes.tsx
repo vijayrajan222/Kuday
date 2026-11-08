@@ -21,6 +21,7 @@ const ForgotPassword = lazy(() => import('@/pages/customer/ForgotPassword'));
 const VerifyResetOtp = lazy(() => import('@/pages/customer/VerifyResetOtp'));
 const ResetPassword = lazy(() => import('@/pages/customer/ResetPassword'));
 const CustomerDashboard = lazy(() => import('@/pages/customer/CustomerDashboard'));
+const ExplorePage = lazy(() => import('@/pages/customer/ExplorePage'));
 const MatchedPage = lazy(() => import('@/pages/customer/MatchedPage'));
 const MessagesPage = lazy(() => import('@/pages/customer/MessagesPage'));
 const RoomDetailsPage = lazy(() => import('@/pages/customer/RoomDetailsPage'));
@@ -74,6 +75,9 @@ export function AppRoutes() {
         <Route element={<AuthProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.DASHBOARD} element={<CustomerDashboard />} />
+            <Route path={ROUTES.EXPLORE} element={<ExplorePage />} />
+            <Route path={ROUTES.EXPLORE_ROOMS} element={<ExplorePage defaultTab="rooms" />} />
+            <Route path={ROUTES.EXPLORE_SEEKERS} element={<ExplorePage defaultTab="seekers" />} />
             <Route path={ROUTES.MATCHED} element={<MatchedPage />} />
             <Route path={ROUTES.MESSAGES} element={<MessagesPage />} />
             <Route path={ROUTES.ROOM_DETAILS} element={<RoomDetailsPage />} />
