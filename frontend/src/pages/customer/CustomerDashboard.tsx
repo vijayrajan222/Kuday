@@ -279,20 +279,46 @@ export default function CustomerDashboard() {
                 </button>
               </span>
             ) : role === 'host' ? (
-              <span>
-                Your listing for{' '}
-                <strong className="text-slate-900">
-                  &quot;{myRoom?.title || 'Verified Property'}&quot;
-                </strong>{' '}
-                is active and trending.
-              </span>
-            ) : (
+              myRoom ? (
+                <span>
+                  Your listing for{' '}
+                  <strong className="text-slate-900">
+                    &quot;{myRoom.title || myRoom.roomType.replace(/_/g, ' ')}&quot;
+                  </strong>{' '}
+                  is {myRoom.isActive === false ? 'currently inactive.' : 'active and visible.'}
+                </span>
+              ) : (
+                <span>
+                  You have not posted any room listing yet.{' '}
+                  <button
+                    type="button"
+                    onClick={() => navigate(ROUTES.PROFILE, { state: { openAddListing: true } })}
+                    className="font-bold underline text-slate-900 hover:text-black ml-1"
+                  >
+                    Add a listing
+                  </button>{' '}
+                  to connect with seekers.
+                </span>
+              )
+            ) : myPreference ? (
               <span>
                 Your roommate preference for{' '}
                 <strong className="text-slate-900">
-                  &quot;{myPreference?.preferredLocation || 'Verified Search'}&quot;
+                  &quot;{myPreference.preferredLocation}&quot;
                 </strong>{' '}
-                is active and verified.
+                is {myPreference.isActive === false ? 'currently inactive.' : 'active and verified.'}
+              </span>
+            ) : (
+              <span>
+                You have not set your search preferences yet.{' '}
+                <button
+                  type="button"
+                  onClick={() => navigate(ROUTES.PROFILE, { state: { openEditSeeker: true } })}
+                  className="font-bold underline text-slate-900 hover:text-black ml-1"
+                >
+                  Add preferences
+                </button>{' '}
+                to get matched with hosts.
               </span>
             )}
           </span>
@@ -387,25 +413,53 @@ export default function CustomerDashboard() {
         {/* Right Column: Active Listing / Preference Card */}
         <div className="space-y-2">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-            {role === 'host' ? 'Active Listing' : 'Active Preference'}
+            {role === 'host'
+              ? myRoom ? 'Active Listing' : 'Listing Status'
+              : myPreference ? 'Active Preference' : 'Preference Status'}
           </span>
-          <ActiveListingCard
-            title={
-              role === 'host'
-                ? myRoom?.title || myRoom?.roomType?.replace('_', ' ') || 'Property Listing'
-                : myPreference?.roomTypePreference?.replace('_', ' ') || 'Roommate Preference'
-            }
-            subtitle={
-              role === 'host'
-                ? `${myRoom?.location || 'Indiranagar, Bangalore'} • ₹${myRoom?.monthlyRent || '45,000'}/mo`
-                : `${myPreference?.preferredLocation || 'Preferred Location'} • Max ₹${myPreference?.maxBudget || '0'}/mo`
-            }
-            imageUrl={role === 'host' ? myRoom?.images?.[0] : user?.selfieUrl}
-            fallbackInitial={firstName || user?.email || (role === 'host' ? 'H' : 'S')}
-            badgeText="Active"
-            buttonText={role === 'host' ? 'Manage Listing' : 'Manage Preferences'}
-            onManage={() => navigate(ROUTES.PROFILE)}
-          />
+          {role === 'host' ? (
+            myRoom ? (
+              <ActiveListingCard
+                title={myRoom.title || myRoom.roomType.replace(/_/g, ' ')}
+                subtitle={`${myRoom.location} • ₹${myRoom.monthlyRent.toLocaleString('en-IN')}/mo`}
+                imageUrl={myRoom.images?.[0]}
+                fallbackInitial={firstName || user?.email || 'H'}
+                badgeText={myRoom.isActive === false ? 'Inactive' : 'Active'}
+                isActive={myRoom.isActive !== false}
+                buttonText="Manage Listing"
+                onManage={() => navigate(ROUTES.PROFILE)}
+              />
+            ) : (
+              <ActiveListingCard
+                title="No Active Listing"
+                subtitle="You haven't listed any room yet."
+                badgeText="Inactive"
+                isActive={false}
+                buttonText="Add Listing"
+                onManage={() => navigate(ROUTES.PROFILE, { state: { openAddListing: true } })}
+              />
+            )
+          ) : myPreference ? (
+            <ActiveListingCard
+              title={myPreference.roomTypePreference.replace(/_/g, ' ')}
+              subtitle={`${myPreference.preferredLocation} • Max ₹${myPreference.maxBudget.toLocaleString('en-IN')}/mo`}
+              imageUrl={user?.selfieUrl}
+              fallbackInitial={firstName || user?.email || 'S'}
+              badgeText={myPreference.isActive === false ? 'Inactive' : 'Active'}
+              isActive={myPreference.isActive !== false}
+              buttonText="Manage Preferences"
+              onManage={() => navigate(ROUTES.PROFILE)}
+            />
+          ) : (
+            <ActiveListingCard
+              title="No Active Preference"
+              subtitle="Set your room preferences to match with hosts."
+              badgeText="Inactive"
+              isActive={false}
+              buttonText="Add Preferences"
+              onManage={() => navigate(ROUTES.PROFILE, { state: { openEditSeeker: true } })}
+            />
+          )}
         </div>
       </section>
 

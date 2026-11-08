@@ -61,6 +61,7 @@ export interface RoomEntity {
   amenities: string[];
   images: string[];
   description?: string;
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
 
@@ -99,6 +100,7 @@ export interface SeekerPreferenceEntity {
   maxBudget: number;
   roomTypePreference: string;
   requiredAmenities: string[];
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { onboardingService } from '@/services/onboardingService';
 import { Button } from '@/components/ui/button';
@@ -481,6 +482,17 @@ export default function ProfilePage() {
     }
     setIsEditSeekerOpen(true);
   };
+
+  const location = useLocation();
+  useEffect(() => {
+    if (!loading) {
+      if (location.state?.openAddListing || location.state?.openEditRoom) {
+        openEditRoom();
+      } else if (location.state?.openEditSeeker) {
+        openEditSeeker();
+      }
+    }
+  }, [loading, location.state]);
 
   const handleSeekerUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
