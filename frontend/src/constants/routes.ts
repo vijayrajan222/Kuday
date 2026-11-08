@@ -9,6 +9,7 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   MATCHED: '/matched',
   ROOM_DETAILS: '/rooms/:roomId',
+  USER_PROFILE: '/users/:userId',
   PROFILE: '/profile',
   ONBOARDING_PROFILE: '/onboarding/profile',
   ADMIN_LOGIN: '/admin/login',

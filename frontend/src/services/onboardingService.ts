@@ -85,6 +85,11 @@ export const onboardingService = {
     return data.data;
   },
 
+  async getPublicProfile(userId: string, viewerId?: string) {
+    const { data } = await api.get(API_ENDPOINTS.USER.GET_PUBLIC_PROFILE(userId, viewerId));
+    return data.data;
+  },
+
   async changePassword(userId: string, payload: { currentPassword?: string; newPassword: string; confirmPassword: string }) {
     const { data } = await api.patch(API_ENDPOINTS.USER.CHANGE_PASSWORD(userId), payload);
     return data;

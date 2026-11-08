@@ -5,6 +5,10 @@ import type { IUserController } from "@presentation/interface/IUserController";
 export function createUserRouter(userController: IUserController): Router {
     const router = Router();
 
+    router.get("/:userId/public-profile", async (req: Request, res: Response) => {
+        return await userController.getPublicProfile(req, res);
+    });
+
     router.get("/:userId", async (req: Request, res: Response) => {
         return await userController.getUserProfile(req, res);
     });

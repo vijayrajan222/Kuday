@@ -4,6 +4,7 @@ import type { IUpdateProfileUseCase } from "@application/interfaces/use-case/use
 import type { IUploadIdentityUseCase } from "@application/interfaces/use-case/user/IUploadIdentityUseCase";
 import type { IUpdateRoleUseCase } from "@application/interfaces/use-case/user/IUpdateRoleUseCase";
 import type { IGetUserProfileUseCase } from "@application/interfaces/use-case/user/IGetUserProfileUseCase";
+import type { IGetUserPublicProfileUseCase } from "@application/interfaces/use-case/user/IGetUserPublicProfileUseCase";
 import type { IChangePasswordUseCase } from "@application/interfaces/use-case/user/IChangePasswordUseCase";
 import type { IUserController } from "@presentation/interface/IUserController";
 import { UpdateProfileSchema } from "@presentation/utils/validators/zod/UpdateProfileSchema";
@@ -17,7 +18,8 @@ export class UserController implements IUserController {
         private uploadIdentityUseCase: IUploadIdentityUseCase,
         private updateRoleUseCase: IUpdateRoleUseCase,
         private getUserProfileUseCase: IGetUserProfileUseCase,
-        private changePasswordUseCase: IChangePasswordUseCase
+        private changePasswordUseCase: IChangePasswordUseCase,
+        private getUserPublicProfileUseCase?: IGetUserPublicProfileUseCase
     ) {}
 
     async updateProfile(req: Request, res: Response): Promise<void> {
@@ -110,6 +112,46 @@ export class UserController implements IUserController {
         } catch (error: unknown) {
             res.status(HttpStatusCodes.BAD_REQUEST).json(
                 ApiResponse.error(error instanceof Error ? error.message : "Failed to fetch user profile")
+            );
+        }
+    }
+
+    async getPublicProfile(req: Request, res: Response): Promise<void> {
+        try {
+            const userId = req.params.userId as string;
+            const viewerId = (req.query.viewerId || req.query.userId) as string | undefined;
+
+            if (!this.getUserPublicProfileUseCase) {
+                const user = await this.getUserProfileUseCase.execute(userId);
+                if (!user) {
+                    res.status(HttpStatusCodes.NOT_FOUND).json(
+                        ApiResponse.error("User not found", HttpStatusCodes.NOT_FOUND)
+                    );
+                    return;
+                }
+                res.status(HttpStatusCodes.OK).json(
+                    ApiResponse.success(
+                        { user, lifestyle: null, room: null, seekerPreference: null, matchPercentage: 85 },
+                        "User profile fetched successfully"
+                    )
+                );
+                return;
+            }
+
+            const profile = await this.getUserPublicProfileUseCase.execute(userId, viewerId);
+            if (!profile) {
+                res.status(HttpStatusCodes.NOT_FOUND).json(
+                    ApiResponse.error("User not found", HttpStatusCodes.NOT_FOUND)
+                );
+                return;
+            }
+
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(profile, "User public profile fetched successfully")
+            );
+        } catch (error: unknown) {
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to fetch user public profile")
             );
         }
     }

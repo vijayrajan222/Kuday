@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useInterest } from '@/hooks/useInterest';
 import { ROUTES } from '@/constants/routes';
+import { deduplicateAmenities } from '@/utils/amenitiesHelper';
 import { onboardingService } from '@/services/onboardingService';
 import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.types';
 
@@ -356,15 +357,14 @@ export default function CustomerDashboard() {
                         }
                       }}
                       onViewProfile={() => {
-                        if (role === 'host') {
-                          // Find matching seeker if exists
-                          const found = seekers.find((s) => s.userId === person?.id);
-                          if (found) setSelectedSeeker(found);
-                          else setShowAllInterestsModal(true);
-                        } else {
+                        if (person?.id) {
+                          navigate(ROUTES.USER_PROFILE.replace(':userId', person.id));
+                        } else if (role === 'seeker') {
                           const found = rooms.find((r) => r.id === item.targetId);
                           if (found) navigate(ROUTES.ROOM_DETAILS.replace(':roomId', found.id));
                           else setShowAllInterestsModal(true);
+                        } else {
+                          setShowAllInterestsModal(true);
                         }
                       }}
                     />
@@ -552,7 +552,13 @@ export default function CustomerDashboard() {
                       isVerified={Boolean(seeker.seeker?.identityVerified)}
                       status={interestStatus}
                       isProcessing={processingId === seeker.id}
-                      onDetails={() => setSelectedSeeker(seeker)}
+                      onDetails={() => {
+                        if (seekerUserId) {
+                          navigate(ROUTES.USER_PROFILE.replace(':userId', seekerUserId));
+                        } else {
+                          setSelectedSeeker(seeker);
+                        }
+                      }}
                       onAction={() => {
                         if (interestStatus === 'received_pending') {
                           setShowAllInterestsModal(true);
@@ -836,13 +842,13 @@ export default function CustomerDashboard() {
               <div className="space-y-2">
                 <span className="text-xs font-bold text-slate-700 block">Room Amenities Included</span>
                 <div className="flex flex-wrap gap-2">
-                  {selectedRoom.amenities.map((amenity, idx) => (
+                  {deduplicateAmenities(selectedRoom.amenities).map((amenity) => (
                     <span
-                      key={idx}
+                      key={amenity.id}
                       className="rounded-xl bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1 text-xs font-semibold flex items-center gap-1"
                     >
                       <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      {amenity.replace('_', ' ')}
+                      {amenity.label}
                     </span>
                   ))}
                 </div>

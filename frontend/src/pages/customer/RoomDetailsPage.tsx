@@ -17,12 +17,12 @@ import {
   Utensils,
   Laptop,
   Wine,
-  Building,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInterest } from '@/hooks/useInterest';
 import { onboardingService } from '@/services/onboardingService';
 import { ROUTES } from '@/constants/routes';
+import { deduplicateAmenities } from '@/utils/amenitiesHelper';
 import type { RoomEntity } from '@/types/onboarding.types';
 
 export default function RoomDetailsPage() {
@@ -112,6 +112,14 @@ export default function RoomDetailsPage() {
     }
     return list;
   }, [room?.images]);
+
+  const normalizedAmenities = useMemo(() => {
+    const raw =
+      room?.amenities && room.amenities.length > 0
+        ? room.amenities
+        : ['wifi', 'laundry', 'kitchen', 'gym', 'workspace', 'parking'];
+    return deduplicateAmenities(raw);
+  }, [room?.amenities]);
 
   if (loading) {
     return (
@@ -251,40 +259,28 @@ export default function RoomDetailsPage() {
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-slate-900">Amenities</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 text-center space-y-2">
-                <Wifi className="h-5 w-5 mx-auto text-slate-700" />
-                <span className="text-xs font-semibold text-slate-800 block">High-speed WiFi</span>
-              </div>
-              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 text-center space-y-2">
-                <Dog className="h-5 w-5 mx-auto text-slate-700" />
-                <span className="text-xs font-semibold text-slate-800 block">Pet Friendly</span>
-              </div>
-              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 text-center space-y-2">
-                <Dumbbell className="h-5 w-5 mx-auto text-slate-700" />
-                <span className="text-xs font-semibold text-slate-800 block">Fitness / Gym</span>
-              </div>
-              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 text-center space-y-2">
-                <Building className="h-5 w-5 mx-auto text-slate-700" />
-                <span className="text-xs font-semibold text-slate-800 block">Elevator / Concierge</span>
-              </div>
-              {room.amenities?.map((amenity, idx) => (
+              {normalizedAmenities.map((amenity) => (
                 <div
-                  key={idx}
+                  key={amenity.id}
                   className="rounded-2xl border border-slate-200/80 bg-white p-4 text-center space-y-2 shadow-2xs"
                 >
-                  {amenity.includes('wifi') ? (
+                  {amenity.iconName === 'wifi' ? (
                     <Wifi className="h-5 w-5 mx-auto text-emerald-600" />
-                  ) : amenity.includes('parking') ? (
+                  ) : amenity.iconName === 'gym' ? (
+                    <Dumbbell className="h-5 w-5 mx-auto text-emerald-600" />
+                  ) : amenity.iconName === 'pet' ? (
+                    <Dog className="h-5 w-5 mx-auto text-emerald-600" />
+                  ) : amenity.iconName === 'parking' ? (
                     <Car className="h-5 w-5 mx-auto text-emerald-600" />
-                  ) : amenity.includes('kitchen') ? (
+                  ) : amenity.iconName === 'kitchen' ? (
                     <Utensils className="h-5 w-5 mx-auto text-emerald-600" />
-                  ) : amenity.includes('workspace') ? (
+                  ) : amenity.iconName === 'workspace' ? (
                     <Laptop className="h-5 w-5 mx-auto text-emerald-600" />
                   ) : (
                     <CheckCircle2 className="h-5 w-5 mx-auto text-emerald-600" />
                   )}
                   <span className="text-xs font-semibold text-slate-800 capitalize block">
-                    {amenity.replace('_', ' ')}
+                    {amenity.label}
                   </span>
                 </div>
               ))}
@@ -369,8 +365,12 @@ export default function RoomDetailsPage() {
         <div className="sticky top-24 space-y-4">
           <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xs space-y-6">
             {/* Host Profile Header */}
-            <div className="text-center space-y-3">
-              <div className="relative mx-auto h-20 w-20">
+            <div
+              onClick={() => hostUserId && navigate(ROUTES.USER_PROFILE.replace(':userId', hostUserId))}
+              className="text-center space-y-3 cursor-pointer group"
+              title="Click to view full host profile"
+            >
+              <div className="relative mx-auto h-20 w-20 group-hover:scale-105 transition-transform">
                 {room.host?.selfieUrl ? (
                   <img
                     src={room.host.selfieUrl}
@@ -393,7 +393,7 @@ export default function RoomDetailsPage() {
               </div>
 
               <div>
-                <h3 className="font-bold text-slate-900 text-base">{hostName}</h3>
+                <h3 className="font-bold text-slate-900 text-base group-hover:underline">{hostName}</h3>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mt-0.5">
                   Host • {room.host?.occupation || 'Verified Host'}
                 </span>
@@ -482,6 +482,14 @@ export default function RoomDetailsPage() {
                   <span>{processingId === room.id ? 'Sending...' : 'Send Interest'}</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => hostUserId && navigate(ROUTES.USER_PROFILE.replace(':userId', hostUserId))}
+                className="w-full text-center text-[11px] font-bold uppercase tracking-wider text-slate-700 hover:text-black hover:underline transition-colors block py-0.5"
+              >
+                VIEW HOST PROFILE
+              </button>
 
               <button
                 type="button"

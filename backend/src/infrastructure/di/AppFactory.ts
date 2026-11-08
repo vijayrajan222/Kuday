@@ -31,6 +31,7 @@ import { UpdateProfileUseCase } from "@application/use-case/user/UpdateProfileUs
 import { UpdateRoleUseCase } from "@application/use-case/user/UpdateRoleUseCase";
 import { UploadIdentityUseCase } from "@application/use-case/user/UploadIdentityUseCase";
 import { GetUserProfileUseCase } from "@application/use-case/user/GetUserProfileUseCase";
+import { GetUserPublicProfileUseCase } from "@application/use-case/user/GetUserPublicProfileUseCase";
 import { ChangePasswordUseCase } from "@application/use-case/user/ChangePasswordUseCase";
 
 // Lifestyle Use Cases
@@ -114,6 +115,12 @@ export function setupAppDependencies(app: Express): void {
     const updateRoleUseCase = new UpdateRoleUseCase(userrepo, roomrepo, seekerrepo);
     const uploadIdentityUseCase = new UploadIdentityUseCase(userrepo, cloudinaryService, notificationrepo);
     const getUserProfileUseCase = new GetUserProfileUseCase(userrepo);
+    const getUserPublicProfileUseCase = new GetUserPublicProfileUseCase(
+        userrepo,
+        lifestylerepo,
+        roomrepo,
+        seekerrepo
+    );
     const changePasswordUseCase = new ChangePasswordUseCase(userrepo, hasher);
 
     const createLifestyleUseCase = new CreateLifestyleUseCase(lifestylerepo, userrepo);
@@ -158,7 +165,8 @@ export function setupAppDependencies(app: Express): void {
         uploadIdentityUseCase,
         updateRoleUseCase,
         getUserProfileUseCase,
-        changePasswordUseCase
+        changePasswordUseCase,
+        getUserPublicProfileUseCase
     );
 
     const lifestyleController = new LifestyleController(

@@ -17,6 +17,8 @@ export const API_ENDPOINTS = {
     UPLOAD_IDENTITY: (userId: string) => `/users/${userId}/identity`,
     CHANGE_PASSWORD: (userId: string) => `/users/${userId}/change-password`,
     GET_USER: (userId: string) => `/users/${userId}`,
+    GET_PUBLIC_PROFILE: (userId: string, viewerId?: string) =>
+      viewerId ? `/users/${userId}/public-profile?viewerId=${viewerId}` : `/users/${userId}/public-profile`,
   },
   LIFESTYLE: {
     SAVE: '/lifestyles',
