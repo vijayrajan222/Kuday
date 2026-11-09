@@ -77,8 +77,8 @@ export function AppRoutes() {
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.DASHBOARD} element={<CustomerDashboard />} />
             <Route path={ROUTES.EXPLORE} element={<ExplorePage />} />
-            <Route path={ROUTES.EXPLORE_ROOMS} element={<ExplorePage defaultTab="rooms" />} />
-            <Route path={ROUTES.EXPLORE_SEEKERS} element={<ExplorePage defaultTab="seekers" />} />
+            <Route path={ROUTES.EXPLORE_ROOMS} element={<ExplorePage />} />
+            <Route path={ROUTES.EXPLORE_SEEKERS} element={<ExplorePage />} />
             <Route path={ROUTES.MATCHED} element={<MatchedPage />} />
             <Route path={ROUTES.SCHEDULE_VISIT} element={<ScheduleVisitPage />} />
             <Route path={ROUTES.MESSAGES} element={<MessagesPage />} />
