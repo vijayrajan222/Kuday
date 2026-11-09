@@ -1,30 +1,36 @@
 import mongoose, { type ClientSession } from "mongoose";
-import type { ISubscriptionRepository } from "@application/interfaces/repository/ISubscriptionRepository";
-import type { IPlanRepository } from "@application/interfaces/repository/IPlanRepository";
-import type { IPaymentRepository } from "@application/interfaces/repository/IPaymentRepository";
-import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
-import type { IWalletService } from "@application/interfaces/services/IWalletService";
-import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import type { ISubscriptionRepository } from "@application/interfaces/repository/ISubscriptionRepository.js";
+import type { IPlanRepository } from "@application/interfaces/repository/IPlanRepository.js";
+import type { IPaymentRepository } from "@application/interfaces/repository/IPaymentRepository.js";
+import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
+import type { IWalletService } from "@application/interfaces/services/IWalletService.js";
+import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity.js";
+import { AppError } from "@application/errors/AppError.js";
+import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes.js";
 
-// Full refund window: 3 days grace period
-export const FULL_REFUND_WINDOW_DAYS = 3;
+// Refund window: 3 days grace period (configurable via env, default 3)
+export const REFUND_WINDOW_DAYS = Number(process.env.REFUND_WINDOW_DAYS) || 3;
+export const FULL_REFUND_WINDOW_DAYS = REFUND_WINDOW_DAYS; // Alias for backwards compatibility
 
-export interface CancelSubscriptionInput {
+export interface RequestRefundInput {
     userId: string;
     subscriptionId: string;
-    cancellationReason?: string | undefined;
+    reason?: string | undefined;
 }
 
-export interface CancelSubscriptionOutput {
+// Alias for backwards compatibility
+export type CancelSubscriptionInput = RequestRefundInput;
+
+export interface RequestRefundOutput {
     subscription: SubscriptionEntity;
     refundAmount: number; // in paise
     isFullRefund: boolean;
     refundStatus: string;
 }
 
-export class CancelSubscriptionUseCase {
+export type CancelSubscriptionOutput = RequestRefundOutput;
+
+export class RequestRefundUseCase {
     constructor(
         private readonly subRepo: ISubscriptionRepository,
         private readonly planRepo: IPlanRepository,
@@ -33,8 +39,8 @@ export class CancelSubscriptionUseCase {
         private readonly walletService: IWalletService
     ) {}
 
-    async execute(input: CancelSubscriptionInput): Promise<CancelSubscriptionOutput> {
-        const { userId, subscriptionId } = input;
+    async execute(input: RequestRefundInput): Promise<RequestRefundOutput> {
+        const { userId, subscriptionId, reason } = input;
 
         // 1. Fetch Subscription
         const sub = await this.subRepo.findById(subscriptionId);
@@ -42,25 +48,50 @@ export class CancelSubscriptionUseCase {
             throw new AppError("Subscription not found", HttpStatusCodes.NOT_FOUND);
         }
         if (sub.userId !== userId) {
-            throw new AppError("Unauthorized cancellation request", HttpStatusCodes.FORBIDDEN);
+            throw new AppError("Unauthorized refund request", HttpStatusCodes.FORBIDDEN);
         }
 
-        // 2. Edge Case: Double Cancel
-        if (sub.status === "cancelled") {
-            throw new AppError("Subscription has already been cancelled", HttpStatusCodes.BAD_REQUEST);
+        // 2. Double Refund / Already Cancelled Defense
+        if (sub.status === "refunded" || sub.status === "cancelled") {
+            throw new AppError("Subscription has already been refunded", HttpStatusCodes.BAD_REQUEST);
         }
 
-        // 3. Edge Case: Cancel Expired Subscription
+        // 3. Expiry Defense
         const now = new Date();
-        if (sub.status === "expired" || (sub.endDate && sub.endDate <= now)) {
-            throw new AppError("Subscription has already expired and cannot be cancelled", HttpStatusCodes.BAD_REQUEST);
+        if (sub.status === "expired" || (sub.endDate && new Date(sub.endDate) <= now)) {
+            throw new AppError("Subscription has already expired and cannot be refunded", HttpStatusCodes.BAD_REQUEST);
         }
 
         if (sub.status !== "active") {
-            throw new AppError(`Cannot cancel subscription in '${sub.status}' state`, HttpStatusCodes.BAD_REQUEST);
+            throw new AppError(`Cannot refund subscription in '${sub.status}' state`, HttpStatusCodes.BAD_REQUEST);
         }
 
-        // 4. Fetch Associated Plan & Payment to determine paid amount
+        // 4. Rule 7 Condition A: benefitsUsedAt must be null
+        if (sub.benefitsUsedAt !== null && sub.benefitsUsedAt !== undefined) {
+            throw new AppError(
+                "Refund is not permitted because premium benefits have already been used.",
+                HttpStatusCodes.BAD_REQUEST
+            );
+        }
+
+        // 5. Rule 7 Condition B: now < purchasedAt + REFUND_WINDOW_DAYS (default 3 days)
+        const purchasedAt = sub.purchasedAt
+            ? new Date(sub.purchasedAt)
+            : sub.startDate
+            ? new Date(sub.startDate)
+            : new Date(sub.createdAt || now);
+
+        const refundWindowMs = REFUND_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+        const elapsedMs = Math.max(0, now.getTime() - purchasedAt.getTime());
+
+        if (elapsedMs > refundWindowMs) {
+            throw new AppError(
+                `Refund window has expired. Premium subscriptions can only be refunded within ${REFUND_WINDOW_DAYS} days of purchase.`,
+                HttpStatusCodes.BAD_REQUEST
+            );
+        }
+
+        // 6. Fetch Paid Amount (Capped at amount paid)
         const plan = await this.planRepo.findById(sub.planId);
         if (!plan) {
             throw new AppError("Associated plan not found", HttpStatusCodes.NOT_FOUND);
@@ -73,73 +104,47 @@ export class CancelSubscriptionUseCase {
                 paidAmount = payment.amount;
             }
         }
-
-        // 5. Calculate Prorated Refund Amount (Integer Paise)
-        const startDate = sub.startDate ? new Date(sub.startDate) : new Date(sub.createdAt || now);
-        const endDate = sub.endDate ? new Date(sub.endDate) : new Date(startDate.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
-
-        const totalDurationMs = Math.max(1, endDate.getTime() - startDate.getTime());
-        const elapsedMs = Math.max(0, now.getTime() - startDate.getTime());
-        const remainingMs = Math.max(0, endDate.getTime() - now.getTime());
-
-        const fullRefundWindowMs = FULL_REFUND_WINDOW_DAYS * 24 * 60 * 60 * 1000;
-        let refundAmount = 0;
-        let isFullRefund = false;
-
-        // Rule: Full refund within [X] days (3 days)
-        if (elapsedMs <= fullRefundWindowMs) {
-            refundAmount = paidAmount;
-            isFullRefund = true;
-        } else if (remainingMs > 0) {
-            // Prorated by unused days: (remaining / total) * paidAmount
-            const prorated = Math.floor((remainingMs / totalDurationMs) * paidAmount);
-            // Cap at amount paid and non-negative
-            refundAmount = Math.min(paidAmount, Math.max(0, prorated));
-        }
+        const refundAmount = paidAmount; // 100% full refund within window
 
         console.log(
-            `[Subscription] Cancellation requested for sub ${sub.id}: Total: ${paidAmount} paise, Refund: ${refundAmount} paise (Full: ${isFullRefund})`
+            `[Refund] Requesting refund for sub ${subscriptionId} (User: ${userId}). Amount: ${refundAmount} paise (₹${refundAmount / 100})`
         );
 
-        // 6. Atomic Execution inside one MongoDB transaction
+        // 7. Atomic Execution inside one MongoDB transaction:
+        // status -> refunded, user premium ends immediately, ledger credit (reason: premium_refund)
         const session: ClientSession = await mongoose.startSession();
         let updatedSub!: SubscriptionEntity;
 
         try {
             await session.withTransaction(async () => {
-                // a. Transition subscription to cancelled
-                const resSub = await this.subRepo.updateStatus(
-                    sub.id,
-                    "cancelled",
+                // a. Transition Subscription to 'refunded'
+                const res = await this.subRepo.updateStatus(
+                    subscriptionId,
+                    "refunded",
                     {
-                        cancelledAt: now,
                         refundAmount,
-                        refundStatus: refundAmount > 0 ? "completed" : "none",
+                        refundStatus: "completed",
+                        cancellationReason: reason || "User requested refund within 3-day window",
+                        cancelledAt: now,
                     },
                     session
                 );
-                if (!resSub) {
-                    throw new AppError("Failed to update subscription status", HttpStatusCodes.INTERNAL_SERVER_ERROR);
-                }
-                updatedSub = resSub;
+                if (!res) throw new Error("Failed updating subscription status to refunded");
+                updatedSub = res;
 
-                // b. Refund to wallet (mandatory ledger entry in same session)
-                if (refundAmount > 0) {
-                    await this.walletService.credit(
-                        {
-                            userId,
-                            amount: refundAmount,
-                            reason: "refund",
-                            referenceId: sub.id,
-                            description: isFullRefund
-                                ? `Full refund for cancelled ${plan.name}`
-                                : `Prorated refund for cancelled ${plan.name} (${Math.round((remainingMs / totalDurationMs) * 100)}% unused)`,
-                        },
-                        session
-                    );
-                }
+                // b. Credit User Wallet with reason 'premium_refund'
+                await this.walletService.credit(
+                    {
+                        userId,
+                        amount: refundAmount,
+                        reason: "premium_refund",
+                        referenceId: subscriptionId,
+                        description: `Premium membership refund: ${plan.name}`,
+                    },
+                    session
+                );
 
-                // c. Revoke user's premium badge
+                // c. Immediately end premium status on user entity
                 await this.userRepo.updateUser(
                     userId,
                     {
@@ -150,34 +155,36 @@ export class CancelSubscriptionUseCase {
                 );
             });
 
-            console.log(`[Subscription] Subscription ${sub.id} cancelled. Refunded ${refundAmount} paise to wallet.`);
+            console.log(
+                `[Refund] Successfully refunded sub ${subscriptionId}. ₹${refundAmount / 100} credited to wallet.`
+            );
 
             return {
                 subscription: updatedSub,
                 refundAmount,
-                isFullRefund,
-                refundStatus: updatedSub.refundStatus || "none",
+                isFullRefund: true,
+                refundStatus: "completed",
             };
         } catch (error: unknown) {
             const msg = error instanceof Error ? error.message : "";
-            // Fallback for non-replica set local dev MongoDB
+            // Fallback for non-replica set dev MongoDB
             if (msg.includes("replica set") || msg.includes("Transaction numbers are only allowed")) {
-                const resSub = await this.subRepo.updateStatus(sub.id, "cancelled", {
-                    cancelledAt: now,
+                console.warn("[Refund] Running in non-replica set fallback");
+                const res = await this.subRepo.updateStatus(subscriptionId, "refunded", {
                     refundAmount,
-                    refundStatus: refundAmount > 0 ? "completed" : "none",
+                    refundStatus: "completed",
+                    cancellationReason: reason || "User requested refund within 3-day window",
+                    cancelledAt: now,
                 });
-                updatedSub = resSub!;
+                updatedSub = res!;
 
-                if (refundAmount > 0) {
-                    await this.walletService.credit({
-                        userId,
-                        amount: refundAmount,
-                        reason: "refund",
-                        referenceId: sub.id,
-                        description: `Refund for cancelled ${plan.name}`,
-                    });
-                }
+                await this.walletService.credit({
+                    userId,
+                    amount: refundAmount,
+                    reason: "premium_refund",
+                    referenceId: subscriptionId,
+                    description: `Premium membership refund: ${plan.name}`,
+                });
 
                 await this.userRepo.updateUser(userId, {
                     isPremium: false,
@@ -187,21 +194,16 @@ export class CancelSubscriptionUseCase {
                 return {
                     subscription: updatedSub,
                     refundAmount,
-                    isFullRefund,
-                    refundStatus: updatedSub.refundStatus || "none",
+                    isFullRefund: true,
+                    refundStatus: "completed",
                 };
             }
-
-            // Mark refund_failed if an unexpected error occurred so user/admin can retry
-            console.error(`[Subscription] Cancellation error: ${msg}. Marking refund_failed.`);
-            await this.subRepo.updateStatus(sub.id, "cancelled", {
-                cancelledAt: now,
-                refundAmount,
-                refundStatus: "failed",
-            });
             throw error;
         } finally {
             await session.endSession();
         }
     }
 }
+
+// Export under both names for Clean Architecture & backwards compatibility
+export const CancelSubscriptionUseCase = RequestRefundUseCase;

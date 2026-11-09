@@ -1,8 +1,8 @@
-import type { ISubscriptionRepository } from "@application/interfaces/repository/ISubscriptionRepository";
-import type { IPlanRepository } from "@application/interfaces/repository/IPlanRepository";
-import type { IPaymentRepository } from "@application/interfaces/repository/IPaymentRepository";
-import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity";
-import { FULL_REFUND_WINDOW_DAYS } from "./CancelSubscriptionUseCase";
+import type { ISubscriptionRepository } from "@application/interfaces/repository/ISubscriptionRepository.js";
+import type { IPlanRepository } from "@application/interfaces/repository/IPlanRepository.js";
+import type { IPaymentRepository } from "@application/interfaces/repository/IPaymentRepository.js";
+import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity.js";
+import { REFUND_WINDOW_DAYS } from "./CancelSubscriptionUseCase.js";
 
 export interface ActiveSubscriptionDetails {
     subscription: SubscriptionEntity | null;
@@ -15,6 +15,7 @@ export interface ActiveSubscriptionDetails {
     remainingDays: number;
     estimatedRefund: number; // in paise
     isFullRefundEligible: boolean;
+    isRefundEligible: boolean; // Rule 7: strictly true if within 3 days AND benefitsUsedAt is null
 }
 
 export class GetActiveSubscriptionUseCase {
@@ -33,6 +34,7 @@ export class GetActiveSubscriptionUseCase {
                 remainingDays: 0,
                 estimatedRefund: 0,
                 isFullRefundEligible: false,
+                isRefundEligible: false,
             };
         }
 
@@ -47,24 +49,26 @@ export class GetActiveSubscriptionUseCase {
 
         const now = new Date();
         const startDate = sub.startDate ? new Date(sub.startDate) : new Date(sub.createdAt || now);
-        const endDate = sub.endDate ? new Date(sub.endDate) : new Date(startDate.getTime() + (plan?.durationDays || 30) * 24 * 60 * 60 * 1000);
+        const endDate = sub.endDate
+            ? new Date(sub.endDate)
+            : new Date(startDate.getTime() + (plan?.durationDays || 30) * 24 * 60 * 60 * 1000);
 
-        const totalDurationMs = Math.max(1, endDate.getTime() - startDate.getTime());
-        const elapsedMs = Math.max(0, now.getTime() - startDate.getTime());
         const remainingMs = Math.max(0, endDate.getTime() - now.getTime());
         const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
 
-        const fullRefundWindowMs = FULL_REFUND_WINDOW_DAYS * 24 * 60 * 60 * 1000;
-        let estimatedRefund = 0;
-        let isFullRefundEligible = false;
+        // Rule 7 Eligibility Check:
+        // Eligible only if now < purchasedAt + REFUND_WINDOW_DAYS (default 3) AND subscription.benefitsUsedAt is null
+        const purchasedAt = sub.purchasedAt
+            ? new Date(sub.purchasedAt)
+            : sub.startDate
+            ? new Date(sub.startDate)
+            : new Date(sub.createdAt || now);
 
-        if (elapsedMs <= fullRefundWindowMs) {
-            estimatedRefund = paidAmount;
-            isFullRefundEligible = true;
-        } else if (remainingMs > 0) {
-            const prorated = Math.floor((remainingMs / totalDurationMs) * paidAmount);
-            estimatedRefund = Math.min(paidAmount, Math.max(0, prorated));
-        }
+        const refundWindowMs = REFUND_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+        const withinWindow = now.getTime() < purchasedAt.getTime() + refundWindowMs;
+        const benefitsNotUsed = sub.benefitsUsedAt === null || sub.benefitsUsedAt === undefined;
+
+        const isRefundEligible = withinWindow && benefitsNotUsed && sub.status === "active";
 
         return {
             subscription: sub,
@@ -77,8 +81,9 @@ export class GetActiveSubscriptionUseCase {
                   }
                 : null,
             remainingDays,
-            estimatedRefund,
-            isFullRefundEligible,
+            estimatedRefund: isRefundEligible ? paidAmount : 0,
+            isFullRefundEligible: isRefundEligible,
+            isRefundEligible,
         };
     }
 }

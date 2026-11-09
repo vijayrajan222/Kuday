@@ -42,7 +42,7 @@ export class RetryRefundUseCase {
                     {
                         userId,
                         amount: refundAmount,
-                        reason: "refund",
+                        reason: "premium_refund",
                         referenceId: sub.id,
                         description: `Retried refund credit for subscription ${sub.id}`,
                     },

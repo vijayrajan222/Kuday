@@ -45,11 +45,17 @@ export function createPaymentRouter(
         paymentController.payWithWallet
     );
 
-    // Subscription Management & Prorated Cancellation
+    // Subscription Management & Refund Flow (Rule 7)
     router.get(
         "/subscriptions/active",
         authMiddleware,
         paymentController.getActiveSubscription
+    );
+    router.post(
+        "/subscriptions/:id/refund",
+        authMiddleware,
+        paymentRateLimiter,
+        paymentController.requestRefund
     );
     router.post(
         "/subscriptions/:id/cancel",

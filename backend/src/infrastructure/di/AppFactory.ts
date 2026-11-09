@@ -99,6 +99,7 @@ import { CancelSubscriptionUseCase } from "@application/use-case/subscription/Ca
 import { RetryRefundUseCase } from "@application/use-case/subscription/RetryRefundUseCase";
 import { GetActiveSubscriptionUseCase } from "@application/use-case/subscription/GetActiveSubscriptionUseCase";
 import { GetWalletUseCase } from "@application/use-case/wallet/GetWalletUseCase";
+import { PremiumHookService } from "@application/services/PremiumHookService";
 
 // Socket Service
 import { SocketService } from "@infrastructure/socket/SocketService";
@@ -361,6 +362,7 @@ export function setupAppDependencies(app: Express): SocketService {
         paymentrepo
     );
     const getWalletUseCase = new GetWalletUseCase(walletService);
+    const premiumHookService = new PremiumHookService(userrepo, subscriptionrepo);
 
     const paymentController = new PaymentController(
         createOrderUseCase,

@@ -203,16 +203,18 @@ export class PaymentController {
             const result = await this.cancelSubscriptionUseCase.execute({
                 userId,
                 subscriptionId,
-                cancellationReason,
+                reason: cancellationReason,
             });
 
             res.status(HttpStatusCodes.OK).json(
-                ApiResponse.success(result, "Subscription cancelled successfully. Refund credited to wallet.")
+                ApiResponse.success(result, "Subscription refunded successfully. Full refund credited to wallet.")
             );
         } catch (error) {
             next(error);
         }
     };
+
+    requestRefund = this.cancelSubscription;
 
     retryRefund = async (
         req: AuthenticatedRequest,
