@@ -78,5 +78,7 @@ export const API_ENDPOINTS = {
     CANCEL_SUBSCRIPTION: (id: string) => `/payment/subscriptions/${id}/cancel`,
     RETRY_REFUND: (id: string) => `/payment/subscriptions/${id}/retry-refund`,
     WALLET: '/payment/wallet',
+    PAY_WITH_WALLET: '/payment/subscriptions/pay-with-wallet',
+    CREATE_TOPUP_ORDER: '/payment/wallet/topup/orders',
   },
 } as const;

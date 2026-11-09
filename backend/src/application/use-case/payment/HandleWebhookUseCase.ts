@@ -1,6 +1,8 @@
+import mongoose from "mongoose";
 import type { IPaymentRepository } from "@application/interfaces/repository/IPaymentRepository";
 import type { ISubscriptionRepository } from "@application/interfaces/repository/ISubscriptionRepository";
 import type { IRazorpayService } from "@application/interfaces/services/IRazorpayService";
+import type { IWalletService } from "@application/interfaces/services/IWalletService";
 import type { ActivateSubscriptionUseCase } from "@application/use-case/subscription/ActivateSubscriptionUseCase";
 import { AppError } from "@application/errors/AppError";
 import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
@@ -39,7 +41,8 @@ export class HandleWebhookUseCase {
         private readonly paymentRepo: IPaymentRepository,
         private readonly subRepo: ISubscriptionRepository,
         private readonly razorpayService: IRazorpayService,
-        private readonly activateSubscriptionUseCase: ActivateSubscriptionUseCase
+        private readonly activateSubscriptionUseCase: ActivateSubscriptionUseCase,
+        private readonly walletService?: IWalletService
     ) {}
 
     async execute(input: HandleWebhookInput): Promise<{ received: boolean; action: string }> {
@@ -72,30 +75,92 @@ export class HandleWebhookUseCase {
                 return { received: true, action: "ignored_unknown_order" };
             }
 
-            // Out-of-order check: If already captured and subscription active, do not duplicate
+            // Out-of-order check: If already captured and subscription active/wallet credited, do not duplicate
             if (paymentRecord.status === "captured") {
-                const existingSub = await this.subRepo.findActiveByUserId(paymentRecord.userId);
-                if (existingSub && existingSub.paymentId === paymentRecord.id) {
-                    console.log(`[Webhook] Order ${orderId} already captured and active. Idempotent exit.`);
+                if (paymentRecord.planId) {
+                    const existingSub = await this.subRepo.findActiveByUserId(paymentRecord.userId);
+                    if (existingSub && existingSub.paymentId === paymentRecord.id) {
+                        console.log(`[Webhook] Order ${orderId} already captured and active. Idempotent exit.`);
+                        return { received: true, action: "already_captured_idempotent" };
+                    }
+                } else {
+                    console.log(`[Webhook] Top-up order ${orderId} already captured and credited. Idempotent exit.`);
                     return { received: true, action: "already_captured_idempotent" };
                 }
             }
 
-            // Rescue / Activate subscription atomically in DB transaction
-            try {
-                await this.activateSubscriptionUseCase.activateFromPayment({
-                    userId: paymentRecord.userId,
-                    razorpayOrderId: orderId,
-                    razorpayPaymentId: paymentId,
-                    method: paymentEntity.method,
-                });
-                console.log(`[Webhook] Subscription successfully activated/rescued for order: ${orderId}`);
-                return { received: true, action: "subscription_activated" };
-            } catch (err: unknown) {
-                const msg = err instanceof Error ? err.message : "";
-                console.error(`[Webhook] Failed activating subscription on webhook: ${msg}`);
-                throw err;
+            // A: If order has a planId, activate subscription
+            if (paymentRecord.planId) {
+                try {
+                    await this.activateSubscriptionUseCase.activateFromPayment({
+                        userId: paymentRecord.userId,
+                        razorpayOrderId: orderId,
+                        razorpayPaymentId: paymentId,
+                        method: paymentEntity.method,
+                    });
+                    console.log(`[Webhook] Subscription successfully activated/rescued for order: ${orderId}`);
+                    return { received: true, action: "subscription_activated" };
+                } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : "";
+                    console.error(`[Webhook] Failed activating subscription on webhook: ${msg}`);
+                    throw err;
+                }
             }
+
+            // B: If top-up (no planId), credit wallet atomically
+            if (this.walletService) {
+                const session = await mongoose.startSession();
+                try {
+                    await session.withTransaction(async () => {
+                        await this.paymentRepo.updateStatus(
+                            paymentRecord.id,
+                            "captured",
+                            {
+                                razorpayPaymentId: paymentId,
+                                ...(paymentEntity.method ? { method: paymentEntity.method } : {}),
+                            },
+                            session
+                        );
+                        await this.walletService!.credit(
+                            {
+                                userId: paymentRecord.userId,
+                                amount: paymentRecord.amount,
+                                reason: "topup",
+                                referenceId: paymentRecord.id,
+                                description: `Wallet top-up via Razorpay webhook (${paymentId})`,
+                            },
+                            session
+                        );
+                    });
+                } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : "";
+                    if (msg.includes("replica set") || msg.includes("Transaction numbers are only allowed")) {
+                        await this.paymentRepo.updateStatus(paymentRecord.id, "captured", {
+                            razorpayPaymentId: paymentId,
+                            ...(paymentEntity.method ? { method: paymentEntity.method } : {}),
+                        });
+                        await this.walletService.credit({
+                            userId: paymentRecord.userId,
+                            amount: paymentRecord.amount,
+                            reason: "topup",
+                            referenceId: paymentRecord.id,
+                            description: `Wallet top-up via Razorpay webhook (${paymentId})`,
+                        });
+                    } else {
+                        throw err;
+                    }
+                } finally {
+                    await session.endSession();
+                }
+                console.log(`[Webhook] Top-up order ${orderId} successfully captured and wallet credited via webhook`);
+                return { received: true, action: "wallet_topped_up" };
+            }
+
+            await this.paymentRepo.updateStatus(paymentRecord.id, "captured", {
+                razorpayPaymentId: paymentId,
+                ...(paymentEntity.method ? { method: paymentEntity.method } : {}),
+            });
+            return { received: true, action: "payment_captured" };
         }
 
         // 3. Handle 'payment.failed'

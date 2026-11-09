@@ -1,5 +1,7 @@
+import mongoose from "mongoose";
 import type { IPaymentRepository } from "@application/interfaces/repository/IPaymentRepository";
 import type { IRazorpayService } from "@application/interfaces/services/IRazorpayService";
+import type { IWalletService } from "@application/interfaces/services/IWalletService";
 import type { ActivateSubscriptionUseCase } from "@application/use-case/subscription/ActivateSubscriptionUseCase";
 import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity";
 import { AppError } from "@application/errors/AppError";
@@ -26,7 +28,8 @@ export class VerifyPaymentUseCase {
     constructor(
         private readonly paymentRepo: IPaymentRepository,
         private readonly razorpayService: IRazorpayService,
-        private readonly activateSubscriptionUseCase?: ActivateSubscriptionUseCase
+        private readonly activateSubscriptionUseCase?: ActivateSubscriptionUseCase,
+        private readonly walletService?: IWalletService
     ) {}
 
     async execute(input: VerifyPaymentInput): Promise<VerifyPaymentOutput> {
@@ -108,22 +111,68 @@ export class VerifyPaymentUseCase {
             }
         }
 
-        // 7. Atomic Subscription Activation (Phase 3)
+        // 7. Atomic Execution: Subscription Activation (with plan) OR Direct Wallet Top-Up
         let subscription: SubscriptionEntity | undefined;
-        if (this.activateSubscriptionUseCase) {
+        if (payment.planId && this.activateSubscriptionUseCase) {
             subscription = await this.activateSubscriptionUseCase.activateFromPayment({
                 userId,
                 razorpayOrderId,
                 razorpayPaymentId,
                 method: paymentMethod,
             });
+            console.log(`[Payment] Order ${razorpayOrderId} successfully verified, captured, and subscription activated.`);
+        } else if (this.walletService) {
+            // Top-up payment without plan: credit wallet directly and capture payment
+            const session = await mongoose.startSession();
+            try {
+                await session.withTransaction(async () => {
+                    await this.paymentRepo.updateStatus(
+                        payment.id,
+                        "captured",
+                        {
+                            razorpayPaymentId,
+                            ...(paymentMethod ? { method: paymentMethod } : {}),
+                        },
+                        session
+                    );
+                    await this.walletService!.credit(
+                        {
+                            userId,
+                            amount: payment.amount,
+                            reason: "topup",
+                            referenceId: payment.id,
+                            description: `Wallet top-up via Razorpay (${razorpayPaymentId})`,
+                        },
+                        session
+                    );
+                });
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : "";
+                if (msg.includes("replica set") || msg.includes("Transaction numbers are only allowed")) {
+                    await this.paymentRepo.updateStatus(payment.id, "captured", {
+                        razorpayPaymentId,
+                        ...(paymentMethod ? { method: paymentMethod } : {}),
+                    });
+                    await this.walletService.credit({
+                        userId,
+                        amount: payment.amount,
+                        reason: "topup",
+                        referenceId: payment.id,
+                        description: `Wallet top-up via Razorpay (${razorpayPaymentId})`,
+                    });
+                } else {
+                    throw err;
+                }
+            } finally {
+                await session.endSession();
+            }
+            console.log(`[Payment] Top-up order ${razorpayOrderId} verified, captured, and wallet credited.`);
         } else {
             await this.paymentRepo.updateStatus(payment.id, "captured", {
                 razorpayPaymentId,
+                ...(paymentMethod ? { method: paymentMethod } : {}),
             });
         }
-
-        console.log(`[Payment] Order ${razorpayOrderId} successfully verified, captured, and subscription activated.`);
 
         return {
             success: true,

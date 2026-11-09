@@ -25,24 +25,33 @@ export default function MembershipPage() {
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [activeSubData, setActiveSubData] = useState<ActiveSubscriptionResponse | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
+
+  // Wallet purchase state
+  const [walletConfirmPlan, setWalletConfirmPlan] = useState<Plan | null>(null);
+  const [isPayingWithWallet, setIsPayingWithWallet] = useState(false);
 
   // Cancellation modal state
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [isCancelling, setIsCancelling] = useState(false);
 
-  // Load plans & active subscription
+  // Load plans, active subscription & wallet balance
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [fetchedPlans, fetchedSub] = await Promise.all([
+      const [fetchedPlans, fetchedSub, fetchedWallet] = await Promise.all([
         paymentService.getPlans(),
         paymentService.getActiveSubscription().catch(() => null),
+        paymentService.getWallet().catch(() => null),
       ]);
       setPlans(fetchedPlans);
       setActiveSubData(fetchedSub);
+      if (fetchedWallet) {
+        setWalletBalance(fetchedWallet.balancePaise || 0);
+      }
     } catch {
       toast.error('Failed to load membership plans.');
     } finally {
@@ -134,6 +143,23 @@ export default function MembershipPage() {
       const error = err as { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Failed to start payment order.');
       setProcessingPlanId(null);
+    }
+  };
+
+  // Pay directly using Wallet Balance
+  const handleConfirmWalletPayment = async () => {
+    if (!walletConfirmPlan) return;
+    try {
+      setIsPayingWithWallet(true);
+      await paymentService.payWithWallet(walletConfirmPlan.id);
+      toast.success(`Purchased ${walletConfirmPlan.name} with wallet balance! Welcome to Premium 🎉`);
+      setWalletConfirmPlan(null);
+      await loadData();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to pay with wallet balance.');
+    } finally {
+      setIsPayingWithWallet(false);
     }
   };
 
@@ -261,11 +287,11 @@ export default function MembershipPage() {
           <button
             type="button"
             onClick={() => navigate(ROUTES.WALLET)}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-black transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-800 transition-colors cursor-pointer"
           >
-            <Wallet className="h-4 w-4" />
-            <span>Check Wallet Balance</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            <Wallet className="h-4 w-4 text-emerald-600" />
+            <span>Wallet: ₹{(walletBalance / 100).toFixed(2)}</span>
+            <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
           </button>
         </div>
 
@@ -334,7 +360,7 @@ export default function MembershipPage() {
                 </div>
 
                 {/* Action Button */}
-                <div className="pt-8">
+                <div className="pt-6 space-y-2">
                   {isCurrent ? (
                     <button
                       type="button"
@@ -343,29 +369,68 @@ export default function MembershipPage() {
                     >
                       Current Active Plan
                     </button>
+                  ) : walletBalance >= plan.price ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={isSubscribed || isPayingWithWallet}
+                        onClick={() => setWalletConfirmPlan(plan)}
+                        className="w-full py-3 px-4 rounded-2xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                      >
+                        <Wallet className="h-4 w-4" />
+                        <span>Pay with Wallet (₹{priceRupees})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isSubscribed || processingPlanId === plan.id}
+                        onClick={() => handleSubscribe(plan)}
+                        className="w-full py-2 px-3 rounded-xl text-[11px] font-semibold text-slate-600 hover:text-black hover:bg-slate-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                      >
+                        {processingPlanId === plan.id ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>Connecting Razorpay...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>or Pay with Razorpay</span>
+                            <ArrowRight className="h-3 w-3" />
+                          </>
+                        )}
+                      </button>
+                    </>
                   ) : (
-                    <button
-                      type="button"
-                      disabled={isSubscribed || processingPlanId === plan.id}
-                      onClick={() => handleSubscribe(plan)}
-                      className={`w-full py-3 px-4 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                        isPopular
-                          ? 'bg-black hover:bg-slate-800 text-white shadow-xs disabled:opacity-50'
-                          : 'bg-slate-900 hover:bg-black text-white disabled:opacity-50'
-                      }`}
-                    >
-                      {processingPlanId === plan.id ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Connecting Razorpay...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>{isSubscribed ? 'Plan Inactive' : 'Get Started'}</span>
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </>
+                    <>
+                      <button
+                        type="button"
+                        disabled={isSubscribed || processingPlanId === plan.id}
+                        onClick={() => handleSubscribe(plan)}
+                        className={`w-full py-3 px-4 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                          isPopular
+                            ? 'bg-black hover:bg-slate-800 text-white shadow-xs disabled:opacity-50'
+                            : 'bg-slate-900 hover:bg-black text-white disabled:opacity-50'
+                        }`}
+                      >
+                        {processingPlanId === plan.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Connecting Razorpay...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>{isSubscribed ? 'Plan Inactive' : 'Get Started'}</span>
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </>
+                        )}
+                      </button>
+
+                      {walletBalance > 0 && !isSubscribed && (
+                        <p className="text-[11px] text-center text-slate-400 font-medium">
+                          Wallet: ₹{(walletBalance / 100).toFixed(2)} (Need ₹{((plan.price - walletBalance) / 100).toFixed(2)} more)
+                        </p>
                       )}
-                    </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -484,6 +549,84 @@ export default function MembershipPage() {
                   </>
                 ) : (
                   <span>Confirm Cancel &amp; Refund</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Wallet Payment Confirmation Modal */}
+      {walletConfirmPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-5 border border-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                  <Wallet className="h-5 w-5" />
+                </span>
+                <h3 className="text-base font-bold text-slate-900">
+                  Confirm Wallet Purchase
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWalletConfirmPlan(null)}
+                className="text-slate-400 hover:text-slate-700 cursor-pointer p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-slate-600">
+                You are about to activate the <strong>{walletConfirmPlan.name}</strong> membership plan using your Kuday Wallet balance.
+              </p>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500">Current Wallet Balance:</span>
+                  <span className="font-bold text-slate-800">₹{(walletBalance / 100).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500">Plan Cost:</span>
+                  <span className="font-bold text-rose-600">-₹{(walletConfirmPlan.price / 100).toFixed(2)}</span>
+                </div>
+                <hr className="border-slate-200" />
+                <div className="flex justify-between text-xs pt-0.5">
+                  <span className="font-bold text-slate-700">Remaining Balance:</span>
+                  <span className="font-black text-emerald-600">
+                    ₹{((walletBalance - walletConfirmPlan.price) / 100).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setWalletConfirmPlan(null)}
+                disabled={isPayingWithWallet}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isPayingWithWallet}
+                onClick={handleConfirmWalletPayment}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
+              >
+                {isPayingWithWallet ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" />
+                    <span>Confirm &amp; Activate</span>
+                  </>
                 )}
               </button>
             </div>

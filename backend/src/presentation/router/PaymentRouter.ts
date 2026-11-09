@@ -29,6 +29,22 @@ export function createPaymentRouter(
         paymentController.verifyPayment
     );
 
+    // Wallet Top-Up Order Creation (Razorpay)
+    router.post(
+        "/wallet/topup/orders",
+        authMiddleware,
+        paymentRateLimiter,
+        paymentController.createTopUpOrder
+    );
+
+    // Direct Subscription Activation using Wallet Balance
+    router.post(
+        "/subscriptions/pay-with-wallet",
+        authMiddleware,
+        paymentRateLimiter,
+        paymentController.payWithWallet
+    );
+
     // Subscription Management & Prorated Cancellation
     router.get(
         "/subscriptions/active",

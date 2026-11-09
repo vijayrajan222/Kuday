@@ -93,4 +93,25 @@ export const paymentService = {
     const res = await api.get(`${API_ENDPOINTS.PAYMENT.WALLET}?limit=${limit}&skip=${skip}`);
     return res.data.data;
   },
+
+  async payWithWallet(planId: string): Promise<Subscription> {
+    const res = await api.post(API_ENDPOINTS.PAYMENT.PAY_WITH_WALLET, { planId });
+    return res.data.data;
+  },
+
+  async createTopUpOrder(
+    amountPaise: number,
+    idempotencyKey?: string
+  ): Promise<{
+    orderId: string;
+    amount: number;
+    currency: string;
+    keyId: string;
+  }> {
+    const res = await api.post(API_ENDPOINTS.PAYMENT.CREATE_TOPUP_ORDER, {
+      amountPaise,
+      idempotencyKey,
+    });
+    return res.data.data;
+  },
 };

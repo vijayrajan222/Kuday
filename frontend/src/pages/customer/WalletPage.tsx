@@ -10,18 +10,29 @@ import {
   RefreshCw,
   Clock,
   ArrowLeft,
+  Plus,
+  X,
+  CreditCard,
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/useToast';
 import { ROUTES } from '@/constants/routes';
-import { paymentService } from '@/services/paymentService';
+import { paymentService, loadRazorpayScript } from '@/services/paymentService';
 import type { WalletResponse, WalletTransaction } from '@/types/payment.types';
 
 export default function WalletPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [walletData, setWalletData] = useState<WalletResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'credit' | 'debit'>('all');
+
+  // Top-Up state
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState<number>(500);
+  const [customAmount, setCustomAmount] = useState<string>('500');
+  const [isProcessingTopUp, setIsProcessingTopUp] = useState(false);
 
   const loadWallet = async () => {
     try {
@@ -38,6 +49,106 @@ export default function WalletPage() {
   useEffect(() => {
     loadWallet();
   }, []);
+
+  const handleTopUpPreset = (amount: number) => {
+    setTopUpAmount(amount);
+    setCustomAmount(amount.toString());
+  };
+
+  const handleCustomAmountChange = (val: string) => {
+    setCustomAmount(val);
+    const parsed = parseInt(val, 10);
+    if (!isNaN(parsed)) {
+      setTopUpAmount(parsed);
+    }
+  };
+
+  const handleStartTopUp = async () => {
+    if (!user) {
+      toast.error('Please sign in to add money.');
+      navigate(ROUTES.LOGIN);
+      return;
+    }
+
+    const amountRupees = parseInt(customAmount, 10);
+    if (isNaN(amountRupees) || amountRupees < 10) {
+      toast.error('Minimum top-up amount is ₹10.');
+      return;
+    }
+    if (amountRupees > 50000) {
+      toast.error('Maximum top-up amount is ₹50,000 per transaction.');
+      return;
+    }
+
+    try {
+      setIsProcessingTopUp(true);
+      const isScriptLoaded = await loadRazorpayScript();
+      if (!isScriptLoaded) {
+        toast.error('Failed to load Razorpay SDK. Please check your connection.');
+        setIsProcessingTopUp(false);
+        return;
+      }
+
+      const amountPaise = amountRupees * 100;
+      const orderData = await paymentService.createTopUpOrder(amountPaise);
+
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency || 'INR',
+        name: 'Kuday Wallet',
+        description: `Wallet Top-Up (₹${amountRupees})`,
+        order_id: orderData.orderId,
+        prefill: {
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          email: user.email,
+        },
+        theme: {
+          color: '#000000',
+        },
+        handler: async (response: {
+          razorpay_order_id: string;
+          razorpay_payment_id: string;
+          razorpay_signature: string;
+        }) => {
+          try {
+            toast.info('Verifying top-up with payment gateway...');
+            await paymentService.verifyPayment({
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+
+            toast.success(`₹${amountRupees} added to your wallet successfully! 💳`);
+            setShowTopUpModal(false);
+            await loadWallet();
+          } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            toast.error(error.response?.data?.message || 'Top-up verification failed.');
+          } finally {
+            setIsProcessingTopUp(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessingTopUp(false);
+            toast.info('Top-up checkout closed.');
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (failedRes: any) => {
+        setIsProcessingTopUp(false);
+        toast.error(failedRes.error?.description || 'Top-up payment failed.');
+      });
+      rzp.open();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to initialize top-up.');
+      setIsProcessingTopUp(false);
+    }
+  };
 
   const filteredTransactions = (walletData?.transactions || []).filter((tx) => {
     if (activeFilter === 'all') return true;
@@ -112,6 +223,15 @@ export default function WalletPage() {
 
         {/* Quick Action Button */}
         <div className="flex flex-col sm:flex-row items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowTopUpModal(true)}
+            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Money / Top Up</span>
+          </button>
+
           <button
             type="button"
             onClick={() => navigate(ROUTES.MEMBERSHIP)}
@@ -243,6 +363,119 @@ export default function WalletPage() {
           </div>
         )}
       </div>
+
+      {/* Top Up Wallet Modal */}
+      {showTopUpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-6 border border-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                  <Wallet className="h-5 w-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Add Money to Wallet
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Top up using Razorpay Test (Cards, UPI, Netbanking)
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTopUpModal(false)}
+                className="text-slate-400 hover:text-slate-700 cursor-pointer p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Quick preset chips */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                Select Amount
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {[100, 500, 1000, 2000].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => handleTopUpPreset(preset)}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                      topUpAmount === preset && customAmount === preset.toString()
+                        ? 'bg-black text-white border-black shadow-2xs'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    +₹{preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Amount input */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-700 block">
+                Or enter custom amount (₹)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  min="10"
+                  max="50000"
+                  value={customAmount}
+                  onChange={(e) => handleCustomAmountChange(e.target.value)}
+                  placeholder="500"
+                  className="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-base font-bold text-slate-900 placeholder:text-slate-400 focus:border-black focus:outline-hidden"
+                />
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Min: ₹10 • Max: ₹50,000 per transaction
+              </p>
+            </div>
+
+            {/* Summary preview */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-slate-500">Current Balance:</span>
+              <span className="font-bold text-slate-800">₹{balanceRupees}</span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowTopUpModal(false)}
+                disabled={isProcessingTopUp}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isProcessingTopUp}
+                onClick={handleStartTopUp}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-black hover:bg-slate-800 text-white text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
+              >
+                {isProcessingTopUp ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Connecting...</span>
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-4 w-4" />
+                    <span>Proceed to Pay</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

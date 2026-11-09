@@ -90,6 +90,7 @@ import { GetUnreadCountUseCase } from "@application/use-case/chat/GetUnreadCount
 
 // Payment & Subscription Use Cases
 import { CreateOrderUseCase } from "@application/use-case/payment/CreateOrderUseCase";
+import { CreateTopUpOrderUseCase } from "@application/use-case/payment/CreateTopUpOrderUseCase";
 import { VerifyPaymentUseCase } from "@application/use-case/payment/VerifyPaymentUseCase";
 import { GetPlansUseCase } from "@application/use-case/payment/GetPlansUseCase";
 import { ActivateSubscriptionUseCase } from "@application/use-case/subscription/ActivateSubscriptionUseCase";
@@ -324,17 +325,24 @@ export function setupAppDependencies(app: Express): SocketService {
         userrepo,
         razorpayService
     );
+    const createTopUpOrderUseCase = new CreateTopUpOrderUseCase(
+        paymentrepo,
+        userrepo,
+        razorpayService
+    );
     const verifyPaymentUseCase = new VerifyPaymentUseCase(
         paymentrepo,
         razorpayService,
-        activateSubscriptionUseCase
+        activateSubscriptionUseCase,
+        walletService
     );
     const getPlansUseCase = new GetPlansUseCase(planrepo);
     const handleWebhookUseCase = new HandleWebhookUseCase(
         paymentrepo,
         subscriptionrepo,
         razorpayService,
-        activateSubscriptionUseCase
+        activateSubscriptionUseCase,
+        walletService
     );
     const cancelSubscriptionUseCase = new CancelSubscriptionUseCase(
         subscriptionrepo,
@@ -363,7 +371,9 @@ export function setupAppDependencies(app: Express): SocketService {
         cancelSubscriptionUseCase,
         retryRefundUseCase,
         getActiveSubscriptionUseCase,
-        getWalletUseCase
+        getWalletUseCase,
+        activateSubscriptionUseCase,
+        createTopUpOrderUseCase
     );
 
     const authMiddleware = createAuthMiddleware(jwtService, userrepo);

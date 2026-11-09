@@ -4,6 +4,8 @@ import type { CreateOrderUseCase } from "@application/use-case/payment/CreateOrd
 import type { VerifyPaymentUseCase } from "@application/use-case/payment/VerifyPaymentUseCase";
 import type { GetPlansUseCase } from "@application/use-case/payment/GetPlansUseCase";
 import type { HandleWebhookUseCase } from "@application/use-case/payment/HandleWebhookUseCase";
+import type { CreateTopUpOrderUseCase } from "@application/use-case/payment/CreateTopUpOrderUseCase";
+import type { ActivateSubscriptionUseCase } from "@application/use-case/subscription/ActivateSubscriptionUseCase";
 import type { CancelSubscriptionUseCase } from "@application/use-case/subscription/CancelSubscriptionUseCase";
 import type { RetryRefundUseCase } from "@application/use-case/subscription/RetryRefundUseCase";
 import type { GetActiveSubscriptionUseCase } from "@application/use-case/subscription/GetActiveSubscriptionUseCase";
@@ -22,7 +24,9 @@ export class PaymentController {
         private readonly cancelSubscriptionUseCase?: CancelSubscriptionUseCase,
         private readonly retryRefundUseCase?: RetryRefundUseCase,
         private readonly getActiveSubscriptionUseCase?: GetActiveSubscriptionUseCase,
-        private readonly getWalletUseCase?: GetWalletUseCase
+        private readonly getWalletUseCase?: GetWalletUseCase,
+        private readonly activateSubscriptionUseCase?: ActivateSubscriptionUseCase,
+        private readonly createTopUpOrderUseCase?: CreateTopUpOrderUseCase
     ) {}
 
     createOrder = async (
@@ -301,6 +305,102 @@ export class PaymentController {
 
             res.status(HttpStatusCodes.OK).json(
                 ApiResponse.success(result, "Wallet details and transaction history retrieved")
+            );
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    payWithWallet = async (
+        req: AuthenticatedRequest,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(HttpStatusCodes.UNAUTHORIZED).json(
+                    ApiResponse.error("Authentication required")
+                );
+                return;
+            }
+
+            const { planId } = req.body as { planId: string };
+            if (!planId) {
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error("planId is required")
+                );
+                return;
+            }
+
+            if (!this.activateSubscriptionUseCase) {
+                res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json(
+                    ApiResponse.error("Activate subscription use-case not initialized")
+                );
+                return;
+            }
+
+            const subscription = await this.activateSubscriptionUseCase.activateFromWallet({
+                userId,
+                planId,
+            });
+
+            res.status(HttpStatusCodes.CREATED).json(
+                ApiResponse.success(
+                    subscription,
+                    "Premium membership activated successfully using wallet balance"
+                )
+            );
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    createTopUpOrder = async (
+        req: AuthenticatedRequest,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(HttpStatusCodes.UNAUTHORIZED).json(
+                    ApiResponse.error("Authentication required")
+                );
+                return;
+            }
+
+            const { amountPaise, amount, idempotencyKey } = req.body as {
+                amountPaise?: number;
+                amount?: number;
+                idempotencyKey?: string;
+            };
+
+            // Accept either integer paise or rupee amount
+            const resolvedPaise = amountPaise ?? (amount ? Math.round(Number(amount) * 100) : 0);
+
+            if (!resolvedPaise || resolvedPaise < 1000) {
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error("Top-up amount must be at least ₹10 (1000 paise)")
+                );
+                return;
+            }
+
+            if (!this.createTopUpOrderUseCase) {
+                res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json(
+                    ApiResponse.error("Top-up use-case not initialized")
+                );
+                return;
+            }
+
+            const result = await this.createTopUpOrderUseCase.execute({
+                userId,
+                amountPaise: resolvedPaise,
+                idempotencyKey,
+            });
+
+            res.status(HttpStatusCodes.CREATED).json(
+                ApiResponse.success(result, "Wallet top-up order created successfully")
             );
         } catch (error) {
             next(error);
