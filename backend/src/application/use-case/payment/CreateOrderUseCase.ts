@@ -44,7 +44,12 @@ export class CreateOrderUseCase {
             throw new AppError("Account is blocked. Payments not permitted.", HttpStatusCodes.FORBIDDEN);
         }
 
-        // 2. Edge Case: User already has an active subscription
+        // Rule 2: Only users currently in the HOST role can buy premium
+        if (user.role !== "host") {
+            throw new AppError("Only users currently in the host role can purchase premium membership", HttpStatusCodes.FORBIDDEN);
+        }
+
+        // 2. Rule 5: A host with an active premium cannot buy another one.
         const activeSub = await this.subRepo.findActiveByUserId(input.userId);
         if (activeSub && activeSub.status === "active" && activeSub.endDate && activeSub.endDate > new Date()) {
             throw new AppError(
@@ -57,6 +62,9 @@ export class CreateOrderUseCase {
         const plan = await this.planRepo.findById(input.planId);
         if (!plan || !plan.isActive) {
             throw new AppError("Selected membership plan is invalid or no longer active", HttpStatusCodes.BAD_REQUEST);
+        }
+        if (plan.audience && plan.audience !== "host") {
+            throw new AppError("Selected plan is not available for hosts", HttpStatusCodes.BAD_REQUEST);
         }
 
         // 4. Idempotency Check
@@ -97,6 +105,7 @@ export class CreateOrderUseCase {
             razorpayOrderId: razorpayOrder.id,
             amount: plan.price,
             status: "created",
+            purpose: "premium",
             userId: input.userId,
             planId: plan.id,
             idempotencyKey: input.idempotencyKey ?? undefined,

@@ -75,6 +75,7 @@ export class CreateTopUpOrderUseCase {
             razorpayOrderId: razorpayOrder.id,
             amount: amountPaise,
             status: "created",
+            purpose: "wallet_topup",
             userId,
             currency: "INR",
             idempotencyKey: idempotencyKey ?? undefined,
