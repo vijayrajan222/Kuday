@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Calendar as CalendarIcon,
   Loader2,
+  Quote as QuoteIcon,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants/routes';
@@ -494,9 +495,7 @@ export default function ScheduleVisitPage() {
 
               {/* Host Availability Note */}
               <div className="relative rounded-2xl bg-slate-50 p-4 border border-slate-100">
-                <span className="text-2xl text-slate-300 font-serif leading-none select-none block mb-1">
-                  &ldquo;&rdquo;
-                </span>
+                <QuoteIcon className="h-5 w-5 text-slate-400 rotate-180 fill-slate-300/30 mb-2" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
                   HOST AVAILABILITY NOTE
                 </span>
