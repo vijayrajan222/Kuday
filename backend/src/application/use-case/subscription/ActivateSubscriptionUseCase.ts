@@ -45,6 +45,12 @@ export class ActivateSubscriptionUseCase {
             throw new AppError("Unauthorized subscription activation request", HttpStatusCodes.FORBIDDEN);
         }
 
+        // Rule 2: Validate User is in host role
+        const user = await this.userRepo.findById(userId);
+        if (!user || user.role !== "host") {
+            throw new AppError("Only users currently in the host role can activate premium membership", HttpStatusCodes.FORBIDDEN);
+        }
+
         // 2. Fetch Plan
         if (!payment.planId) {
             throw new AppError("Payment record does not have an associated planId", HttpStatusCodes.BAD_REQUEST);
@@ -82,7 +88,7 @@ export class ActivateSubscriptionUseCase {
                 const startDate = new Date();
                 const endDate = new Date(startDate.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
 
-                // c. Create Subscription
+                // c. Create Subscription with purchasedAt and benefitsUsedAt: null
                 activatedSub = await this.subRepo.create(
                     {
                         userId,
@@ -90,6 +96,8 @@ export class ActivateSubscriptionUseCase {
                         status: "active",
                         startDate,
                         endDate,
+                        purchasedAt: startDate,
+                        benefitsUsedAt: null,
                         paymentId: payment.id,
                         refundAmount: 0,
                         refundStatus: "none",
@@ -156,6 +164,8 @@ export class ActivateSubscriptionUseCase {
                     status: "active",
                     startDate,
                     endDate,
+                    purchasedAt: startDate,
+                    benefitsUsedAt: null,
                     paymentId: payment.id,
                     refundAmount: 0,
                     refundStatus: "none",
@@ -205,6 +215,12 @@ export class ActivateSubscriptionUseCase {
             );
         }
 
+        // Rule 2: Validate User is in host role
+        const user = await this.userRepo.findById(userId);
+        if (!user || user.role !== "host") {
+            throw new AppError("Only users currently in the host role can activate premium membership", HttpStatusCodes.FORBIDDEN);
+        }
+
         // 2. Fetch Plan
         const plan = await this.planRepo.findById(planId);
         if (!plan || !plan.isActive) {
@@ -227,6 +243,8 @@ export class ActivateSubscriptionUseCase {
                         status: "active",
                         startDate,
                         endDate,
+                        purchasedAt: startDate,
+                        benefitsUsedAt: null,
                         refundAmount: 0,
                         refundStatus: "none",
                     },
@@ -269,6 +287,8 @@ export class ActivateSubscriptionUseCase {
                     status: "active",
                     startDate,
                     endDate,
+                    purchasedAt: startDate,
+                    benefitsUsedAt: null,
                     refundAmount: 0,
                     refundStatus: "none",
                 });
