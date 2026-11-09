@@ -38,9 +38,16 @@ export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) 
       setSwitchingRole(true);
       await onboardingService.updateRole(user.id, targetRole);
       updateUser({ role: targetRole });
-      toast.success(
-        `Switched to ${targetRole === 'host' ? 'Room Host' : 'Room Seeker'} mode!`
-      );
+      if (targetRole === 'host') {
+        toast.success(
+          'Switched to Room Host mode!',
+          'Optional: Check out Host Premium in Membership to verify your listings.'
+        );
+      } else {
+        toast.success(
+          'Switched to Room Seeker mode!'
+        );
+      }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Failed to switch role');

@@ -3,6 +3,7 @@ export interface Plan {
   name: string;
   price: number; // Integer in paise
   durationDays: number;
+  audience?: 'host' | string;
   description?: string;
   features?: string[];
   isActive?: boolean;
@@ -12,10 +13,12 @@ export interface Subscription {
   id: string;
   userId: string;
   planId: string;
-  status: 'pending' | 'active' | 'cancelled' | 'expired';
+  status: 'pending' | 'active' | 'cancelled' | 'refunded' | 'expired';
   startDate?: string;
   endDate?: string;
+  purchasedAt?: string;
   paymentId?: string;
+  benefitsUsedAt?: string | null;
   cancelledAt?: string;
   refundAmount?: number;
   refundStatus?: 'none' | 'pending' | 'completed' | 'failed';
@@ -32,6 +35,7 @@ export interface ActiveSubscriptionResponse {
   remainingDays: number;
   estimatedRefund: number; // in paise
   isFullRefundEligible: boolean;
+  isRefundEligible?: boolean;
 }
 
 export interface CreateOrderResponse {
@@ -59,7 +63,7 @@ export interface WalletTransaction {
   type: 'credit' | 'debit';
   amount: number; // in paise
   balanceAfter: number; // in paise
-  reason: 'topup' | 'premium_purchase' | 'refund';
+  reason: 'topup' | 'premium_purchase' | 'premium_refund' | 'refund';
   referenceId?: string;
   description?: string;
   createdAt: string;

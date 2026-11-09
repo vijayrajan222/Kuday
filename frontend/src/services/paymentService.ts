@@ -78,8 +78,24 @@ export const paymentService = {
     refundStatus: string;
   }> {
     const res = await api.post(
-      API_ENDPOINTS.PAYMENT.CANCEL_SUBSCRIPTION(subscriptionId),
+      API_ENDPOINTS.PAYMENT.REFUND_SUBSCRIPTION(subscriptionId),
       { cancellationReason }
+    );
+    return res.data.data;
+  },
+
+  async requestRefund(
+    subscriptionId: string,
+    reason?: string
+  ): Promise<{
+    subscription: Subscription;
+    refundAmount: number;
+    isFullRefund: boolean;
+    refundStatus: string;
+  }> {
+    const res = await api.post(
+      API_ENDPOINTS.PAYMENT.REFUND_SUBSCRIPTION(subscriptionId),
+      { cancellationReason: reason }
     );
     return res.data.data;
   },

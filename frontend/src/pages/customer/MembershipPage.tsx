@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   RotateCcw,
   Sparkles,
+  UserCheck,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/useToast';
@@ -33,10 +34,12 @@ export default function MembershipPage() {
   const [walletConfirmPlan, setWalletConfirmPlan] = useState<Plan | null>(null);
   const [isPayingWithWallet, setIsPayingWithWallet] = useState(false);
 
-  // Cancellation modal state
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
-  const [isCancelling, setIsCancelling] = useState(false);
+  // Refund modal state
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundReason, setRefundReason] = useState('');
+  const [isRefunding, setIsRefunding] = useState(false);
+
+  const isHost = user?.role === 'host';
 
   // Load plans, active subscription & wallet balance
   const loadData = async () => {
@@ -71,6 +74,11 @@ export default function MembershipPage() {
       return;
     }
 
+    if (!isHost) {
+      toast.error('Only users in the Host role can subscribe to premium plans.');
+      return;
+    }
+
     if (activeSubData?.subscription && activeSubData.subscription.status === 'active') {
       toast.info('You already have an active premium membership.');
       return;
@@ -93,7 +101,7 @@ export default function MembershipPage() {
         key: orderData.keyId,
         amount: orderData.amount, // in paise
         currency: orderData.currency || 'INR',
-        name: 'Kuday Premium',
+        name: 'Kuday Host Premium',
         description: `${plan.name} Membership`,
         order_id: orderData.orderId,
         prefill: {
@@ -149,6 +157,10 @@ export default function MembershipPage() {
   // Pay directly using Wallet Balance
   const handleConfirmWalletPayment = async () => {
     if (!walletConfirmPlan) return;
+    if (!isHost) {
+      toast.error('Only users in the Host role can purchase premium plans.');
+      return;
+    }
     try {
       setIsPayingWithWallet(true);
       await paymentService.payWithWallet(walletConfirmPlan.id);
@@ -163,31 +175,29 @@ export default function MembershipPage() {
     }
   };
 
-  // Handle Cancellation & Prorated Refund
-  const handleConfirmCancel = async () => {
+  // Handle Request Refund
+  const handleConfirmRefund = async () => {
     if (!activeSubData?.subscription?.id) return;
     try {
-      setIsCancelling(true);
-      const res = await paymentService.cancelSubscription(
+      setIsRefunding(true);
+      const res = await paymentService.requestRefund(
         activeSubData.subscription.id,
-        cancelReason.trim()
+        refundReason.trim()
       );
 
       const refundRupees = (res.refundAmount / 100).toFixed(2);
       toast.success(
-        res.isFullRefund
-          ? `Subscription cancelled. Full refund of ₹${refundRupees} credited to your wallet!`
-          : `Subscription cancelled. Prorated refund of ₹${refundRupees} credited to your wallet!`
+        `Refund successful! ₹${refundRupees} has been credited to your Kuday wallet.`
       );
 
-      setShowCancelModal(false);
-      setCancelReason('');
+      setShowRefundModal(false);
+      setRefundReason('');
       await loadData();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || 'Failed to cancel subscription.');
+      toast.error(error.response?.data?.message || 'Failed to process refund.');
     } finally {
-      setIsCancelling(false);
+      setIsRefunding(false);
     }
   };
 
@@ -201,6 +211,7 @@ export default function MembershipPage() {
 
   const activeSub = activeSubData?.subscription;
   const isSubscribed = Boolean(activeSub && activeSub.status === 'active');
+  const isRefundEligible = Boolean(activeSubData?.isRefundEligible);
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-10">
@@ -208,15 +219,39 @@ export default function MembershipPage() {
       <div className="text-center max-w-2xl mx-auto space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold tracking-wide">
           <Crown className="h-3.5 w-3.5 text-amber-600 fill-amber-500" />
-          <span>KUDAY PREMIUM MEMBERSHIP</span>
+          <span>KUDAY HOST PREMIUM MEMBERSHIP</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Find Your Perfect Match Faster
+          Find Reliable Roommates Faster
         </h1>
         <p className="text-sm text-slate-500">
-          Unlock verified VIP status, schedule direct property visits, revealed contact information, and flexible refunds.
+          Exclusive for Hosts: Get verified VIP badges, priority listing search placement, and instant wallet refunds.
         </p>
       </div>
+
+      {/* Non-Host Role Alert Banner */}
+      {!isHost && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <UserCheck className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-xs font-bold text-amber-900">
+                You are currently browsing in Seeker Mode
+              </h3>
+              <p className="text-xs text-amber-800/90 mt-0.5">
+                Premium membership is exclusively available to <strong>Hosts</strong> to promote room listings. Switch your role to Host to subscribe.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate(ROUTES.PROFILE)}
+            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shrink-0 transition-colors cursor-pointer"
+          >
+            Switch to Host Role
+          </button>
+        </div>
+      )}
 
       {/* Active Subscription Banner (If Subscribed) */}
       {isSubscribed && activeSub && (
@@ -232,7 +267,7 @@ export default function MembershipPage() {
                 <span>Active VIP Membership</span>
               </div>
               <h2 className="text-2xl font-black">
-                {activeSubData?.plan?.name || 'Premium Plan'}
+                {activeSubData?.plan?.name || 'Host Premium Plan'}
               </h2>
               <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300 pt-1">
                 <span className="flex items-center gap-1.5">
@@ -260,13 +295,16 @@ export default function MembershipPage() {
                 <span>My Wallet</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setShowCancelModal(true)}
-                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-rose-500/20 border border-white/10 hover:border-rose-400 text-slate-200 hover:text-rose-200 text-xs font-bold transition-all cursor-pointer"
-              >
-                Cancel Membership
-              </button>
+              {/* Rule 7: Hide button once ineligible */}
+              {isRefundEligible && (
+                <button
+                  type="button"
+                  onClick={() => setShowRefundModal(true)}
+                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-rose-500/20 border border-white/10 hover:border-rose-400 text-slate-200 hover:text-rose-200 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Request Refund
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -277,10 +315,10 @@ export default function MembershipPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-900">
-              {isSubscribed ? 'All Available Plans' : 'Choose Your Plan'}
+              {isSubscribed ? 'Available Plans' : 'Choose Your Plan'}
             </h2>
             <p className="text-xs text-slate-500">
-              Safe test mode transactions via Razorpay. Cancel anytime with instant wallet refunds.
+              One-time purchase with fixed duration. No automatic renewals. 3-day refund window.
             </p>
           </div>
 
@@ -295,10 +333,10 @@ export default function MembershipPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 max-w-3xl mx-auto gap-6 items-stretch">
           {plans.map((plan) => {
             const isCurrent = isSubscribed && activeSubData?.plan?.id === plan.id;
-            const isPopular = plan.name.toLowerCase().includes('quarterly');
+            const isYearly = plan.durationDays >= 365;
             const priceRupees = plan.price / 100;
             const monthlyEquivalent = Math.round(priceRupees / (plan.durationDays / 30));
 
@@ -306,14 +344,14 @@ export default function MembershipPage() {
               <div
                 key={plan.id}
                 className={`rounded-3xl border p-7 flex flex-col justify-between transition-all relative bg-white ${
-                  isPopular
-                    ? 'border-2 border-black shadow-lg scale-102 z-10'
+                  isYearly
+                    ? 'border-2 border-black shadow-lg z-10'
                     : 'border-slate-200 hover:border-slate-300 shadow-2xs'
                 }`}
               >
-                {isPopular && (
+                {isYearly && (
                   <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-black px-3.5 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-xs">
-                    MOST POPULAR
+                    BEST VALUE
                   </span>
                 )}
 
@@ -321,7 +359,7 @@ export default function MembershipPage() {
                   <div>
                     <h3 className="text-base font-bold text-slate-900">{plan.name}</h3>
                     <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                      {plan.description || `${plan.durationDays} days of unlimited access.`}
+                      {plan.description || `${plan.durationDays} days of verified host access.`}
                     </p>
                   </div>
 
@@ -346,10 +384,10 @@ export default function MembershipPage() {
                   {/* Features */}
                   <div className="space-y-2.5">
                     {(plan.features || [
-                      'Direct chat & visit scheduling',
-                      'Verified Profile Badge',
-                      'Priority search highlights',
-                      'Prorated instant wallet refund',
+                      'Verified Host Badge',
+                      'Priority Search Placement for Listings',
+                      'Direct Seeker Interest Notifications',
+                      '3-Day Full Refund to Wallet',
                     ]).map((feature, idx) => (
                       <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-600">
                         <Check className="h-4 w-4 text-black shrink-0 mt-0.5 stroke-[2.5]" />
@@ -361,7 +399,15 @@ export default function MembershipPage() {
 
                 {/* Action Button */}
                 <div className="pt-6 space-y-2">
-                  {isCurrent ? (
+                  {!isHost ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(ROUTES.PROFILE)}
+                      className="w-full py-3 px-4 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold text-center cursor-pointer transition-colors"
+                    >
+                      Switch to Host to Subscribe
+                    </button>
+                  ) : isCurrent ? (
                     <button
                       type="button"
                       disabled
@@ -369,11 +415,19 @@ export default function MembershipPage() {
                     >
                       Current Active Plan
                     </button>
+                  ) : isSubscribed ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-3 px-4 rounded-2xl bg-slate-100 text-slate-400 text-xs font-bold text-center cursor-not-allowed"
+                    >
+                      Active Plan In Progress
+                    </button>
                   ) : walletBalance >= plan.price ? (
                     <>
                       <button
                         type="button"
-                        disabled={isSubscribed || isPayingWithWallet}
+                        disabled={isPayingWithWallet}
                         onClick={() => setWalletConfirmPlan(plan)}
                         className="w-full py-3 px-4 rounded-2xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
                       >
@@ -383,7 +437,7 @@ export default function MembershipPage() {
 
                       <button
                         type="button"
-                        disabled={isSubscribed || processingPlanId === plan.id}
+                        disabled={processingPlanId === plan.id}
                         onClick={() => handleSubscribe(plan)}
                         className="w-full py-2 px-3 rounded-xl text-[11px] font-semibold text-slate-600 hover:text-black hover:bg-slate-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                       >
@@ -404,10 +458,10 @@ export default function MembershipPage() {
                     <>
                       <button
                         type="button"
-                        disabled={isSubscribed || processingPlanId === plan.id}
+                        disabled={processingPlanId === plan.id}
                         onClick={() => handleSubscribe(plan)}
                         className={`w-full py-3 px-4 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                          isPopular
+                          isYearly
                             ? 'bg-black hover:bg-slate-800 text-white shadow-xs disabled:opacity-50'
                             : 'bg-slate-900 hover:bg-black text-white disabled:opacity-50'
                         }`}
@@ -419,13 +473,13 @@ export default function MembershipPage() {
                           </>
                         ) : (
                           <>
-                            <span>{isSubscribed ? 'Plan Inactive' : 'Get Started'}</span>
+                            <span>Get Started</span>
                             <ArrowRight className="h-3.5 w-3.5" />
                           </>
                         )}
                       </button>
 
-                      {walletBalance > 0 && !isSubscribed && (
+                      {walletBalance > 0 && (
                         <p className="text-[11px] text-center text-slate-400 font-medium">
                           Wallet: ₹{(walletBalance / 100).toFixed(2)} (Need ₹{((plan.price - walletBalance) / 100).toFixed(2)} more)
                         </p>
@@ -446,7 +500,7 @@ export default function MembershipPage() {
           <div>
             <h4 className="text-xs font-bold text-slate-900">Razorpay Secure Test Gateway</h4>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Powered by Razorpay Test API. Use test card 4111 1111 1111 1111 to test live checkout safely.
+              Powered by Razorpay Test API. Use test cards to verify subscription activation and top-ups safely.
             </p>
           </div>
         </div>
@@ -454,9 +508,9 @@ export default function MembershipPage() {
         <div className="flex items-start gap-3">
           <RotateCcw className="h-6 w-6 text-slate-900 shrink-0" />
           <div>
-            <h4 className="text-xs font-bold text-slate-900">100% Refund in 3 Days</h4>
+            <h4 className="text-xs font-bold text-slate-900">3-Day Full Refund Window</h4>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Change your mind within 3 days for a full refund. Prorated refunds after 3 days credited to wallet.
+              Full refund within 3 days of purchase as long as premium benefits haven&apos;t been used.
             </p>
           </div>
         </div>
@@ -464,26 +518,26 @@ export default function MembershipPage() {
         <div className="flex items-start gap-3">
           <Wallet className="h-6 w-6 text-slate-900 shrink-0" />
           <div>
-            <h4 className="text-xs font-bold text-slate-900">Instant Wallet Ledger Credit</h4>
+            <h4 className="text-xs font-bold text-slate-900">Instant Kuday Wallet Credit</h4>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Refunds are added to your Kuday wallet immediately with full transaction history and zero hidden fees.
+              Refunds are credited to your personal wallet immediately with double-entry ledger tracking.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Cancel Subscription Modal */}
-      {showCancelModal && activeSub && (
+      {/* Request Refund Modal */}
+      {showRefundModal && activeSub && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-rose-600">
                 <AlertTriangle className="h-5 w-5" />
-                <h3 className="text-base font-bold text-slate-900">Cancel Membership?</h3>
+                <h3 className="text-base font-bold text-slate-900">Request Refund?</h3>
               </div>
               <button
                 type="button"
-                onClick={() => setShowCancelModal(false)}
+                onClick={() => setShowRefundModal(false)}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="h-4 w-4" />
@@ -491,38 +545,38 @@ export default function MembershipPage() {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Are you sure you want to cancel your{' '}
-              <strong>{activeSubData?.plan?.name}</strong>? Your VIP badge and direct visit scheduling benefits will be revoked immediately.
+              Are you sure you want to request a refund for your{' '}
+              <strong>{activeSubData?.plan?.name}</strong>? Your host VIP badge will end immediately, and 100% of your payment will be credited to your Kuday Wallet.
             </p>
 
-            {/* Refund Estimation Card */}
+            {/* Refund Calculation Card */}
             <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                Estimated Refund to Wallet
+                Refund Amount to Wallet
               </span>
               <div className="flex items-baseline justify-between">
                 <span className="text-2xl font-black text-slate-900">
-                  ₹{((activeSubData?.estimatedRefund || 0) / 100).toFixed(2)}
+                  ₹{((activeSubData?.estimatedRefund || activeSubData?.plan?.price || 0) / 100).toFixed(2)}
                 </span>
                 <span className="text-xs font-bold text-emerald-600">
-                  {activeSubData?.isFullRefundEligible ? '100% Full Refund' : 'Prorated Unused Days'}
+                  100% Wallet Credit
                 </span>
               </div>
               <p className="text-[11px] text-slate-500">
-                The calculated refund amount will be credited to your Kuday Wallet immediately.
+                The full purchase amount will be credited to your wallet in one atomic transaction.
               </p>
             </div>
 
             {/* Optional Reason */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-slate-700 block">
-                Reason for cancellation (optional)
+                Reason for refund request (optional)
               </label>
               <textarea
                 rows={2}
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Found a room, taking a break, etc..."
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                placeholder="Changed my mind, testing, etc..."
                 className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-hidden resize-none"
               />
             </div>
@@ -531,24 +585,24 @@ export default function MembershipPage() {
             <div className="flex items-center gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setShowCancelModal(false)}
+                onClick={() => setShowRefundModal(false)}
                 className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition-colors cursor-pointer"
               >
-                Keep Membership
+                Keep Premium
               </button>
               <button
                 type="button"
-                disabled={isCancelling}
-                onClick={handleConfirmCancel}
+                disabled={isRefunding}
+                onClick={handleConfirmRefund}
                 className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
               >
-                {isCancelling ? (
+                {isRefunding ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Cancelling...</span>
+                    <span>Processing...</span>
                   </>
                 ) : (
-                  <span>Confirm Cancel &amp; Refund</span>
+                  <span>Confirm Refund</span>
                 )}
               </button>
             </div>
@@ -580,7 +634,7 @@ export default function MembershipPage() {
 
             <div className="space-y-3">
               <p className="text-xs text-slate-600">
-                You are about to activate the <strong>{walletConfirmPlan.name}</strong> membership plan using your Kuday Wallet balance.
+                You are about to activate <strong>{walletConfirmPlan.name}</strong> using your Kuday Wallet balance.
               </p>
 
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">

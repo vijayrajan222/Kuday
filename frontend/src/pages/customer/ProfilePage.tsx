@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { onboardingService } from '@/services/onboardingService';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
 import { getErrorMessage } from '@/utils/errorHandler';
+import { ROUTES } from '@/constants/routes';
 import {
   CheckCircle2,
   XCircle,
@@ -28,6 +29,8 @@ import {
   Trash2,
   ShieldAlert,
   Lock,
+  Crown,
+  Check,
 } from 'lucide-react';
 import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.types';
 import { PasswordInput } from '@/components/ui/PasswordInput';
@@ -86,6 +89,7 @@ function compressImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 
 }
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -443,6 +447,7 @@ export default function ProfilePage() {
   // Switch Role Confirmation Modal Handler
   const [switchingRole, setSwitchingRole] = useState(false);
   const [isRoleSwitchModalOpen, setIsRoleSwitchModalOpen] = useState(false);
+  const [showHostPremiumOfferModal, setShowHostPremiumOfferModal] = useState(false);
 
   const handleOpenRoleSwitchModal = () => {
     setIsRoleSwitchModalOpen(true);
@@ -462,6 +467,9 @@ export default function ProfilePage() {
       toast.success(
         `Role switched to ${targetRole === 'host' ? 'Room Host' : 'Room Seeker'}! Your previous post has been hidden.`
       );
+      if (targetRole === 'host') {
+        setShowHostPremiumOfferModal(true);
+      }
       fetchProfileData();
     } catch (err) {
       toast.error(`Failed to switch role: ${getErrorMessage(err)}`);
@@ -1704,6 +1712,69 @@ export default function ProfilePage() {
                 className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md"
               >
                 {switchingRole ? 'Switching Role...' : 'Confirm & Switch Role'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OPTIONAL HOST PREMIUM OFFER MODAL (Rule 2) */}
+      {showHostPremiumOfferModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200">
+                <Crown className="w-6 h-6 fill-amber-500 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">
+                  Welcome to Host Mode!
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Optional Host Premium Membership
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-2 text-xs text-slate-600">
+              <p className="font-semibold text-slate-900">
+                Would you like to boost your room listings with Kuday Premium?
+              </p>
+              <ul className="space-y-1.5 pt-1">
+                <li className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Verified Host Badge on all your listings</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Top priority in seeker searches</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>100% refund within 3 days if unused</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowHostPremiumOfferModal(false)}
+                className="text-slate-600 border-slate-300 text-xs font-semibold"
+              >
+                Maybe Later
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setShowHostPremiumOfferModal(false);
+                  navigate(ROUTES.MEMBERSHIP);
+                }}
+                className="bg-black hover:bg-slate-800 text-white text-xs font-bold shadow-md flex items-center gap-1.5"
+              >
+                <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                <span>Explore Premium</span>
               </Button>
             </div>
           </div>
