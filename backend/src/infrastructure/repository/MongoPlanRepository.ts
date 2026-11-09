@@ -41,8 +41,12 @@ export class MongoPlanRepository implements IPlanRepository {
         return doc ? this.mapToEntity(doc) : null;
     }
 
-    async findAllActive(): Promise<PlanEntity[]> {
-        const docs = await planModel.find({ isActive: true }).sort({ price: 1 }).exec();
+    async findAllActive(audience?: string): Promise<PlanEntity[]> {
+        const filter: Record<string, unknown> = { isActive: true };
+        if (audience) {
+            filter.audience = audience;
+        }
+        const docs = await planModel.find(filter).sort({ price: 1 }).exec();
         return docs.map((d) => this.mapToEntity(d));
     }
 

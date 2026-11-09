@@ -4,7 +4,7 @@ import type { PlanEntity } from "@domain/entities/PlanEntity";
 export class GetPlansUseCase {
     constructor(private readonly planRepo: IPlanRepository) {}
 
-    async execute(): Promise<PlanEntity[]> {
-        return this.planRepo.findAllActive();
+    async execute(audience?: string): Promise<PlanEntity[]> {
+        return this.planRepo.findAllActive(audience);
     }
 }

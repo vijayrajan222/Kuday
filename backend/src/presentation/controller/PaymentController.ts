@@ -112,12 +112,13 @@ export class PaymentController {
     };
 
     getPlans = async (
-        _req: AuthenticatedRequest,
+        req: AuthenticatedRequest,
         res: Response,
         next: NextFunction
     ): Promise<void> => {
         try {
-            const plans = await this.getPlansUseCase.execute();
+            const audience = typeof req.query.audience === "string" ? req.query.audience : undefined;
+            const plans = await this.getPlansUseCase.execute(audience);
             res.status(HttpStatusCodes.OK).json(
                 ApiResponse.success(plans, "Active plans retrieved successfully")
             );
