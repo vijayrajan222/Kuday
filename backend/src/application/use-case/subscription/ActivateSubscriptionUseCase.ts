@@ -226,6 +226,9 @@ export class ActivateSubscriptionUseCase {
         if (!plan || !plan.isActive) {
             throw new AppError("Invalid or inactive plan", HttpStatusCodes.BAD_REQUEST);
         }
+        if (plan.audience && plan.audience !== "host") {
+            throw new AppError("Selected plan is not available for hosts", HttpStatusCodes.BAD_REQUEST);
+        }
 
         const session: ClientSession = await mongoose.startSession();
         let activatedSub!: SubscriptionEntity;
