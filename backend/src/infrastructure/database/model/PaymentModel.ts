@@ -27,6 +27,12 @@ export const paymentSchema = new mongoose.Schema(
             default: "created",
             index: true,
         },
+        purpose: {
+            type: String,
+            enum: ["premium", "wallet_topup"],
+            default: "premium",
+            index: true,
+        },
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "user",

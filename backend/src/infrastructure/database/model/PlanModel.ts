@@ -24,6 +24,11 @@ export const planSchema = new mongoose.Schema(
                 message: "durationDays must be a positive integer",
             },
         },
+        audience: {
+            type: String,
+            enum: ["host"],
+            default: "host",
+        },
         description: {
             type: String,
             default: "",

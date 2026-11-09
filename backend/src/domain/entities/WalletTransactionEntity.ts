@@ -1,5 +1,5 @@
 export type WalletTransactionType = 'credit' | 'debit';
-export type WalletTransactionReason = 'topup' | 'premium_purchase' | 'refund';
+export type WalletTransactionReason = 'topup' | 'premium_purchase' | 'premium_refund' | 'refund';
 
 export interface WalletTransactionEntity {
     id: string;

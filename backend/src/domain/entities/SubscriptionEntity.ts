@@ -1,4 +1,4 @@
-export type SubscriptionStatus = 'pending' | 'active' | 'cancelled' | 'expired';
+export type SubscriptionStatus = 'pending' | 'active' | 'refunded' | 'expired' | 'cancelled';
 
 export interface SubscriptionEntity {
     id: string;
@@ -7,6 +7,8 @@ export interface SubscriptionEntity {
     status: SubscriptionStatus;
     startDate?: Date | undefined;
     endDate?: Date | undefined;
+    purchasedAt?: Date | undefined;
+    benefitsUsedAt?: Date | null | undefined;
     paymentId?: string | undefined;
     cancelledAt?: Date | undefined;
     refundAmount?: number | undefined; // Integer in paise

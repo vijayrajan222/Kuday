@@ -14,7 +14,7 @@ export class MongoWalletTransactionRepository implements IWalletTransactionRepos
             type: doc.type as "credit" | "debit",
             amount: doc.amount,
             balanceAfter: doc.balanceAfter,
-            reason: doc.reason as "topup" | "premium_purchase" | "refund",
+            reason: doc.reason as "topup" | "premium_purchase" | "premium_refund" | "refund",
             referenceId: doc.referenceId ?? undefined,
             description: doc.description ?? undefined,
             createdAt: doc.createdAt,

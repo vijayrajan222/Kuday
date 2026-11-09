@@ -31,7 +31,7 @@ export const walletTransactionSchema = new mongoose.Schema(
         },
         reason: {
             type: String,
-            enum: ["topup", "premium_purchase", "refund"],
+            enum: ["topup", "premium_purchase", "premium_refund", "refund"],
             required: true,
         },
         referenceId: {

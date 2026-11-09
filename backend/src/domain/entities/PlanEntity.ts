@@ -3,6 +3,7 @@ export interface PlanEntity {
     name: string;
     price: number; // Integer in paise
     durationDays: number;
+    audience?: "host" | undefined;
     description?: string | undefined;
     features?: string[] | undefined;
     isActive: boolean;

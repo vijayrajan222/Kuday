@@ -1,4 +1,5 @@
 export type PaymentStatus = 'created' | 'authorized' | 'captured' | 'failed' | 'refunded';
+export type PaymentPurpose = 'premium' | 'wallet_topup';
 
 export interface PaymentEntity {
     id: string;
@@ -6,6 +7,7 @@ export interface PaymentEntity {
     razorpayPaymentId?: string | undefined;
     amount: number; // Integer in paise
     status: PaymentStatus;
+    purpose?: PaymentPurpose | undefined;
     userId: string;
     idempotencyKey?: string | undefined;
     planId?: string | undefined;

@@ -15,7 +15,7 @@ export const subscriptionSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["pending", "active", "cancelled", "expired"],
+            enum: ["pending", "active", "refunded", "expired", "cancelled"],
             default: "pending",
             index: true,
         },
@@ -24,6 +24,14 @@ export const subscriptionSchema = new mongoose.Schema(
         },
         endDate: {
             type: Date,
+        },
+        purchasedAt: {
+            type: Date,
+            default: Date.now,
+        },
+        benefitsUsedAt: {
+            type: Date,
+            default: null,
         },
         paymentId: {
             type: mongoose.Schema.Types.ObjectId,
