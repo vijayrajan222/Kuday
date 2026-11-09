@@ -16,6 +16,8 @@ export const ROUTES = {
   ROOM_DETAILS: '/rooms/:roomId',
   USER_PROFILE: '/users/:userId',
   PROFILE: '/profile',
+  MEMBERSHIP: '/membership',
+  WALLET: '/wallet',
   ONBOARDING_PROFILE: '/onboarding/profile',
   ADMIN_LOGIN: '/admin/login',
   ADMIN_DASHBOARD: '/admin',

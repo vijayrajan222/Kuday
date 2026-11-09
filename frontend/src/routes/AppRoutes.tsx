@@ -29,6 +29,8 @@ const UserProfilePage = lazy(() => import('@/pages/customer/UserProfilePage'));
 const ScheduleVisitPage = lazy(() => import('@/pages/customer/ScheduleVisitPage'));
 const OnboardingProfilePage = lazy(() => import('@/pages/onboarding/OnboardingProfilePage'));
 const ProfilePage = lazy(() => import('@/pages/customer/ProfilePage'));
+const MembershipPage = lazy(() => import('@/pages/customer/MembershipPage'));
+const WalletPage = lazy(() => import('@/pages/customer/WalletPage'));
 
 // Dedicated Admin Portal Lazy Imports
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
@@ -85,6 +87,8 @@ export function AppRoutes() {
             <Route path={ROUTES.ROOM_DETAILS} element={<RoomDetailsPage />} />
             <Route path={ROUTES.USER_PROFILE} element={<UserProfilePage />} />
             <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+            <Route path={ROUTES.MEMBERSHIP} element={<MembershipPage />} />
+            <Route path={ROUTES.WALLET} element={<WalletPage />} />
           </Route>
         </Route>
 

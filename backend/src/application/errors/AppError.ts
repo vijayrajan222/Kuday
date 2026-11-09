@@ -37,3 +37,7 @@ export class ValidationError extends ApplicationError {
         super(message, 400);
     }
 }
+
+export const AppError = ApplicationError;
+export type AppError = ApplicationError;
+

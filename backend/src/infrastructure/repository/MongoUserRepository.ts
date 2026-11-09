@@ -49,6 +49,8 @@ export class MongoUserRepository implements IUserRepository {
             isVerified: Boolean(doc.isVerified),
             isBlocked: Boolean(doc.isBlocked),
             isAdmin: Boolean(doc.isAdmin),
+            isPremium: Boolean(doc.isPremium),
+            premiumExpiresAt: doc.premiumExpiresAt ?? undefined,
             dob: doc.dob ?? "",
             gender: doc.gender ?? "",
             occupation: doc.occupation ?? "",
@@ -141,12 +143,16 @@ export class MongoUserRepository implements IUserRepository {
      */
     async updateUser(
         userId: string,
-        userData: Partial<UserEntity>
+        userData: Partial<UserEntity>,
+        session?: unknown
     ): Promise<UserEntity | null> {
         const doc = await this.user.findByIdAndUpdate(
             userId,
             { $set: userData },
-            { new: true }
+            {
+                returnDocument: "after",
+                session: (session as any) || undefined,
+            }
         );
         if (!doc) return null;
         return this.mapUserDoc(doc);

@@ -1,56 +1,49 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { onboardingService } from '@/services/onboardingService';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
 import { getErrorMessage } from '@/utils/errorHandler';
 import {
-  Wifi,
-  Snowflake,
-  Utensils,
-  WashingMachine,
-  Car,
-  Laptop,
-  Dumbbell,
-  PawPrint,
-  Plus,
-  Minus,
-  ChevronDown,
-  Trash2,
-  Camera,
-  Check,
   CheckCircle2,
-  X,
-  Lock,
-  ShieldAlert,
-  Clock,
-  Cigarette,
-  Wine,
+  XCircle,
+  Edit3,
   Home,
-  User,
   UserCheck,
-  Loader2,
+  MapPin,
+  DollarSign,
+  Users,
+  Clock,
+  Calendar,
+  Briefcase,
+  User,
+  X,
+  Upload,
+  Camera,
+  Plus,
+  Trash2,
+  ShieldAlert,
+  Lock,
 } from 'lucide-react';
-import type { RoomEntity } from '@/types/onboarding.types';
+import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.types';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { PasswordStrength } from '@/components/common/PasswordStrength';
 import { MAX_DOB, MIN_DOB, validateDob } from '../onboarding/OnboardingProfilePage';
 
-// Amenities Configuration
-interface AmenityConfig {
-  id: string;
-  label: string;
-  icon: typeof Wifi;
-}
-
-const AMENITY_CONFIG: AmenityConfig[] = [
-  { id: 'wifi', label: 'High-speed Wifi', icon: Wifi },
-  { id: 'ac', label: 'Air Conditioning', icon: Snowflake },
-  { id: 'kitchen', label: 'Modern Kitchen', icon: Utensils },
-  { id: 'laundry', label: 'Laundry Access', icon: WashingMachine },
-  { id: 'parking', label: 'Vehicle Parking', icon: Car },
-  { id: 'workspace', label: 'Dedicated Workspace', icon: Laptop },
-  { id: 'gym', label: 'Gym Facility', icon: Dumbbell },
-  { id: 'pet_friendly', label: 'Pet Friendly', icon: PawPrint },
+// Available Amenities for Host/Seeker checklists
+const AMENITY_OPTIONS = [
+  { id: 'wifi', label: 'WiFi' },
+  { id: 'laundry', label: 'Laundry / Washing Machine' },
+  { id: 'ac', label: 'Air Conditioner (AC)' },
+  { id: 'pet_friendly', label: 'Pet Friendly' },
+  { id: 'kitchen', label: 'Equipped Kitchen' },
+  { id: 'workspace', label: 'Dedicated Workspace' },
+  { id: 'gym', label: 'Gym Facility' },
+  { id: 'parking', label: 'Vehicle Parking' },
 ];
 
 function compressImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.75): Promise<string> {
@@ -94,61 +87,49 @@ function compressImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
-
-  const [loading, setLoading] = useState(true);
-  const [savingAll, setSavingAll] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchProfileData = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
   }, []);
 
-  // --- Profile Identity State ---
-  const [fullName, setFullName] = useState(`${user?.firstName || ''} ${user?.lastName || ''}`.trim());
-  const [bio, setBio] = useState(user?.bio || '');
-  const [occupation, setOccupation] = useState(user?.occupation || '');
-  const [gender, setGender] = useState(user?.gender || 'male');
-  const [dob, setDob] = useState(user?.dob || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [selfieUrl, setSelfieUrl] = useState(user?.selfieUrl || '');
-  const [identityVerified, setIdentityVerified] = useState(Boolean(user?.identityVerified));
-  const [role, setRole] = useState<'host' | 'seeker'>(user?.role === 'host' ? 'host' : 'seeker');
+  const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
+    dob: user?.dob || '',
+    gender: user?.gender || '',
+    occupation: user?.occupation || '',
+    bio: user?.bio || '',
+    role: user?.role || 'seeker',
+    identityVerified: Boolean(user?.identityVerified),
+    selfieUrl: user?.selfieUrl || '',
+    idCardUrl: user?.idCardUrl || '',
+  });
 
-  // --- Lifestyle Preferences State ---
-  const [smoking, setSmoking] = useState<'never' | 'social' | 'regular'>('never');
-  const [drinking, setDrinking] = useState<'never' | 'social' | 'regular'>('never');
-  const [pets, setPets] = useState<'no_pets' | 'pet_friendly' | 'has_pets'>('pet_friendly');
-  const [sleepSchedule, setSleepSchedule] = useState<'early_bird' | 'night_owl' | 'flexible'>('flexible');
-  const [cleanliness, setCleanliness] = useState<'very_clean' | 'moderate' | 'relaxed'>('very_clean');
-  const [diet, setDiet] = useState<'veg' | 'non_veg' | 'vegan' | 'anything'>('anything');
-  const [visitorPolicy, setVisitorPolicy] = useState<'never' | 'occasional' | 'frequent' | 'flexible'>('flexible');
-  const [roommateGenderPref, setRoommateGenderPref] = useState<'any' | 'male' | 'female'>('any');
+  const [lifestyle, setLifestyle] = useState({
+    smoking: 'never',
+    drinking: 'never',
+    sleepSchedule: 'flexible',
+    diet: 'anything',
+    cleanliness: 'very_clean',
+    visitorPolicy: 'flexible',
+    roommateGenderPref: 'any',
+  });
 
-  // --- Host Room Listing State ---
   const [room, setRoom] = useState<RoomEntity | null>(null);
-  const [roomImages, setRoomImages] = useState<string[]>([]);
-  const [amenities, setAmenities] = useState<string[]>([]);
-  const [capacity, setCapacity] = useState<number>(2);
-  const [vacancyStatus, setVacancyStatus] = useState<string>('Immediate Vacancy');
-  const [availabilityNotes, setAvailabilityNotes] = useState<string>('');
-  const [monthlyRent, setMonthlyRent] = useState<string>('45000');
-  const [roomLocation, setRoomLocation] = useState<string>('Indiranagar, Bangalore');
-  const [roomType, setRoomType] = useState<string>('private_bedroom');
-  const [roomDescription, setRoomDescription] = useState<string>('');
+  const [seekerPref, setSeekerPref] = useState<SeekerPreferenceEntity | null>(null);
 
-  // --- Seeker Search Preferences State ---
-  const [preferredLocation, setPreferredLocation] = useState<string>('');
-  const [maxBudget, setMaxBudget] = useState<string>('');
-  const [roomTypePreference, setRoomTypePreference] = useState<string>('any');
-  const [requiredAmenities, setRequiredAmenities] = useState<string[]>([]);
-
-  // --- Modals State ---
+  // Edit Modals State
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isEditRoomOpen, setIsEditRoomOpen] = useState(false);
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
-  const [isRoleSwitchModalOpen, setIsRoleSwitchModalOpen] = useState(false);
-  const [switchingRole, setSwitchingRole] = useState(false);
+  const [isEditSeekerOpen, setIsEditSeekerOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [profileDobError, setProfileDobError] = useState<string | null>(null);
 
-  // Change Password Form State
+  // Change Password Modal State
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [changePasswordError, setChangePasswordError] = useState<string | null>(null);
   const [changePasswordForm, setChangePasswordForm] = useState({
@@ -157,80 +138,98 @@ export default function ProfilePage() {
     confirmPassword: '',
   });
 
-  // Load all user profile, lifestyle, and room/seeker data
+  // Edit Form Inputs
+  const [editProfileForm, setEditProfileForm] = useState({
+    firstName: '',
+    lastName: '',
+    dob: '',
+    gender: 'male',
+    occupation: 'student',
+    bio: '',
+    smoking: 'never',
+    drinking: 'never',
+    sleepSchedule: 'flexible',
+    diet: 'anything',
+    cleanliness: 'very_clean',
+    visitorPolicy: 'flexible',
+    roommateGenderPref: 'any',
+  });
+
+  const [editRoomForm, setEditRoomForm] = useState({
+    roomType: 'private_bedroom',
+    monthlyRent: '',
+    location: '',
+    capacity: '1',
+    availabilityNotes: '',
+    description: '',
+    amenities: [] as string[],
+    imagesBase64: [] as string[],
+  });
+
+  const [editSeekerForm, setEditSeekerForm] = useState({
+    preferredLocation: '',
+    maxBudget: '',
+    roomTypePreference: 'any',
+    requiredAmenities: [] as string[],
+  });
+
   useEffect(() => {
     if (!user?.id) return;
     const userId = user.id;
     let active = true;
 
-    async function loadData() {
+    async function loadAllProfileData() {
       try {
-        setLoading(true);
         const profileData = await onboardingService.getUserProfile(userId);
         if (!active) return;
-
         if (profileData) {
-          const first = profileData.firstName || user?.firstName || '';
-          const last = profileData.lastName || user?.lastName || '';
-          setFullName(`${first} ${last}`.trim());
-          setBio(profileData.bio || '');
-          setOccupation(profileData.occupation ? profileData.occupation.replace('_', ' ') : '');
-          setGender(profileData.gender || 'male');
-          setDob(profileData.dob || '');
-          setEmail(profileData.email || user?.email || '');
-          setSelfieUrl(profileData.selfieUrl || user?.selfieUrl || '');
-          setIdentityVerified(Boolean(profileData.identityVerified));
-          setRole(profileData.role === 'host' ? 'host' : 'seeker');
+          setUserProfile({
+            firstName: profileData.firstName || user?.firstName || '',
+            lastName: profileData.lastName || user?.lastName || '',
+            email: profileData.email || user?.email || '',
+            dob: profileData.dob || '',
+            gender: profileData.gender || 'male',
+            occupation: profileData.occupation || 'student',
+            bio: profileData.bio || '',
+            role: profileData.role || 'seeker',
+            identityVerified: Boolean(profileData.identityVerified),
+            selfieUrl: profileData.selfieUrl || '',
+            idCardUrl: profileData.idCardUrl || '',
+          });
         }
 
-        // Load Lifestyle
+        // Fetch Lifestyle
         try {
           const ls = await onboardingService.getLifestyle(userId);
           if (active && ls) {
-            setSmoking((ls.smoking as 'never' | 'social' | 'regular') || 'never');
-            setDrinking((ls.drinking as 'never' | 'social' | 'regular') || 'never');
-            setSleepSchedule((ls.sleepSchedule as 'early_bird' | 'night_owl' | 'flexible') || 'flexible');
-            setCleanliness((ls.cleanliness as 'very_clean' | 'moderate' | 'relaxed') || 'very_clean');
-            setDiet((ls.diet as 'veg' | 'non_veg' | 'vegan' | 'anything') || 'anything');
-            setVisitorPolicy((ls.visitorPolicy as 'never' | 'occasional' | 'frequent' | 'flexible') || 'flexible');
-            setRoommateGenderPref((ls.roommateGenderPref as 'any' | 'male' | 'female') || 'any');
-
-            if (ls.visitorPolicy === 'flexible') setPets('pet_friendly');
-            else if (ls.visitorPolicy === 'never') setPets('no_pets');
-            else setPets('has_pets');
+            setLifestyle({
+              smoking: ls.smoking || 'never',
+              drinking: ls.drinking || 'never',
+              sleepSchedule: ls.sleepSchedule || 'flexible',
+              diet: ls.diet || 'anything',
+              cleanliness: ls.cleanliness || 'very_clean',
+              visitorPolicy: ls.visitorPolicy || 'flexible',
+              roommateGenderPref: ls.roommateGenderPref || 'any',
+            });
           }
         } catch {
-          // No lifestyle found yet
+          // Ignored if not found
         }
 
-        // Load Room (if Host) or Seeker Preference (if Seeker)
+        // Fetch Room if Host, or Seeker Preference if Seeker
         const currentRole = profileData?.role || user?.role;
         if (currentRole === 'host') {
           const roomsList = await onboardingService.getRooms(userId);
           if (active && roomsList && roomsList.length > 0) {
-            const currentRoom = roomsList[0];
-            setRoom(currentRoom);
-            setRoomImages(currentRoom.images || []);
-            setAmenities(currentRoom.amenities || []);
-            setCapacity(currentRoom.capacity || 2);
-            setAvailabilityNotes(currentRoom.availabilityNotes || '');
-            setMonthlyRent(String(currentRoom.monthlyRent || '45000'));
-            setRoomLocation(currentRoom.location || '');
-            setRoomType(currentRoom.roomType || 'private_bedroom');
-            setRoomDescription(currentRoom.description || '');
+            setRoom(roomsList[0]);
           }
         } else if (currentRole === 'seeker') {
           const seekerData = await onboardingService.getSeekerPreferences(userId);
           if (active && seekerData) {
             const singlePref = Array.isArray(seekerData)
-              ? seekerData.length > 0 ? seekerData[0] : null
+              ? (seekerData.length > 0 ? seekerData[0] : null)
               : seekerData;
-            if (singlePref) {
-              setPreferredLocation(singlePref.preferredLocation || '');
-              setMaxBudget(String(singlePref.maxBudget || ''));
-              setRoomTypePreference(singlePref.roomTypePreference || 'any');
-              setRequiredAmenities(singlePref.requiredAmenities || []);
-            }
+            setSeekerPref(singlePref);
           }
         }
       } catch (err) {
@@ -240,34 +239,180 @@ export default function ProfilePage() {
       }
     }
 
-    loadData();
+    loadAllProfileData();
 
     return () => {
       active = false;
     };
   }, [user?.id, refreshKey]);
 
-  // Handle direct upload of profile photo / avatar
+  // Open Profile Edit Modal
+  const openEditProfile = () => {
+    setProfileDobError(null);
+    setEditProfileForm({
+      firstName: userProfile.firstName,
+      lastName: userProfile.lastName,
+      dob: userProfile.dob,
+      gender: userProfile.gender || 'male',
+      occupation: userProfile.occupation || 'student',
+      bio: userProfile.bio,
+      smoking: lifestyle.smoking,
+      drinking: lifestyle.drinking,
+      sleepSchedule: lifestyle.sleepSchedule,
+      diet: lifestyle.diet,
+      cleanliness: lifestyle.cleanliness,
+      visitorPolicy: lifestyle.visitorPolicy,
+      roommateGenderPref: lifestyle.roommateGenderPref,
+    });
+    setIsEditProfileOpen(true);
+  };
+
+  const handleProfileUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) return;
+    if (editProfileForm.dob) {
+      const dobErr = validateDob(editProfileForm.dob);
+      if (dobErr) {
+        setProfileDobError(dobErr);
+        toast.error(dobErr);
+        return;
+      }
+    }
+    try {
+      setSubmitting(true);
+      // Update User Profile fields
+      await onboardingService.updateProfile(user.id, {
+        dob: editProfileForm.dob,
+        gender: editProfileForm.gender,
+        occupation: editProfileForm.occupation,
+        bio: editProfileForm.bio,
+      });
+
+      // Update Lifestyle
+      await onboardingService.saveLifestyle({
+        userId: user.id,
+        smoking: editProfileForm.smoking,
+        drinking: editProfileForm.drinking,
+        sleepSchedule: editProfileForm.sleepSchedule,
+        diet: editProfileForm.diet,
+        cleanliness: editProfileForm.cleanliness,
+        visitorPolicy: editProfileForm.visitorPolicy,
+        roommateGenderPref: editProfileForm.roommateGenderPref,
+      });
+
+      toast.success("Profile updated successfully!");
+      setIsEditProfileOpen(false);
+      fetchProfileData();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Open Room Edit Modal
+  const openEditRoom = () => {
+    if (room) {
+      setEditRoomForm({
+        roomType: room.roomType || 'private_bedroom',
+        monthlyRent: String(room.monthlyRent || ''),
+        location: room.location || '',
+        capacity: String(room.capacity || '1'),
+        availabilityNotes: room.availabilityNotes || '',
+        description: room.description || '',
+        amenities: room.amenities || [],
+        imagesBase64: [],
+      });
+    }
+    setIsEditRoomOpen(true);
+  };
+
+  const handleRoomUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) return;
+    if (!editRoomForm.location.trim() || editRoomForm.location.trim().length < 2) {
+      toast.error("City / Location must be at least 2 characters.");
+      return;
+    }
+    const rent = Number(editRoomForm.monthlyRent);
+    if (isNaN(rent) || rent < 500) {
+      toast.error("Monthly rent must be at least ₹500.");
+      return;
+    }
+    const capacity = Number(editRoomForm.capacity) || 1;
+    if (capacity < 1 || capacity > 50) {
+      toast.error("Capacity must be between 1 and 50.");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await onboardingService.createRoom({
+        hostId: user.id,
+        roomType: editRoomForm.roomType,
+        monthlyRent: rent,
+        location: editRoomForm.location.trim(),
+        capacity: capacity,
+        availabilityNotes: editRoomForm.availabilityNotes,
+        amenities: editRoomForm.amenities,
+        images: room?.images || [],
+        imagesBase64: editRoomForm.imagesBase64,
+        description: editRoomForm.description,
+      });
+
+      toast.success("Room listing updated successfully!");
+      setIsEditRoomOpen(false);
+      fetchProfileData();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Replace Profile Picture Handler
   const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
     try {
-      toast.info('Uploading profile photo...');
+      toast.info("Uploading profile photo...");
       const compressed = await compressImage(file, 800, 800, 0.8);
       await onboardingService.updateProfile(user.id, { selfieBase64: compressed });
-      toast.success('Profile photo updated successfully!');
+      toast.success("Profile photo updated successfully!");
       fetchProfileData();
     } catch (err) {
       toast.error(`Failed to update profile photo: ${getErrorMessage(err)}`);
     }
   };
 
-  // Handle adding room photos
+  // Room Gallery Photo Direct Handlers
+  const handleRemoveRoomPhoto = async (photoUrlToRemove: string) => {
+    if (!user?.id || !room) return;
+    try {
+      const updatedImages = (room.images || []).filter((img) => img !== photoUrlToRemove);
+      toast.info("Removing photo...");
+      await onboardingService.createRoom({
+        hostId: user.id,
+        roomType: room.roomType,
+        monthlyRent: room.monthlyRent,
+        location: room.location,
+        capacity: room.capacity,
+        availabilityNotes: room.availabilityNotes,
+        amenities: room.amenities,
+        description: room.description,
+        images: updatedImages,
+      });
+      toast.success("Photo removed successfully!");
+      fetchProfileData();
+    } catch (err) {
+      toast.error(`Failed to remove photo: ${getErrorMessage(err)}`);
+    }
+  };
+
   const handleAddRoomPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0 || !user?.id) return;
+    if (!files || files.length === 0 || !user?.id || !room) return;
     try {
-      toast.info('Uploading room photo(s)...');
+      toast.info("Uploading room photo(s)...");
       const newBase64List: string[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -276,76 +421,44 @@ export default function ProfilePage() {
           newBase64List.push(compressed);
         }
       }
-      const updated = await onboardingService.createRoom({
+      await onboardingService.createRoom({
         hostId: user.id,
-        roomType,
-        monthlyRent: Number(monthlyRent) || 20000,
-        location: roomLocation.trim() || 'Bangalore',
-        capacity,
-        availabilityNotes,
-        amenities,
-        description: roomDescription,
-        images: roomImages,
+        roomType: room.roomType,
+        monthlyRent: room.monthlyRent,
+        location: room.location,
+        capacity: room.capacity,
+        availabilityNotes: room.availabilityNotes,
+        amenities: room.amenities,
+        description: room.description,
+        images: room.images || [],
         imagesBase64: newBase64List,
       });
-
-      toast.success('Room photos uploaded successfully!');
-      if (updated?.data?.images) {
-        setRoomImages(updated.data.images);
-      }
+      toast.success("Room photo(s) added successfully!");
       fetchProfileData();
     } catch (err) {
       toast.error(`Failed to upload photo(s): ${getErrorMessage(err)}`);
     }
   };
 
-  // Handle removing a room photo
-  const handleRemoveRoomImage = async (imgUrl: string) => {
-    if (!user?.id) return;
-    const filtered = roomImages.filter((img) => img !== imgUrl);
-    setRoomImages(filtered);
-    try {
-      await onboardingService.createRoom({
-        hostId: user.id,
-        roomType,
-        monthlyRent: Number(monthlyRent) || 20000,
-        location: roomLocation.trim() || 'Bangalore',
-        capacity,
-        availabilityNotes,
-        amenities,
-        description: roomDescription,
-        images: filtered,
-      });
-      toast.success('Photo removed.');
-    } catch {
-      toast.error('Failed to update room photos.');
-    }
+  // Switch Role Confirmation Modal Handler
+  const [switchingRole, setSwitchingRole] = useState(false);
+  const [isRoleSwitchModalOpen, setIsRoleSwitchModalOpen] = useState(false);
+
+  const handleOpenRoleSwitchModal = () => {
+    setIsRoleSwitchModalOpen(true);
   };
 
-  // Toggle Amenities
-  const toggleAmenity = (amenityId: string) => {
-    setAmenities((prev) =>
-      prev.includes(amenityId) ? prev.filter((a) => a !== amenityId) : [...prev, amenityId]
-    );
-  };
-
-  const toggleRequiredAmenity = (amenityId: string) => {
-    setRequiredAmenities((prev) =>
-      prev.includes(amenityId) ? prev.filter((a) => a !== amenityId) : [...prev, amenityId]
-    );
-  };
-
-  // Switch Role
   const executeRoleSwitch = async () => {
     if (!user?.id) return;
-    const targetRole = role === 'host' ? 'seeker' : 'host';
+    const targetRole = userProfile.role === 'host' ? 'seeker' : 'host';
     try {
       setSwitchingRole(true);
       setIsRoleSwitchModalOpen(false);
       toast.info(`Switching active role to ${targetRole === 'host' ? 'Room Host' : 'Room Seeker'}...`);
       await onboardingService.updateRole(user.id, targetRole);
       updateUser({ role: targetRole });
-      setRole(targetRole);
+
+      setUserProfile((prev) => ({ ...prev, role: targetRole }));
       toast.success(
         `Role switched to ${targetRole === 'host' ? 'Room Host' : 'Room Seeker'}! Your previous post has been hidden.`
       );
@@ -357,94 +470,85 @@ export default function ProfilePage() {
     }
   };
 
-  // Save All Profile & Account Changes
-  const handleSaveProfileChanges = async () => {
-    if (!user?.id) return;
+  // Open Seeker Edit Modal
+  const openEditSeeker = () => {
+    if (seekerPref) {
+      setEditSeekerForm({
+        preferredLocation: seekerPref.preferredLocation || '',
+        maxBudget: String(seekerPref.maxBudget || ''),
+        roomTypePreference: seekerPref.roomTypePreference || 'any',
+        requiredAmenities: seekerPref.requiredAmenities || [],
+      });
+    }
+    setIsEditSeekerOpen(true);
+  };
 
-    if (dob) {
-      const dobErr = validateDob(dob);
-      if (dobErr) {
-        toast.error(dobErr);
-        return;
+  const location = useLocation();
+  useEffect(() => {
+    if (!loading) {
+      if (location.state?.openAddListing || location.state?.openEditRoom) {
+        openEditRoom();
+      } else if (location.state?.openEditSeeker) {
+        openEditSeeker();
       }
     }
+  }, [loading, location.state]);
 
-    // Split name into first and last name
-    const parts = fullName.trim().split(/\s+/);
-    const firstName = parts[0] || 'User';
-    const lastName = parts.slice(1).join(' ');
-
+  const handleSeekerUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) return;
+    if (!editSeekerForm.preferredLocation.trim() || editSeekerForm.preferredLocation.trim().length < 2) {
+      toast.error("Preferred location must be at least 2 characters.");
+      return;
+    }
+    const budget = Number(editSeekerForm.maxBudget);
+    if (isNaN(budget) || budget < 500) {
+      toast.error("Maximum budget must be at least ₹500.");
+      return;
+    }
     try {
-      setSavingAll(true);
-
-      // 1. Save User Profile
-      await onboardingService.updateProfile(user.id, {
-        firstName,
-        lastName,
-        dob,
-        gender,
-        occupation: occupation.replace(/\s+/g, '_').toLowerCase(),
-        bio,
-      });
-
-      // 2. Save Lifestyle Preferences
-      await onboardingService.saveLifestyle({
+      setSubmitting(true);
+      await onboardingService.saveSeekerPreferences({
         userId: user.id,
-        smoking,
-        drinking,
-        sleepSchedule,
-        diet,
-        cleanliness,
-        visitorPolicy,
-        roommateGenderPref,
+        preferredLocation: editSeekerForm.preferredLocation.trim(),
+        maxBudget: budget,
+        roomTypePreference: editSeekerForm.roomTypePreference,
+        requiredAmenities: editSeekerForm.requiredAmenities,
       });
 
-      // 3. Save Room (if Host)
-      if (role === 'host') {
-        const rent = Number(monthlyRent) || 20000;
-        await onboardingService.createRoom({
-          hostId: user.id,
-          roomType,
-          monthlyRent: rent,
-          location: roomLocation.trim() || 'Indiranagar, Bangalore',
-          capacity,
-          availabilityNotes: availabilityNotes.trim(),
-          amenities,
-          images: roomImages,
-          description: roomDescription.trim(),
-        });
-      }
-
-      // 4. Save Seeker Preferences (if Seeker)
-      if (role === 'seeker') {
-        const budget = Number(maxBudget) || 20000;
-        await onboardingService.saveSeekerPreferences({
-          userId: user.id,
-          preferredLocation: preferredLocation.trim() || 'Anywhere',
-          maxBudget: budget,
-          roomTypePreference,
-          requiredAmenities,
-        });
-      }
-
-      updateUser({
-        firstName,
-        lastName,
-        bio,
-        gender,
-        dob,
-      });
-
-      toast.success('Profile and preferences saved successfully! 🎉');
+      toast.success("Seeker search preferences updated successfully!");
+      setIsEditSeekerOpen(false);
       fetchProfileData();
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
-      setSavingAll(false);
+      setSubmitting(false);
     }
   };
 
-  // Change Password Submission
+  const handleRoomImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const maxFiles = Math.min(files.length, 5 - editRoomForm.imagesBase64.length);
+    const newImages: string[] = [];
+
+    for (let i = 0; i < maxFiles; i++) {
+      const file = files[i];
+      if (file) {
+        try {
+          const compressed = await compressImage(file);
+          newImages.push(compressed);
+        } catch {
+          // Fallback
+        }
+      }
+    }
+    setEditRoomForm((prev) => ({
+      ...prev,
+      imagesBase64: [...prev.imagesBase64, ...newImages],
+    }));
+  };
+
   const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
@@ -452,20 +556,38 @@ export default function ProfilePage() {
 
     const { currentPassword, newPassword, confirmPassword } = changePasswordForm;
 
-    if (!newPassword || newPassword.length < 8) {
+    if (!newPassword) {
+      setChangePasswordError('New password is required.');
+      return;
+    }
+
+    if (newPassword.length < 8) {
       setChangePasswordError('Password must be at least 8 characters long.');
       return;
     }
 
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      setChangePasswordError(
+        'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character.'
+      );
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
-      setChangePasswordError('Passwords do not match.');
+      setChangePasswordError('New password and confirm password do not match.');
+      return;
+    }
+
+    if (currentPassword && currentPassword === newPassword) {
+      setChangePasswordError('New password cannot be the same as your current password.');
       return;
     }
 
     try {
       setIsChangingPassword(true);
       await onboardingService.changePassword(user.id, {
-        currentPassword: currentPassword.trim() || undefined,
+        currentPassword: currentPassword.trim() ? currentPassword : undefined,
         newPassword,
         confirmPassword,
       });
@@ -482,1034 +604,1213 @@ export default function ProfilePage() {
     }
   };
 
-  // Listing ID Display
-  const listingId = useMemo(() => {
-    if (room?.id) {
-      return `KD-${room.id.slice(-6).toUpperCase()}`;
-    }
-    return 'KD-9283-X';
-  }, [room?.id]);
-
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Page Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
+    <div className="space-y-8 max-w-6xl mx-auto">
+      {/* Top Banner Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            User Profile &amp; Account
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            User Profile & Account
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Manage your personal profile, lifestyle preferences, identity verification, and role settings.
+          <p className="text-xs text-slate-500 mt-1">
+            Manage your personal profile, lifestyle preferences, identity verification, and role settings
           </p>
         </div>
 
-        {/* Header Action Buttons */}
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => setIsRoleSwitchModalOpen(true)}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleOpenRoleSwitchModal}
             disabled={switchingRole}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-colors cursor-pointer shadow-2xs"
-          >
-            {role === 'host' ? (
-              <>
+            leftIcon={
+              userProfile.role === 'host' ? (
                 <UserCheck className="h-4 w-4 text-emerald-600" />
-                <span>Switch to Room Seeker</span>
-              </>
-            ) : (
-              <>
+              ) : (
                 <Home className="h-4 w-4 text-teal-600" />
-                <span>Switch to Room Host</span>
-              </>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsChangePasswordOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-colors cursor-pointer shadow-2xs"
-            title="Account Security"
+              )
+            }
           >
-            <Lock className="h-4 w-4 text-slate-500" />
-            <span className="hidden sm:inline">Change Password</span>
-          </button>
+            {userProfile.role === 'host' ? 'Switch to Room Seeker' : 'Switch to Room Host'}
+          </Button>
+
+          <Button variant="outline" size="sm" leftIcon={<Edit3 className="h-4 w-4" />} onClick={openEditProfile}>
+            Edit Profile
+          </Button>
         </div>
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center p-4 bg-slate-50 text-slate-500 text-xs rounded-2xl border border-slate-200">
-          <Loader2 className="h-4 w-4 animate-spin mr-2 text-slate-700" />
-          Loading your profile &amp; preferences...
+        <div className="p-3 text-center bg-emerald-50 text-emerald-800 text-xs rounded-xl">
+          Updating latest profile details...
         </div>
       )}
 
-      {/* Main Grid: Responsive Dual-Column Layout */}
-      <div
-        className={
-          role === 'host'
-            ? 'grid grid-cols-1 lg:grid-cols-12 gap-8 items-start'
-            : 'max-w-3xl mx-auto space-y-8'
-        }
-      >
-        {/* ========================================================================= */}
-        {/* LEFT COLUMN: Manage Listing (Rendered ONLY when user is Host)            */}
-        {/* ========================================================================= */}
-        {role === 'host' && (
-          <div className="lg:col-span-7 space-y-6">
-            <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-2xs space-y-7">
-              {/* Manage Listing Header */}
-              <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                    Manage Listing
-                  </h2>
-                  <p className="text-xs font-semibold text-slate-400 mt-0.5">
-                    Listing ID: {listingId}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditRoomOpen(true)}
-                    className="px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                  >
-                    Edit Listing
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to delete this listing?')) {
-                        setRoom(null);
-                        setRoomImages([]);
-                        toast.info('Listing removed.');
-                      }
-                    }}
-                    className="px-3.5 py-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-
-              {/* ROOM IMAGES */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    ROOM IMAGES
-                  </label>
-                  <label
-                    htmlFor="upload-room-images-top"
-                    className="text-xs font-bold text-slate-900 hover:underline cursor-pointer flex items-center gap-1"
-                  >
-                    + Upload New
-                    <input
-                      id="upload-room-images-top"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={handleAddRoomPhotos}
-                    />
-                  </label>
-                </div>
-
-                {/* Images Gallery */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {roomImages.map((imgUrl, idx) => (
-                    <div
-                      key={idx}
-                      className="relative group rounded-2xl overflow-hidden aspect-4/3 bg-slate-100 border border-slate-200"
-                    >
-                      <img
-                        src={imgUrl}
-                        alt={`Room view ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveRoomImage(imgUrl)}
-                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 cursor-pointer"
-                        title="Remove photo"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))}
-
-                  {/* Add Image Tile */}
-                  <label
-                    htmlFor="add-room-image-tile"
-                    className="rounded-2xl border-2 border-dashed border-slate-200 hover:border-slate-400 aspect-4/3 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer bg-slate-50/50"
-                  >
-                    <Camera className="h-6 w-6 stroke-1" />
-                    <span className="text-[10px] font-bold tracking-wider uppercase">ADD</span>
-                    <input
-                      id="add-room-image-tile"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={handleAddRoomPhotos}
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* AMENITIES */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    AMENITIES
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditRoomOpen(true)}
-                    className="text-xs font-semibold text-slate-500 hover:text-slate-900 underline cursor-pointer"
-                  >
-                    Edit
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                  {AMENITY_CONFIG.map((item) => {
-                    const Icon = item.icon;
-                    const isSelected = amenities.includes(item.id);
-
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => toggleAmenity(item.id)}
-                        className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer border ${
-                          isSelected
-                            ? 'bg-slate-100/90 text-slate-900 border-slate-200 shadow-2xs'
-                            : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300 hover:text-slate-600'
-                        }`}
-                      >
-                        <Icon
-                          className={`h-4 w-4 shrink-0 ${
-                            isSelected ? 'text-slate-800' : 'text-slate-400'
-                          }`}
-                        />
-                        <span className="truncate">{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* AVAILABILITY & VACANCY */}
-              <div className="space-y-3">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                  AVAILABILITY &amp; VACANCY
-                </label>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Total Slots Stepper */}
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                      TOTAL SLOTS
-                    </span>
-                    <div className="flex items-center border border-slate-200 rounded-2xl bg-white overflow-hidden w-36 h-11">
-                      <button
-                        type="button"
-                        onClick={() => setCapacity((c) => Math.max(1, c - 1))}
-                        className="w-10 h-full flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-900 text-base font-bold transition-colors cursor-pointer select-none"
-                      >
-                        <Minus className="h-3.5 w-3.5" />
-                      </button>
-                      <div className="flex-1 text-center font-bold text-slate-900 text-sm select-none">
-                        {String(capacity).padStart(2, '0')}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setCapacity((c) => Math.min(20, c + 1))}
-                        className="w-10 h-full flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-900 text-base font-bold transition-colors cursor-pointer select-none"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Vacancy Status Select */}
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                      VACANCY STATUS
-                    </span>
-                    <div className="relative">
-                      <select
-                        value={vacancyStatus}
-                        onChange={(e) => setVacancyStatus(e.target.value)}
-                        className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-4 pr-10 text-xs font-semibold text-slate-800 appearance-none focus:outline-hidden focus:border-slate-900 transition-colors cursor-pointer"
-                      >
-                        <option value="Immediate Vacancy">Immediate Vacancy</option>
-                        <option value="Available Next Month">Available Next Month</option>
-                        <option value="Available Soon">Available Soon</option>
-                        <option value="Occupied / Full">Occupied / Full</option>
-                      </select>
-                      <ChevronDown className="absolute right-3.5 top-3.5 h-4 w-4 text-slate-400 pointer-events-none" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* AVAILABILITY NOTES */}
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                  AVAILABILITY NOTES
-                </label>
-                <textarea
-                  rows={3}
-                  value={availabilityNotes}
-                  onChange={(e) => setAvailabilityNotes(e.target.value)}
-                  placeholder="Add specific details about viewing hours or seasonal availability..."
-                  className="w-full rounded-2xl border border-slate-200 bg-white p-3.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-900 resize-none transition-colors"
-                />
-              </div>
-
-              {/* Bottom Feature Card */}
-              <div className="rounded-2xl bg-black text-white p-5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-amber-400 font-bold text-sm">👑</span>
-                    <h3 className="text-sm font-bold tracking-tight">Verified Host Pro</h3>
-                  </div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider bg-amber-400 text-black px-2 py-0.5 rounded-md">
-                    PRO
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Get 3x more visibility, priority matching, and verified visit coordination with vetted roommates.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* RIGHT COLUMN: Profile + Lifestyle + Seeker Prefs + Save Button           */}
-        {/* ========================================================================= */}
-        <div className={role === 'host' ? 'lg:col-span-5 space-y-6' : 'space-y-6'}>
-          {/* Card 1: User Profile Card */}
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xs space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <h2 className="text-base font-bold text-slate-900">
-                {role === 'host' ? 'Host Profile' : 'Seeker Profile'}
-              </h2>
-              {identityVerified ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                  Verified Account
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
-                  <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
-                  Not Verified
-                </span>
-              )}
-            </div>
-
-            {/* Profile Avatar & Change Link */}
-            <div className="flex flex-col items-center justify-center text-center space-y-2">
-              <div className="relative group">
-                {selfieUrl ? (
+      {/* Main Profile Layout */}
+      {userProfile.role === 'host' ? (
+        /* HOST LAYOUT: Left side Personal Details, Right side Room Details */
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Left Column: Personal Profile & Verification */}
+          <div className="space-y-6 lg:col-span-1">
+            {/* Identity Card */}
+            <Card className="p-6 text-center space-y-4 border border-slate-200 shadow-sm">
+              <div className="relative inline-block mx-auto group">
+                {userProfile.selfieUrl ? (
                   <img
-                    src={selfieUrl}
-                    alt={fullName}
-                    className="h-24 w-24 rounded-full object-cover border-2 border-slate-200 shadow-xs"
+                    src={userProfile.selfieUrl}
+                    alt={userProfile.firstName}
+                    className="h-28 w-28 rounded-full object-cover border-4 border-emerald-500 shadow"
                   />
                 ) : (
-                  <div className="h-24 w-24 rounded-full bg-slate-900 text-white font-black text-2xl flex items-center justify-center shadow-xs">
-                    {fullName.charAt(0).toUpperCase() || 'U'}
+                  <div className="h-28 w-28 rounded-full bg-gradient-to-br from-emerald-500 to-teal-700 text-white font-bold text-3xl flex items-center justify-center border-4 border-emerald-500 shadow">
+                    {userProfile.firstName ? userProfile.firstName[0].toUpperCase() : 'U'}
+                  </div>
+                )}
+
+                <label
+                  htmlFor="host-profile-image-upload"
+                  className="absolute bottom-0 right-0 bg-emerald-600 hover:bg-emerald-700 text-white p-2 rounded-full shadow-lg border-2 border-white cursor-pointer transition-all hover:scale-110 flex items-center justify-center"
+                  title="Change profile photo"
+                >
+                  <Camera className="w-4 h-4" />
+                  <input
+                    id="host-profile-image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleProfilePhotoUpload}
+                  />
+                </label>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-extrabold text-slate-900">
+                  {userProfile.firstName} {userProfile.lastName}
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">{userProfile.email}</p>
+              </div>
+
+              {/* Verification & Role Badges */}
+              <div className="flex items-center justify-center gap-2 pt-1">
+                {/* STRICT VERIFICATION STATUS BADGE */}
+                {userProfile.identityVerified ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                    ✓ Verified
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                    <XCircle className="h-3.5 w-3.5 text-amber-600" />
+                    Not Verified
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleOpenRoleSwitchModal}
+                  disabled={switchingRole}
+                  className="inline-flex items-center gap-1 rounded-full bg-teal-50 hover:bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-800 border border-teal-200 capitalize transition cursor-pointer"
+                  title="Click to switch role to Seeker"
+                >
+                  <Home className="h-3.5 w-3.5 text-teal-600" />
+                  <span>Role: Host (Click to Switch)</span>
+                </button>
+              </div>
+            </Card>
+
+            {/* Personal Profile Details Card */}
+            <Card className="p-5 space-y-4 border border-slate-200 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
+                Personal Information
+              </h3>
+
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-slate-400" /> Date of Birth
+                  </span>
+                  <span className="font-semibold text-slate-800">{userProfile.dob || 'Not specified'}</span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-slate-400" /> Gender
+                  </span>
+                  <span className="font-semibold text-slate-800 capitalize">{userProfile.gender || 'Not specified'}</span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 flex items-center gap-1.5">
+                    <Briefcase className="h-3.5 w-3.5 text-slate-400" /> Occupation
+                  </span>
+                  <span className="font-semibold text-slate-800 capitalize">{(userProfile.occupation || '').replace('_', ' ') || 'Not specified'}</span>
+                </div>
+
+                {userProfile.bio && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <span className="text-slate-500 block mb-1 font-medium">Bio</span>
+                    <p className="text-slate-700 leading-relaxed italic bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                      "{userProfile.bio}"
+                    </p>
                   </div>
                 )}
               </div>
+            </Card>
 
-              <label
-                htmlFor="profile-avatar-upload"
-                className="text-xs font-semibold text-slate-900 hover:underline cursor-pointer pt-1"
+            {/* Lifestyle & Living Habits */}
+            <Card className="p-5 space-y-3 border border-slate-200 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
+                Lifestyle & Living Habits
+              </h3>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block text-[10px]">Smoking</span>
+                  <span className="font-semibold text-slate-800 capitalize">{lifestyle.smoking || 'never'}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block text-[10px]">Drinking</span>
+                  <span className="font-semibold text-slate-800 capitalize">{lifestyle.drinking || 'never'}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block text-[10px]">Sleep Schedule</span>
+                  <span className="font-semibold text-slate-800 capitalize">{(lifestyle.sleepSchedule || '').replace('_', ' ') || 'flexible'}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block text-[10px]">Diet</span>
+                  <span className="font-semibold text-slate-800 capitalize">{(lifestyle.diet || '').replace('_', ' ') || 'anything'}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block text-[10px]">Cleanliness</span>
+                  <span className="font-semibold text-slate-800 capitalize">{(lifestyle.cleanliness || '').replace('_', ' ') || 'very clean'}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block text-[10px]">Visitor Policy</span>
+                  <span className="font-semibold text-slate-800 capitalize">{(lifestyle.visitorPolicy || '').replace('_', ' ') || 'flexible'}</span>
+                </div>
+              </div>
+            </Card>
+            {/* Account Security Card */}
+            <Card className="p-5 space-y-4 border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <Lock className="h-4 w-4 text-emerald-600" /> Account Security
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500">
+                Keep your account secure with a strong and updated password.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs font-semibold justify-center"
+                leftIcon={<Lock className="h-3.5 w-3.5" />}
+                onClick={() => {
+                  setChangePasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                  setChangePasswordError(null);
+                  setIsChangePasswordOpen(true);
+                }}
               >
-                Change Avatar
-                <input
-                  id="profile-avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleProfilePhotoUpload}
-                />
-              </label>
-            </div>
-
-            {/* NAME Field */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                NAME
-              </label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Alexander Vance"
-                className="w-full rounded-2xl border border-slate-200 bg-white p-3.5 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-900 transition-colors"
-              />
-            </div>
-
-            {/* BIO Field */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                BIO
-              </label>
-              <textarea
-                rows={4}
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Architect based in London. I value quiet evenings, cleanliness, and intellectual discussions..."
-                className="w-full rounded-2xl border border-slate-200 bg-white p-3.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-900 resize-none transition-colors leading-relaxed"
-              />
-            </div>
-
-            {/* Occupation, Gender & Date of Birth */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  OCCUPATION
-                </label>
-                <input
-                  type="text"
-                  value={occupation}
-                  onChange={(e) => setOccupation(e.target.value)}
-                  placeholder="e.g. Architect"
-                  className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-slate-900"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  DATE OF BIRTH
-                </label>
-                <input
-                  type="date"
-                  value={dob}
-                  onChange={(e) => setDob(e.target.value)}
-                  max={MAX_DOB}
-                  min={MIN_DOB}
-                  className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-slate-900"
-                />
-              </div>
-            </div>
-
-            {/* Gender Pills */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                GENDER
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'male', label: 'Male' },
-                  { value: 'female', label: 'Female' },
-                  { value: 'other', label: 'Other' },
-                ].map((g) => (
-                  <button
-                    key={g.value}
-                    type="button"
-                    onClick={() => setGender(g.value)}
-                    className={`py-2 px-3 rounded-xl border text-xs capitalize transition-all cursor-pointer ${
-                      gender === g.value
-                        ? 'bg-black text-white font-bold border-black shadow-2xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    {g.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Email Field (Account identifier) */}
-            <div className="space-y-1.5 pt-2 border-t border-slate-100">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                EMAIL ADDRESS
-              </label>
-              <input
-                type="email"
-                value={email}
-                disabled
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-500 cursor-not-allowed select-none"
-              />
-            </div>
+                Change Password
+              </Button>
+            </Card>
           </div>
 
-          {/* Card 2 (If Seeker): Room & Search Preferences */}
-          {role === 'seeker' && (
-            <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xs space-y-5">
-              <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">
-                Room Search Criteria
-              </h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    TARGET LOCATION
-                  </label>
-                  <input
-                    type="text"
-                    value={preferredLocation}
-                    onChange={(e) => setPreferredLocation(e.target.value)}
-                    placeholder="e.g. Indiranagar, Bangalore"
-                    className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-slate-900"
-                  />
+          {/* Right Column: Host Room Details */}
+          <div className="space-y-6 lg:col-span-2">
+            <Card className="p-6 space-y-6 border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                      <Home className="h-5 w-5 text-emerald-600" />
+                      Host Room Listing Details
+                    </h2>
+                    {userProfile.role === 'host' ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                        🟢 Active Listing
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">
+                        🔴 Listing Inactive (Disabled)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">Property information visible to potential room seekers</p>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    MAX MONTHLY BUDGET (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={maxBudget}
-                    onChange={(e) => setMaxBudget(e.target.value)}
-                    placeholder="e.g. 25000"
-                    className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-slate-900"
-                  />
-                </div>
+                <Button size="sm" variant="outline" leftIcon={<Edit3 className="h-4 w-4" />} onClick={openEditRoom}>
+                  Edit Room
+                </Button>
               </div>
 
-              {/* Room Type Preference */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  ROOM TYPE PREFERENCE
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { value: 'private_bedroom', label: 'Private Room' },
-                    { value: 'shared_room', label: 'Shared Room' },
-                    { value: 'any', label: 'Any Type' },
-                  ].map((t) => (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => setRoomTypePreference(t.value)}
-                      className={`py-2 px-3 rounded-xl border text-xs transition-all cursor-pointer ${
-                        roomTypePreference === t.value
-                          ? 'bg-black text-white font-bold border-black shadow-2xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {room ? (
+                <div className="space-y-6">
+                  {/* Room Photos Gallery */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xs font-bold text-slate-700">Room Gallery Photos</h3>
+                      <span className="text-[11px] font-medium text-slate-400">
+                        {room.images?.length || 0} photo(s) uploaded
+                      </span>
+                    </div>
 
-              {/* Required Amenities */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  REQUIRED AMENITIES
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {AMENITY_CONFIG.map((item) => {
-                    const isSelected = requiredAmenities.includes(item.id);
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => toggleRequiredAmenity(item.id)}
-                        className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-slate-100 text-slate-900 font-bold border-slate-300'
-                            : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                        }`}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {/* Existing Room Photos with Remove button overlay */}
+                      {room.images && room.images.map((img, i) => (
+                        <div
+                          key={i}
+                          className="relative group aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-slate-900"
+                        >
+                          <img
+                            src={img}
+                            alt={`Room photo ${i + 1}`}
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                          <div className="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-90 transition-opacity flex items-center justify-end">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveRoomPhoto(img)}
+                              className="inline-flex items-center gap-1 bg-red-600/90 hover:bg-red-600 text-white text-[11px] font-semibold px-2 py-1 rounded-md shadow transition-colors"
+                              title="Remove photo"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Remove</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* '+' Add Photo Tile Button */}
+                      <label
+                        htmlFor="direct-add-room-photo-input"
+                        className="aspect-video rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-100/70 hover:bg-slate-200/80 dark:bg-slate-800/70 dark:hover:bg-slate-700/80 backdrop-blur-sm flex flex-col items-center justify-center cursor-pointer transition-all hover:border-emerald-500 group p-2 text-center"
+                        title="Add room photo"
                       >
-                        <item.icon className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                      </button>
-                    );
-                  })}
+                        <div className="h-9 w-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform shadow-xs">
+                          <Plus className="w-5 h-5" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-700">Add Photo</span>
+                        <span className="text-[10px] text-slate-400">Click to upload</span>
+                        <input
+                          id="direct-add-room-photo-input"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={handleAddRoomPhotos}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Room Key Information */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <Home className="h-3.5 w-3.5 text-emerald-600" /> Room Type
+                      </span>
+                      <p className="font-bold text-slate-900 capitalize text-base">
+                        {(room.roomType || '').replace('_', ' ') || 'Private Bedroom'}
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <DollarSign className="h-3.5 w-3.5 text-emerald-600" /> Monthly Rent
+                      </span>
+                      <p className="font-bold text-emerald-700 text-base">
+                        ₹{room.monthlyRent} <span className="text-xs text-slate-500 font-normal">/month</span>
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-emerald-600" /> Location / City
+                      </span>
+                      <p className="font-bold text-slate-900 text-sm">
+                        {room.location}
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <Users className="h-3.5 w-3.5 text-emerald-600" /> Vacant Count / Capacity
+                      </span>
+                      <p className="font-bold text-slate-900 text-sm">
+                        {room.capacity} Person(s)
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Availability Notes */}
+                  {room.availabilityNotes && (
+                    <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-100 space-y-1">
+                      <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                        <Clock className="h-4 w-4 text-emerald-700" /> Appointment Visit Availability
+                      </span>
+                      <p className="text-xs text-emerald-800">
+                        {room.availabilityNotes}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Amenities */}
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-700 mb-2">Amenities Offered</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {room.amenities && room.amenities.length > 0 ? (
+                        room.amenities.map((a, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            {a.replace('_', ' ')}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-slate-400">No specific amenities listed.</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  {room.description && (
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-700 mb-1">Space Description</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                        {room.description}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Card 3: Lifestyle Preferences Card */}
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xs space-y-6">
-            <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">
-              Lifestyle Preferences
-            </h2>
-
-            {/* SMOKING */}
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Cigarette className="h-3.5 w-3.5 text-slate-500" />
-                SMOKING
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'never', label: 'Non-smoker' },
-                  { value: 'regular', label: 'Smoker' },
-                  { value: 'social', label: 'Outside only' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setSmoking(opt.value as 'never' | 'social' | 'regular')}
-                    className={`py-2.5 px-2 rounded-xl border text-xs text-center transition-all cursor-pointer ${
-                      smoking === opt.value
-                        ? 'bg-black text-white font-bold border-black shadow-2xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* DRINKING */}
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Wine className="h-3.5 w-3.5 text-slate-500" />
-                DRINKING
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'never', label: 'Non-drinker' },
-                  { value: 'social', label: 'Social' },
-                  { value: 'regular', label: 'Regular' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setDrinking(opt.value as 'never' | 'social' | 'regular')}
-                    className={`py-2.5 px-2 rounded-xl border text-xs text-center transition-all cursor-pointer ${
-                      drinking === opt.value
-                        ? 'bg-black text-white font-bold border-black shadow-2xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* PETS */}
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <PawPrint className="h-3.5 w-3.5 text-slate-500" />
-                PETS
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'no_pets', label: 'No Pets' },
-                  { value: 'pet_friendly', label: 'Pet Friendly' },
-                  { value: 'has_pets', label: 'Has Pets' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setPets(opt.value as 'no_pets' | 'pet_friendly' | 'has_pets')}
-                    className={`py-2.5 px-2 rounded-xl border text-xs text-center transition-all cursor-pointer ${
-                      pets === opt.value
-                        ? 'bg-black text-white font-bold border-black shadow-2xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* SLEEP SCHEDULE */}
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-slate-500" />
-                SLEEP SCHEDULE
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'early_bird', label: 'Early Bird' },
-                  { value: 'night_owl', label: 'Night Owl' },
-                  { value: 'flexible', label: 'Flexible' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setSleepSchedule(opt.value as 'early_bird' | 'night_owl' | 'flexible')}
-                    className={`py-2.5 px-2 rounded-xl border text-xs text-center transition-all cursor-pointer ${
-                      sleepSchedule === opt.value
-                        ? 'bg-black text-white font-bold border-black shadow-2xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* CLEANLINESS */}
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-slate-500" />
-                CLEANLINESS
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'very_clean', label: 'Very Clean' },
-                  { value: 'moderate', label: 'Moderate' },
-                  { value: 'relaxed', label: 'Relaxed' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setCleanliness(opt.value as 'very_clean' | 'moderate' | 'relaxed')}
-                    className={`py-2.5 px-2 rounded-xl border text-xs text-center transition-all cursor-pointer ${
-                      cleanliness === opt.value
-                        ? 'bg-black text-white font-bold border-black shadow-2xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* DIET */}
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Utensils className="h-3.5 w-3.5 text-slate-500" />
-                DIET
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'veg', label: 'Vegetarian' },
-                  { value: 'non_veg', label: 'Non-Veg' },
-                  { value: 'anything', label: 'Flexible' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setDiet(opt.value as 'veg' | 'non_veg' | 'vegan' | 'anything')}
-                    className={`py-2.5 px-2 rounded-xl border text-xs text-center transition-all cursor-pointer ${
-                      diet === opt.value
-                        ? 'bg-black text-white font-bold border-black shadow-2xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* VISITOR POLICY */}
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Home className="h-3.5 w-3.5 text-slate-500" />
-                VISITOR POLICY
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'never', label: 'Quiet / No' },
-                  { value: 'occasional', label: 'Occasional' },
-                  { value: 'flexible', label: 'Flexible' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setVisitorPolicy(opt.value as 'never' | 'occasional' | 'frequent' | 'flexible')}
-                    className={`py-2.5 px-2 rounded-xl border text-xs text-center transition-all cursor-pointer ${
-                      visitorPolicy === opt.value
-                        ? 'bg-black text-white font-bold border-black shadow-2xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* ROOMMATE PREFERENCE */}
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-slate-500" />
-                ROOMMATE GENDER PREFERENCE
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'any', label: 'Any Gender' },
-                  { value: 'male', label: 'Male Only' },
-                  { value: 'female', label: 'Female Only' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setRoommateGenderPref(opt.value as 'any' | 'male' | 'female')}
-                    className={`py-2.5 px-2 rounded-xl border text-xs text-center transition-all cursor-pointer ${
-                      roommateGenderPref === opt.value
-                        ? 'bg-black text-white font-bold border-black shadow-2xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* AT LAST: SAVE PROFILE CHANGES BUTTON */}
-          <div className="sticky bottom-6 z-20">
-            <button
-              type="button"
-              disabled={savingAll}
-              onClick={handleSaveProfileChanges}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-black hover:bg-slate-800 disabled:opacity-50 text-white py-4 px-6 text-sm font-bold shadow-lg transition-all cursor-pointer"
-            >
-              {savingAll ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Saving Changes...</span>
-                </>
               ) : (
-                <>
-                  <Check className="h-4 w-4 stroke-[3]" />
-                  <span>Save Profile Changes</span>
-                </>
+                <div className="p-8 text-center text-slate-500 space-y-3">
+                  <p className="text-sm">No room details listed yet.</p>
+                  <Button size="sm" onClick={openEditRoom}>
+                    Add Room Listing
+                  </Button>
+                </div>
               )}
-            </button>
+            </Card>
           </div>
         </div>
-      </div>
+      ) : (
+        /* SEEKER LAYOUT: Personal Details & Search Preferences Cards */
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Left Column: Personal Profile & Verification */}
+          <div className="space-y-6 lg:col-span-1">
+            <Card className="p-6 text-center space-y-4 border border-slate-200 shadow-sm">
+              <div className="relative inline-block mx-auto group">
+                {userProfile.selfieUrl ? (
+                  <img
+                    src={userProfile.selfieUrl}
+                    alt={userProfile.firstName}
+                    className="h-28 w-28 rounded-full object-cover border-4 border-emerald-500 shadow"
+                  />
+                ) : (
+                  <div className="h-28 w-28 rounded-full bg-gradient-to-br from-emerald-500 to-teal-700 text-white font-bold text-3xl flex items-center justify-center border-4 border-emerald-500 shadow">
+                    {userProfile.firstName ? userProfile.firstName[0].toUpperCase() : 'U'}
+                  </div>
+                )}
 
-      {/* Edit Room Listing Modal */}
-      {isEditRoomOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200 relative max-h-[90vh] overflow-y-auto">
-            <button
-              type="button"
-              onClick={() => setIsEditRoomOpen(false)}
-              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+                <label
+                  htmlFor="seeker-profile-image-upload"
+                  className="absolute bottom-0 right-0 bg-emerald-600 hover:bg-emerald-700 text-white p-2 rounded-full shadow-lg border-2 border-white cursor-pointer transition-all hover:scale-110 flex items-center justify-center"
+                  title="Change profile photo"
+                >
+                  <Camera className="w-4 h-4" />
+                  <input
+                    id="seeker-profile-image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleProfilePhotoUpload}
+                  />
+                </label>
+              </div>
 
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Home className="h-5 w-5 text-slate-700" /> Edit Listing Details
+              <div>
+                <h2 className="text-xl font-extrabold text-slate-900">
+                  {userProfile.firstName} {userProfile.lastName}
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">{userProfile.email}</p>
+              </div>
+
+              {/* Verification & Role Badges */}
+              <div className="flex items-center justify-center gap-2 pt-1">
+                {/* STRICT VERIFICATION STATUS BADGE */}
+                {userProfile.identityVerified ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                    ✓ Verified
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                    <XCircle className="h-3.5 w-3.5 text-amber-600" />
+                    Not Verified
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleOpenRoleSwitchModal}
+                  disabled={switchingRole}
+                  className="inline-flex items-center gap-1 rounded-full bg-emerald-50 hover:bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800 border border-emerald-200 capitalize transition cursor-pointer"
+                  title="Click to switch role to Host"
+                >
+                  <UserCheck className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Role: Seeker (Click to Switch)</span>
+                </button>
+              </div>
+            </Card>
+
+            <Card className="p-5 space-y-4 border border-slate-200 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
+                Personal Details
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Update the core property parameters, location, and monthly rent.
+
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-slate-400" /> Date of Birth
+                  </span>
+                  <span className="font-semibold text-slate-800">{userProfile.dob || 'Not specified'}</span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-slate-400" /> Gender
+                  </span>
+                  <span className="font-semibold text-slate-800 capitalize">{userProfile.gender || 'Not specified'}</span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 flex items-center gap-1.5">
+                    <Briefcase className="h-3.5 w-3.5 text-slate-400" /> Occupation
+                  </span>
+                  <span className="font-semibold text-slate-800 capitalize">{(userProfile.occupation || '').replace('_', ' ') || 'Not specified'}</span>
+                </div>
+
+                {userProfile.bio && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <span className="text-slate-500 block mb-1 font-medium">Bio</span>
+                    <p className="text-slate-700 leading-relaxed italic bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                      "{userProfile.bio}"
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Account Security Card */}
+            <Card className="p-5 space-y-4 border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <Lock className="h-4 w-4 text-emerald-600" /> Account Security
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500">
+                Keep your account secure with a strong and updated password.
               </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs font-semibold justify-center"
+                leftIcon={<Lock className="h-3.5 w-3.5" />}
+                onClick={() => {
+                  setChangePasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                  setChangePasswordError(null);
+                  setIsChangePasswordOpen(true);
+                }}
+              >
+                Change Password
+              </Button>
+            </Card>
+          </div>
+
+          {/* Right Column: Seeker Preferences & Lifestyle */}
+          <div className="space-y-6 lg:col-span-2">
+            <Card className="p-6 space-y-5 border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                      <UserCheck className="h-5 w-5 text-emerald-600" />
+                      Home Search Preferences
+                    </h2>
+                    {userProfile.role === 'seeker' ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                        🟢 Active Seeking Post
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">
+                        🔴 Post Inactive (Disabled)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">Your desired location, room budget, and required amenities</p>
+                </div>
+
+                <Button size="sm" variant="outline" leftIcon={<Edit3 className="h-4 w-4" />} onClick={openEditSeeker}>
+                  Edit Search Preferences
+                </Button>
+              </div>
+
+              {seekerPref ? (
+                <div className="space-y-5">
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-emerald-600" /> Preferred Location
+                      </span>
+                      <p className="font-bold text-slate-900 text-sm">
+                        {seekerPref.preferredLocation}
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <DollarSign className="h-3.5 w-3.5 text-emerald-600" /> Max Monthly Budget
+                      </span>
+                      <p className="font-bold text-emerald-700 text-sm">
+                        ₹{seekerPref.maxBudget} /mo
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <Home className="h-3.5 w-3.5 text-emerald-600" /> Room Type Pref
+                      </span>
+                      <p className="font-bold text-slate-900 capitalize text-sm">
+                        {(seekerPref.roomTypePreference || '').replace('_', ' ') || 'Any'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-700 mb-2">Required Amenities</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {seekerPref.requiredAmenities && seekerPref.requiredAmenities.length > 0 ? (
+                        seekerPref.requiredAmenities.map((a, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            {(a || '').replace('_', ' ')}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-slate-400">No specific required amenities selected.</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-slate-500 space-y-3">
+                  <p className="text-sm">No search preferences defined yet.</p>
+                  <Button size="sm" onClick={openEditSeeker}>
+                    Add Search Preferences
+                  </Button>
+                </div>
+              )}
+            </Card>
+
+            {/* Lifestyle & Living Habits */}
+            <Card className="p-6 space-y-4 border border-slate-200 shadow-sm">
+              <h2 className="text-lg font-extrabold text-slate-900 border-b border-slate-100 pb-3">
+                Living Habits & Lifestyle
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Smoking</span>
+                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{lifestyle.smoking || 'never'}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Drinking</span>
+                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{lifestyle.drinking || 'never'}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Sleep Schedule</span>
+                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{(lifestyle.sleepSchedule || '').replace('_', ' ') || 'flexible'}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Diet</span>
+                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{(lifestyle.diet || '').replace('_', ' ') || 'anything'}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Cleanliness</span>
+                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{(lifestyle.cleanliness || '').replace('_', ' ') || 'very clean'}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Visitor Policy</span>
+                  <span className="font-bold text-slate-800 capitalize mt-0.5 block">{(lifestyle.visitorPolicy || '').replace('_', ' ') || 'flexible'}</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT PROFILE MODAL */}
+      {isEditProfileOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-lg font-bold text-slate-900">Edit Personal & Lifestyle Profile</h3>
+              <button
+                type="button"
+                onClick={() => setIsEditProfileOpen(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                  Location / Address
-                </label>
-                <input
-                  type="text"
-                  value={roomLocation}
-                  onChange={(e) => setRoomLocation(e.target.value)}
-                  placeholder="e.g. Indiranagar, Bangalore"
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:outline-hidden"
-                />
+            <form onSubmit={handleProfileUpdateSubmit} className="space-y-4 text-xs">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="dob">Date of Birth</Label>
+                  <Input
+                    id="dob"
+                    type="date"
+                    min={MIN_DOB}
+                    max={MAX_DOB}
+                    required
+                    value={editProfileForm.dob}
+                    error={profileDobError || undefined}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditProfileForm({ ...editProfileForm, dob: val });
+                      setProfileDobError(validateDob(val));
+                    }}
+                  />
+                  {profileDobError && (
+                    <p className="mt-1 text-xs text-rose-500">{profileDobError}</p>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="gender">Gender</Label>
+                  <select
+                    id="gender"
+                    value={editProfileForm.gender}
+                    onChange={(e) => setEditProfileForm({ ...editProfileForm, gender: e.target.value })}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                  Monthly Rent (₹)
-                </label>
-                <input
-                  type="number"
-                  value={monthlyRent}
-                  onChange={(e) => setMonthlyRent(e.target.value)}
-                  placeholder="e.g. 45000"
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                  Room Type
-                </label>
+                <Label htmlFor="occupation">Occupation</Label>
                 <select
-                  value={roomType}
-                  onChange={(e) => setRoomType(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:outline-hidden"
+                  id="occupation"
+                  value={editProfileForm.occupation}
+                  onChange={(e) => setEditProfileForm({ ...editProfileForm, occupation: e.target.value })}
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
                 >
-                  <option value="private_bedroom">Private Bedroom</option>
-                  <option value="shared_room">Shared Room</option>
-                  <option value="entire_apartment">Entire Apartment</option>
+                  <option value="student">Student</option>
+                  <option value="working_professional">Working Professional</option>
+                  <option value="freelancer">Freelancer / Self-Employed</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                  Room Description
-                </label>
+                <Label htmlFor="bio">Short Bio</Label>
                 <textarea
-                  rows={3}
-                  value={roomDescription}
-                  onChange={(e) => setRoomDescription(e.target.value)}
-                  placeholder="Describe the room, house rules, and nearby amenities..."
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:outline-hidden resize-none"
+                  id="bio"
+                  rows={2}
+                  value={editProfileForm.bio}
+                  onChange={(e) => setEditProfileForm({ ...editProfileForm, bio: e.target.value })}
+                  className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none resize-none"
                 />
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEditRoomOpen(false)}
-                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditRoomOpen(false);
-                    handleSaveProfileChanges();
-                  }}
-                  className="flex-1 rounded-xl bg-black py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-colors"
-                >
-                  Apply &amp; Save
-                </button>
+              <div className="border-t border-slate-100 pt-3">
+                <h4 className="font-bold text-slate-800 mb-2">Lifestyle Habits</h4>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="smoking">Smoking</Label>
+                    <select
+                      id="smoking"
+                      value={editProfileForm.smoking}
+                      onChange={(e) => setEditProfileForm({ ...editProfileForm, smoking: e.target.value })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-xs"
+                    >
+                      <option value="never">Never</option>
+                      <option value="socially">Socially</option>
+                      <option value="regularly">Regularly</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="drinking">Drinking</Label>
+                    <select
+                      id="drinking"
+                      value={editProfileForm.drinking}
+                      onChange={(e) => setEditProfileForm({ ...editProfileForm, drinking: e.target.value })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-xs"
+                    >
+                      <option value="never">Never</option>
+                      <option value="socially">Socially</option>
+                      <option value="regularly">Regularly</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="sleepSchedule">Sleep Schedule</Label>
+                    <select
+                      id="sleepSchedule"
+                      value={editProfileForm.sleepSchedule}
+                      onChange={(e) => setEditProfileForm({ ...editProfileForm, sleepSchedule: e.target.value })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-xs"
+                    >
+                      <option value="early_bird">Early Bird</option>
+                      <option value="night_owl">Night Owl</option>
+                      <option value="flexible">Flexible</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="cleanliness">Cleanliness</Label>
+                    <select
+                      id="cleanliness"
+                      value={editProfileForm.cleanliness}
+                      onChange={(e) => setEditProfileForm({ ...editProfileForm, cleanliness: e.target.value })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-xs"
+                    >
+                      <option value="very_clean">Very Clean</option>
+                      <option value="moderate">Moderate</option>
+                      <option value="relaxed">Relaxed</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-            </div>
+
+              <div className="flex gap-2 pt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditProfileOpen(false)}
+                  className="w-1/2"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="w-1/2" isLoading={submitting}>
+                  Save Changes
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Role Switch Confirmation Modal */}
-      {isRoleSwitchModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-200 relative">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center shrink-0">
-                {role === 'host' ? <UserCheck className="h-5 w-5" /> : <Home className="h-5 w-5" />}
-              </div>
+      {/* EDIT ROOM MODAL */}
+      {isEditRoomOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-lg font-bold text-slate-900">Edit Host Room Listing</h3>
+              <button
+                type="button"
+                onClick={() => setIsEditRoomOpen(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRoomUpdateSubmit} className="space-y-4 text-xs">
               <div>
-                <h3 className="font-bold text-slate-900 text-base">
-                  Switch to {role === 'host' ? 'Room Seeker' : 'Room Host'}?
-                </h3>
-                <p className="text-xs text-slate-400">Toggle your account active mode.</p>
+                <Label htmlFor="roomType">Room Type</Label>
+                <select
+                  id="roomType"
+                  value={editRoomForm.roomType}
+                  onChange={(e) => setEditRoomForm({ ...editRoomForm, roomType: e.target.value })}
+                  className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 shadow-sm"
+                >
+                  <option value="private_bedroom">Private Bedroom</option>
+                  <option value="shared_room">Shared Bedroom</option>
+                  <option value="apartment">Full Apartment</option>
+                  <option value="studio">Studio Apartment</option>
+                  <option value="penthouse">Penthouse</option>
+                </select>
               </div>
-            </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
-              When you switch roles, your listing in the other mode will be hidden from public search to keep the marketplace accurate.
-            </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="monthlyRent">Monthly Rent (₹)</Label>
+                  <Input
+                    id="monthlyRent"
+                    type="number"
+                    min="500"
+                    required
+                    value={editRoomForm.monthlyRent}
+                    onChange={(e) => setEditRoomForm({ ...editRoomForm, monthlyRent: e.target.value })}
+                  />
+                </div>
 
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsRoleSwitchModalOpen(false)}
-                className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={switchingRole}
-                onClick={executeRoleSwitch}
-                className="flex-1 rounded-xl bg-black py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
-              >
-                {switchingRole ? 'Switching...' : 'Confirm'}
-              </button>
-            </div>
+                <div>
+                  <Label htmlFor="location">City / Location</Label>
+                  <Input
+                    id="location"
+                    type="text"
+                    required
+                    value={editRoomForm.location}
+                    onChange={(e) => setEditRoomForm({ ...editRoomForm, location: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="capacity">Capacity / Vacant Count</Label>
+                  <Input
+                    id="capacity"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={editRoomForm.capacity}
+                    onChange={(e) => setEditRoomForm({ ...editRoomForm, capacity: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="availabilityNotes">Visit Slot Availability</Label>
+                  <Input
+                    id="availabilityNotes"
+                    type="text"
+                    value={editRoomForm.availabilityNotes}
+                    onChange={(e) => setEditRoomForm({ ...editRoomForm, availabilityNotes: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Add Room Photos */}
+              <div>
+                <Label>Add More Photos (Optional)</Label>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {editRoomForm.imagesBase64.map((img, idx) => (
+                    <div key={idx} className="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200">
+                      <img src={img} alt="Preview" className="h-full w-full object-cover" />
+                    </div>
+                  ))}
+                  {editRoomForm.imagesBase64.length < 5 && (
+                    <label className="flex h-16 w-16 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 hover:bg-emerald-50 text-slate-400">
+                      <Upload className="h-4 w-4" />
+                      <span className="text-[9px] text-emerald-700">Add</span>
+                      <input type="file" accept="image/*" multiple onChange={handleRoomImagesChange} className="hidden" />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="description">Space Description</Label>
+                <textarea
+                  id="description"
+                  rows={2}
+                  value={editRoomForm.description}
+                  onChange={(e) => setEditRoomForm({ ...editRoomForm, description: e.target.value })}
+                  className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 shadow-sm resize-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditRoomOpen(false)}
+                  className="w-1/2"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="w-1/2" isLoading={submitting}>
+                  Save Room Listing
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Change Password Modal */}
-      {isChangePasswordOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200 relative">
+      {/* EDIT SEEKER PREFERENCES MODAL */}
+      {isEditSeekerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-lg font-bold text-slate-900">Edit Search Preferences</h3>
+              <button
+                type="button"
+                onClick={() => setIsEditSeekerOpen(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSeekerUpdateSubmit} className="space-y-4 text-xs">
+              <div>
+                <Label htmlFor="preferredLocation">Preferred City / Location</Label>
+                <Input
+                  id="preferredLocation"
+                  type="text"
+                  required
+                  value={editSeekerForm.preferredLocation}
+                  onChange={(e) => setEditSeekerForm({ ...editSeekerForm, preferredLocation: e.target.value })}
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="maxBudget">Max Monthly Budget (₹)</Label>
+                  <Input
+                    id="maxBudget"
+                    type="number"
+                    min="500"
+                    required
+                    value={editSeekerForm.maxBudget}
+                    onChange={(e) => setEditSeekerForm({ ...editSeekerForm, maxBudget: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="roomTypePreference">Room Preference</Label>
+                  <select
+                    id="roomTypePreference"
+                    value={editSeekerForm.roomTypePreference}
+                    onChange={(e) => setEditSeekerForm({ ...editSeekerForm, roomTypePreference: e.target.value })}
+                    className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 shadow-sm"
+                  >
+                    <option value="any">Any Room Type</option>
+                    <option value="private_bedroom">Private Bedroom</option>
+                    <option value="shared_room">Shared Bedroom</option>
+                    <option value="apartment">Full Apartment</option>
+                    <option value="studio">Studio Apartment</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <Label>Required Amenities</Label>
+                <div className="mt-1.5 grid grid-cols-2 gap-2 text-[11px]">
+                  {AMENITY_OPTIONS.map((a) => {
+                    const isChecked = editSeekerForm.requiredAmenities.includes(a.id);
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() =>
+                          setEditSeekerForm((prev) => ({
+                            ...prev,
+                            requiredAmenities: isChecked
+                              ? prev.requiredAmenities.filter((item) => item !== a.id)
+                              : [...prev.requiredAmenities, a.id],
+                          }))
+                        }
+                        className={`flex items-center gap-1.5 p-2 rounded-lg border text-left ${
+                          isChecked ? 'bg-emerald-50 border-emerald-600 text-emerald-900 font-semibold' : 'bg-white border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        {a.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditSeekerOpen(false)}
+                  className="w-1/2"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="w-1/2" isLoading={submitting}>
+                  Save Preferences
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM ROLE SWITCH MODAL */}
+      {isRoleSwitchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-5 relative">
             <button
               type="button"
-              onClick={() => setIsChangePasswordOpen(false)}
-              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+              onClick={() => setIsRoleSwitchModalOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Lock className="h-5 w-5 text-slate-800" /> Change Password
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Enter your current password and a new secure password.
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  Confirm Role Switch
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Switching active role from <span className="font-bold text-slate-800 capitalize">{userProfile.role}</span> to{' '}
+                  <span className="font-bold text-emerald-700 capitalize">
+                    {userProfile.role === 'host' ? 'Room Seeker' : 'Room Host'}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-amber-50/80 border border-amber-200/80 p-4 text-xs text-amber-900 space-y-2 leading-relaxed">
+              <p className="font-semibold">
+                ⚠️ <strong>Notice:</strong> If you switch your role to{' '}
+                <strong className="underline decoration-amber-500">
+                  {userProfile.role === 'host' ? 'Room Seeker' : 'Room Host'}
+                </strong>
+                , your existing{' '}
+                <strong className="underline decoration-amber-500">
+                  {userProfile.role === 'host' ? 'Host Room Listing' : 'Room Seeker Search Preference'}
+                </strong>{' '}
+                post will be <strong className="text-red-700 font-extrabold">disabled and hidden</strong> from all other users until you switch your role back to{' '}
+                <strong className="capitalize">{userProfile.role}</strong>.
               </p>
             </div>
 
-            {changePasswordError && (
-              <div className="p-3 text-xs bg-rose-50 text-rose-700 rounded-xl border border-rose-200">
-                {changePasswordError}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsRoleSwitchModalOpen(false)}
+                className="text-slate-600 border-slate-300 text-xs font-semibold"
+              >
+                Cancel
+              </Button>
+
+              <Button
+                size="sm"
+                disabled={switchingRole}
+                onClick={executeRoleSwitch}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md"
+              >
+                {switchingRole ? 'Switching Role...' : 'Confirm & Switch Role'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* CHANGE PASSWORD MODAL */}
+      {isChangePasswordOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-5 relative">
+            <button
+              type="button"
+              onClick={() => setIsChangePasswordOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <Lock className="w-6 h-6" />
               </div>
-            )}
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  Change Password
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Update your account password to stay secure
+                </p>
+              </div>
+            </div>
 
             <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
-              <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                  Current Password
-                </label>
+              {changePasswordError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700">
+                  {changePasswordError}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="currentPassword">Current Password</Label>
                 <PasswordInput
+                  id="currentPassword"
+                  name="currentPassword"
                   value={changePasswordForm.currentPassword}
-                  onChange={(e) =>
-                    setChangePasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))
-                  }
-                  placeholder="Enter current password"
+                  onChange={(e) => {
+                    setChangePasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }));
+                    setChangePasswordError(null);
+                  }}
+                  placeholder="Enter current password (if set)"
+                  autoComplete="current-password"
                 />
+                <p className="text-[11px] text-slate-400">
+                  Leave blank if you registered via Google and have no password set.
+                </p>
               </div>
 
-              <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                  New Password
-                </label>
+              <div className="space-y-1.5">
+                <Label htmlFor="newPassword">New Password</Label>
                 <PasswordInput
+                  id="newPassword"
+                  name="newPassword"
                   value={changePasswordForm.newPassword}
-                  onChange={(e) =>
-                    setChangePasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
-                  }
-                  placeholder="Enter new secure password"
+                  onChange={(e) => {
+                    setChangePasswordForm((prev) => ({ ...prev, newPassword: e.target.value }));
+                    setChangePasswordError(null);
+                  }}
+                  placeholder="Enter new password"
+                  autoComplete="new-password"
+                  required
                 />
                 <PasswordStrength password={changePasswordForm.newPassword} />
               </div>
 
-              <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                  Confirm New Password
-                </label>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
                 <PasswordInput
+                  id="confirmPassword"
+                  name="confirmPassword"
                   value={changePasswordForm.confirmPassword}
-                  onChange={(e) =>
-                    setChangePasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    setChangePasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }));
+                    setChangePasswordError(null);
+                  }}
                   placeholder="Re-enter new password"
+                  autoComplete="new-password"
+                  required
                 />
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
-                <button
+              <div className="flex items-center justify-end gap-3 pt-3">
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIsChangePasswordOpen(false)}
-                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                  className="text-slate-600 border-slate-300 text-xs font-semibold"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  size="sm"
                   disabled={isChangingPassword}
-                  className="flex-1 rounded-xl bg-black py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md"
                 >
-                  {isChangingPassword ? 'Updating...' : 'Update Password'}
-                </button>
+                  {isChangingPassword ? 'Updating Password...' : 'Update Password'}
+                </Button>
               </div>
             </form>
           </div>

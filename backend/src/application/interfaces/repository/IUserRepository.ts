@@ -13,7 +13,7 @@ export interface IUserRepository {
     updateVerificationStatus(email: string, isVerified: boolean): Promise<void>;
     updatenewPassword(email: string, password: string): Promise<void>;
     updateProfile(userId: string, profileData: Partial<UserEntity>): Promise<UserEntity | null>;
-    updateUser(userId: string, userData: Partial<UserEntity>): Promise<UserEntity | null>;
+    updateUser(userId: string, userData: Partial<UserEntity>, session?: unknown): Promise<UserEntity | null>;
     findById(id: string): Promise<UserEntity | null>;
     findAll(search?: string): Promise<UserEntity[]>;
 }

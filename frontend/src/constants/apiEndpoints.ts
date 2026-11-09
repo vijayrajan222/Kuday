@@ -69,4 +69,14 @@ export const API_ENDPOINTS = {
     SUGGEST: (visitId: string) => `/visits/${visitId}/suggest`,
     ACCEPT_SUGGESTION: (visitId: string) => `/visits/${visitId}/accept-suggestion`,
   },
+  PAYMENT: {
+    PLANS: '/payment/plans',
+    CONFIG: '/payment/config',
+    CREATE_ORDER: '/payment/orders',
+    VERIFY: '/payment/verify',
+    ACTIVE_SUBSCRIPTION: '/payment/subscriptions/active',
+    CANCEL_SUBSCRIPTION: (id: string) => `/payment/subscriptions/${id}/cancel`,
+    RETRY_REFUND: (id: string) => `/payment/subscriptions/${id}/retry-refund`,
+    WALLET: '/payment/wallet',
+  },
 } as const;

@@ -7,6 +7,8 @@ import {
   User,
   RefreshCw,
   Sparkles,
+  Crown,
+  Wallet,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { BrandLogo } from '@/components/common/BrandLogo';
@@ -72,6 +74,16 @@ export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) 
       label: 'Profile & Preferences',
       to: ROUTES.PROFILE,
       icon: User,
+    },
+    {
+      label: 'Membership',
+      to: ROUTES.MEMBERSHIP,
+      icon: Crown,
+    },
+    {
+      label: 'Wallet',
+      to: ROUTES.WALLET,
+      icon: Wallet,
     },
   ];
 

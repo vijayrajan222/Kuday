@@ -7,6 +7,8 @@ export interface UserEntity {
     isVerified: boolean;
     isBlocked: boolean;
     isAdmin?: boolean;
+    isPremium?: boolean;
+    premiumExpiresAt?: Date;
     otp?: number;
 
     // Profile Fields

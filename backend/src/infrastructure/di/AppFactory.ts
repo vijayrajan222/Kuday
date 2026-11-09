@@ -11,6 +11,11 @@ import { MongoInterestRepository } from "@infrastructure/repository/MongoInteres
 import { MongoMessageRepository } from "@infrastructure/repository/MongoMessageRepository";
 import { MongoConversationRepository } from "@infrastructure/repository/MongoConversationRepository";
 import { MongoVisitRepository } from "@infrastructure/repository/MongoVisitRepository";
+import { MongoWalletRepository } from "@infrastructure/repository/MongoWalletRepository";
+import { MongoWalletTransactionRepository } from "@infrastructure/repository/MongoWalletTransactionRepository";
+import { MongoPlanRepository } from "@infrastructure/repository/MongoPlanRepository";
+import { MongoSubscriptionRepository } from "@infrastructure/repository/MongoSubscriptionRepository";
+import { MongoPaymentRepository } from "@infrastructure/repository/MongoPaymentRepository";
 
 // Services
 import { HashService } from "@infrastructure/services/HashingService";
@@ -18,6 +23,8 @@ import { OtpService } from "@infrastructure/services/OtpServices";
 import { NodemailerMailService } from "@infrastructure/services/NodemailerService";
 import { JwtService } from "@infrastructure/services/JwtServices";
 import { CloudinaryService } from "@infrastructure/services/CloudinaryService";
+import { RazorpayService } from "@infrastructure/services/RazorpayService";
+import { WalletService } from "@infrastructure/services/WalletService";
 
 // Auth Use Cases
 import { SignUpUserUseCase } from "@application/use-case/auth/SignUpUserUseCase";
@@ -81,6 +88,17 @@ import { MarkMessagesAsReadUseCase } from "@application/use-case/chat/MarkMessag
 import { StartConversationUseCase } from "@application/use-case/chat/StartConversationUseCase";
 import { GetUnreadCountUseCase } from "@application/use-case/chat/GetUnreadCountUseCase";
 
+// Payment & Subscription Use Cases
+import { CreateOrderUseCase } from "@application/use-case/payment/CreateOrderUseCase";
+import { VerifyPaymentUseCase } from "@application/use-case/payment/VerifyPaymentUseCase";
+import { GetPlansUseCase } from "@application/use-case/payment/GetPlansUseCase";
+import { ActivateSubscriptionUseCase } from "@application/use-case/subscription/ActivateSubscriptionUseCase";
+import { HandleWebhookUseCase } from "@application/use-case/payment/HandleWebhookUseCase";
+import { CancelSubscriptionUseCase } from "@application/use-case/subscription/CancelSubscriptionUseCase";
+import { RetryRefundUseCase } from "@application/use-case/subscription/RetryRefundUseCase";
+import { GetActiveSubscriptionUseCase } from "@application/use-case/subscription/GetActiveSubscriptionUseCase";
+import { GetWalletUseCase } from "@application/use-case/wallet/GetWalletUseCase";
+
 // Socket Service
 import { SocketService } from "@infrastructure/socket/SocketService";
 
@@ -95,6 +113,7 @@ import { AdminController } from "@presentation/controller/AdminController";
 import { InterestController } from "@presentation/controller/InterestController";
 import { ChatController } from "@presentation/controller/ChatController";
 import { VisitController } from "@presentation/controller/VisitController";
+import { PaymentController } from "@presentation/controller/PaymentController";
 
 // Routers
 import { createAuthRouter } from "@presentation/router/AuthRouter";
@@ -107,6 +126,8 @@ import { createAdminRouter } from "@presentation/router/AdminRouter";
 import { createInterestRouter } from "@presentation/router/InterestRouter";
 import { createChatRouter } from "@presentation/router/ChatRouter";
 import { createVisitRouter } from "@presentation/router/VisitRouter";
+import { createPaymentRouter } from "@presentation/router/PaymentRouter";
+import { createAuthMiddleware } from "@presentation/middleware/AuthMiddleware";
 
 export function setupAppDependencies(app: Express): SocketService {
     // 1. Repositories
@@ -120,6 +141,11 @@ export function setupAppDependencies(app: Express): SocketService {
     const messagerepo = new MongoMessageRepository();
     const conversationrepo = new MongoConversationRepository();
     const visitrepo = new MongoVisitRepository();
+    const walletrepo = new MongoWalletRepository();
+    const walletTxRepo = new MongoWalletTransactionRepository();
+    const planrepo = new MongoPlanRepository();
+    const subscriptionrepo = new MongoSubscriptionRepository();
+    const paymentrepo = new MongoPaymentRepository();
 
     // 2. Infrastructure Services
     const hasher = new HashService();
@@ -127,6 +153,8 @@ export function setupAppDependencies(app: Express): SocketService {
     const mailer = new NodemailerMailService();
     const jwtService = new JwtService();
     const cloudinaryService = new CloudinaryService();
+    const razorpayService = new RazorpayService();
+    const walletService = new WalletService(walletrepo, walletTxRepo);
 
     // 3. Application Use Cases
     const signUpUsecase = new SignUpUserUseCase(userrepo, hasher, otprepo, otpservice, mailer);
@@ -280,6 +308,66 @@ export function setupAppDependencies(app: Express): SocketService {
         suggestVisitUseCase
     );
 
+    // Payment & Subscription Use Cases
+    const activateSubscriptionUseCase = new ActivateSubscriptionUseCase(
+        paymentrepo,
+        planrepo,
+        subscriptionrepo,
+        userrepo,
+        walletService
+    );
+
+    const createOrderUseCase = new CreateOrderUseCase(
+        paymentrepo,
+        planrepo,
+        subscriptionrepo,
+        userrepo,
+        razorpayService
+    );
+    const verifyPaymentUseCase = new VerifyPaymentUseCase(
+        paymentrepo,
+        razorpayService,
+        activateSubscriptionUseCase
+    );
+    const getPlansUseCase = new GetPlansUseCase(planrepo);
+    const handleWebhookUseCase = new HandleWebhookUseCase(
+        paymentrepo,
+        subscriptionrepo,
+        razorpayService,
+        activateSubscriptionUseCase
+    );
+    const cancelSubscriptionUseCase = new CancelSubscriptionUseCase(
+        subscriptionrepo,
+        planrepo,
+        paymentrepo,
+        userrepo,
+        walletService
+    );
+    const retryRefundUseCase = new RetryRefundUseCase(
+        subscriptionrepo,
+        walletService
+    );
+    const getActiveSubscriptionUseCase = new GetActiveSubscriptionUseCase(
+        subscriptionrepo,
+        planrepo,
+        paymentrepo
+    );
+    const getWalletUseCase = new GetWalletUseCase(walletService);
+
+    const paymentController = new PaymentController(
+        createOrderUseCase,
+        verifyPaymentUseCase,
+        getPlansUseCase,
+        razorpayService,
+        handleWebhookUseCase,
+        cancelSubscriptionUseCase,
+        retryRefundUseCase,
+        getActiveSubscriptionUseCase,
+        getWalletUseCase
+    );
+
+    const authMiddleware = createAuthMiddleware(jwtService, userrepo);
+
     // 5. Routers & Route Mounting
     app.use("/auth", createAuthRouter(authController));
     app.use("/users", createUserRouter(userController)); 
@@ -291,6 +379,7 @@ export function setupAppDependencies(app: Express): SocketService {
     app.use("/interests", createInterestRouter(interestController));
     app.use("/chat", createChatRouter(chatController));
     app.use("/visits", createVisitRouter(visitController));
+    app.use("/payment", createPaymentRouter(paymentController, authMiddleware));
 
     return socketService;
 }

@@ -2,12 +2,14 @@ import http from "http";
 import express from "express";
 import cors from "cors";
 import { connectMongo } from "@infrastructure/database/ConnectMongoDB";
+import { seedDefaultPlans } from "@infrastructure/database/seedPlans";
 import { setupAppDependencies } from "@infrastructure/di/AppFactory";
 import { globalErrorHandler } from "@presentation/middleware/ErrorHandlerMiddleware";
 
 async function startServer(): Promise<void> {
     console.log("Waiting for database connection...");
     await connectMongo();
+    await seedDefaultPlans();
 
     const PORT = process.env.PORT || 3000;
     const app = express();
@@ -19,7 +21,14 @@ async function startServer(): Promise<void> {
             credentials: true,
         })
     );
-    app.use(express.json({ limit: "50mb" }));
+    app.use(
+        express.json({
+            limit: "50mb",
+            verify: (req: any, _res, buf) => {
+                req.rawBody = buf.toString("utf-8");
+            },
+        })
+    );
     app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
     // Dependency Injection, Route Mounting, and Socket Service setup
