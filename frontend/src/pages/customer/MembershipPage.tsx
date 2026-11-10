@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import {
   Crown,
   Check,
@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   RotateCcw,
   Sparkles,
-  UserCheck,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/useToast';
@@ -39,7 +38,10 @@ export default function MembershipPage() {
   const [refundReason, setRefundReason] = useState('');
   const [isRefunding, setIsRefunding] = useState(false);
 
-  const isHost = user?.role === 'host';
+  // Only hosts can access or view Membership
+  if (user && user.role !== 'host') {
+    return <Navigate to={ROUTES.DASHBOARD} replace />;
+  }
 
   // Load plans, active subscription & wallet balance
   const loadData = async () => {
@@ -63,8 +65,10 @@ export default function MembershipPage() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user?.role === 'host') {
+      loadData();
+    }
+  }, [user?.role]);
 
   // Initiate Razorpay Checkout Flow
   const handleSubscribe = async (plan: Plan) => {
@@ -74,7 +78,7 @@ export default function MembershipPage() {
       return;
     }
 
-    if (!isHost) {
+    if (user?.role !== 'host') {
       toast.error('Only users in the Host role can subscribe to premium plans.');
       return;
     }
@@ -157,7 +161,7 @@ export default function MembershipPage() {
   // Pay directly using Wallet Balance
   const handleConfirmWalletPayment = async () => {
     if (!walletConfirmPlan) return;
-    if (!isHost) {
+    if (user?.role !== 'host') {
       toast.error('Only users in the Host role can purchase premium plans.');
       return;
     }
@@ -228,30 +232,6 @@ export default function MembershipPage() {
           Exclusive for Hosts: Get verified VIP badges, priority listing search placement, and instant wallet refunds.
         </p>
       </div>
-
-      {/* Non-Host Role Alert Banner */}
-      {!isHost && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <UserCheck className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-xs font-bold text-amber-900">
-                You are currently browsing in Seeker Mode
-              </h3>
-              <p className="text-xs text-amber-800/90 mt-0.5">
-                Premium membership is exclusively available to <strong>Hosts</strong> to promote room listings. Switch your role to Host to subscribe.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.PROFILE)}
-            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shrink-0 transition-colors cursor-pointer"
-          >
-            Switch to Host Role
-          </button>
-        </div>
-      )}
 
       {/* Active Subscription Banner (If Subscribed) */}
       {isSubscribed && activeSub && (
@@ -399,15 +379,7 @@ export default function MembershipPage() {
 
                 {/* Action Button */}
                 <div className="pt-6 space-y-2">
-                  {!isHost ? (
-                    <button
-                      type="button"
-                      onClick={() => navigate(ROUTES.PROFILE)}
-                      className="w-full py-3 px-4 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold text-center cursor-pointer transition-colors"
-                    >
-                      Switch to Host to Subscribe
-                    </button>
-                  ) : isCurrent ? (
+                  {isCurrent ? (
                     <button
                       type="button"
                       disabled

@@ -82,11 +82,15 @@ export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) 
       to: ROUTES.PROFILE,
       icon: User,
     },
-    {
-      label: 'Membership',
-      to: ROUTES.MEMBERSHIP,
-      icon: Crown,
-    },
+    ...(role === 'host'
+      ? [
+          {
+            label: 'Membership',
+            to: ROUTES.MEMBERSHIP,
+            icon: Crown,
+          },
+        ]
+      : []),
     {
       label: 'Wallet',
       to: ROUTES.WALLET,

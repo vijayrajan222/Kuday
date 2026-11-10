@@ -232,14 +232,16 @@ export default function WalletPage() {
             <span>Add Money / Top Up</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.MEMBERSHIP)}
-            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-black hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Crown className="h-4 w-4 text-amber-400 fill-amber-400" />
-            <span>Manage Premium Plans</span>
-          </button>
+          {user?.role === 'host' && (
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.MEMBERSHIP)}
+              className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-black hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Crown className="h-4 w-4 text-amber-400 fill-amber-400" />
+              <span>Manage Premium Plans</span>
+            </button>
+          )}
         </div>
       </div>
 
