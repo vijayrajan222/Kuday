@@ -11,6 +11,7 @@ export interface IInterestRepository {
     findByReceiverId(receiverId: string): Promise<InterestEntity[]>;
     findBySenderId(senderId: string): Promise<InterestEntity[]>;
     findBetweenUsers(userA: string, userB: string): Promise<InterestEntity[]>;
+    findAcceptedBetween(userA: string, userB: string): Promise<InterestEntity | null>;
     updateStatus(id: string, status: InterestStatus): Promise<InterestEntity | null>;
     updateStatusBetweenUsers(
         userA: string,

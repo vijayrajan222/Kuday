@@ -101,8 +101,12 @@ import { GetActiveSubscriptionUseCase } from "@application/use-case/subscription
 import { GetWalletUseCase } from "@application/use-case/wallet/GetWalletUseCase";
 import { PremiumHookService } from "@application/services/PremiumHookService";
 
-// Socket Service
+// Socket Service & Call
 import { SocketService } from "@infrastructure/socket/SocketService";
+import { SocketGateway } from "@infrastructure/socket/SocketGateway";
+import { InMemoryCallSessionStore } from "@infrastructure/services/InMemoryCallSessionStore";
+import { StartCallUseCase } from "@application/use-case/call/StartCallUseCase";
+import { LogCallUseCase } from "@application/use-case/call/LogCallUseCase";
 
 // Controllers
 import { AuthController } from "@presentation/controller/AuthController";
@@ -131,7 +135,7 @@ import { createVisitRouter } from "@presentation/router/VisitRouter";
 import { createPaymentRouter } from "@presentation/router/PaymentRouter";
 import { createAuthMiddleware } from "@presentation/middleware/AuthMiddleware";
 
-export function setupAppDependencies(app: Express): SocketService {
+export function setupAppDependencies(app: Express): SocketGateway {
     // 1. Repositories
     const userrepo = new MongoUserRepository();
     const lifestylerepo = new MongoLifestyleRepository();
@@ -204,15 +208,40 @@ export function setupAppDependencies(app: Express): SocketService {
     const verifyUserIdentityUseCase = new VerifyUserIdentityUseCase(userrepo, notificationrepo);
     const toggleBlockUserUseCase = new ToggleBlockUserUseCase(userrepo);
 
+    // Call Session Store & Call Use Cases
+    const callSessionStore = new InMemoryCallSessionStore();
+    const startCallUseCase = new StartCallUseCase(
+        interestrepo,
+        callSessionStore,
+        userrepo,
+        subscriptionrepo
+    );
+    const logCallUseCase = new LogCallUseCase(messagerepo, conversationrepo);
+
     // Chat Use Cases
-    const sendMessageUseCase = new SendMessageUseCase(messagerepo, conversationrepo, notificationrepo, userrepo);
-    const getMessagesUseCase = new GetMessagesUseCase(messagerepo, conversationrepo);
+    const sendMessageUseCase = new SendMessageUseCase(
+        messagerepo,
+        conversationrepo,
+        notificationrepo,
+        userrepo,
+        interestrepo
+    );
+    const getMessagesUseCase = new GetMessagesUseCase(messagerepo, conversationrepo, interestrepo);
     const getConversationsUseCase = new GetConversationsUseCase(conversationrepo, messagerepo, userrepo);
     const markMessagesAsReadUseCase = new MarkMessagesAsReadUseCase(messagerepo);
     const startConversationUseCase = new StartConversationUseCase(conversationrepo, userrepo);
     const getUnreadCountUseCase = new GetUnreadCountUseCase(messagerepo);
 
-    const socketService = new SocketService(sendMessageUseCase, markMessagesAsReadUseCase);
+    const socketGateway = new SocketGateway(
+        jwtService,
+        sendMessageUseCase,
+        markMessagesAsReadUseCase,
+        callSessionStore,
+        startCallUseCase,
+        logCallUseCase,
+        subscriptionrepo,
+        userrepo
+    );
 
     // Visit Use Cases
     const createVisitUseCase = new CreateVisitUseCase(
@@ -220,7 +249,7 @@ export function setupAppDependencies(app: Express): SocketService {
         userrepo,
         notificationrepo,
         sendMessageUseCase,
-        socketService
+        socketGateway
     );
     const getVisitsUseCase = new GetVisitsUseCase(visitrepo, userrepo, roomrepo);
     const updateVisitStatusUseCase = new UpdateVisitStatusUseCase(
@@ -228,14 +257,14 @@ export function setupAppDependencies(app: Express): SocketService {
         userrepo,
         notificationrepo,
         sendMessageUseCase,
-        socketService
+        socketGateway
     );
     const suggestVisitUseCase = new SuggestVisitUseCase(
         visitrepo,
         userrepo,
         notificationrepo,
         sendMessageUseCase,
-        socketService
+        socketGateway
     );
 
     // 4. Controllers
@@ -300,7 +329,7 @@ export function setupAppDependencies(app: Express): SocketService {
         markMessagesAsReadUseCase,
         startConversationUseCase,
         getUnreadCountUseCase,
-        socketService
+        socketGateway
     );
 
     const visitController = new VisitController(
@@ -389,11 +418,12 @@ export function setupAppDependencies(app: Express): SocketService {
     app.use("/notifications", createNotificationRouter(notificationController));
     app.use("/admin", createAdminRouter(adminController));
     app.use("/interests", createInterestRouter(interestController));
-    app.use("/chat", createChatRouter(chatController));
+    app.use("/chat", createChatRouter(chatController, authMiddleware));
+    app.use("/api/chat", createChatRouter(chatController, authMiddleware));
     app.use("/visits", createVisitRouter(visitController));
     app.use("/payment", createPaymentRouter(paymentController, authMiddleware));
 
-    return socketService;
+    return socketGateway;
 }
 
 // is there any other place where the router mounting takes place 

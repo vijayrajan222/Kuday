@@ -7,6 +7,7 @@ export interface ISubscriptionRepository {
     ): Promise<SubscriptionEntity>;
     findById(id: string, session?: unknown): Promise<SubscriptionEntity | null>;
     findActiveByUserId(userId: string, session?: unknown): Promise<SubscriptionEntity | null>;
+    isHostPremium(userId: string, session?: unknown): Promise<boolean>;
     updateStatus(
         id: string,
         status: SubscriptionStatus,

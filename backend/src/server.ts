@@ -31,15 +31,15 @@ async function startServer(): Promise<void> {
     );
     app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-    // Dependency Injection, Route Mounting, and Socket Service setup
-    const socketService = setupAppDependencies(app);
+    // Dependency Injection, Route Mounting, and Socket Gateway setup
+    const socketGateway = setupAppDependencies(app);
 
     // Global Error Handler Middleware
     app.use(globalErrorHandler);
 
-    // Create HTTP Server & Initialize Socket.io
+    // Create HTTP Server & Initialize Socket.io Gateway
     const server = http.createServer(app);
-    socketService.init(server);
+    socketGateway.init(server);
 
     server.listen(PORT, () => {
         console.log(`Server is running with Socket.io on port ${PORT}`);

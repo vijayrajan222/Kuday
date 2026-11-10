@@ -57,6 +57,7 @@ export const API_ENDPOINTS = {
     CONVERSATIONS: (userId: string) => `/chat/conversations?userId=${userId}`,
     START_CONVERSATION: '/chat/conversations',
     MESSAGES: (convId: string, userId: string) => `/chat/conversations/${convId}/messages?userId=${userId}`,
+    MESSAGES_BY_USER: (otherUserId: string) => `/api/chat/${otherUserId}/messages`,
     SEND_MESSAGE: '/chat/messages',
     MARK_READ: (convId: string) => `/chat/conversations/${convId}/read`,
     UNREAD_COUNT: (userId: string) => `/chat/unread-count?userId=${userId}`,

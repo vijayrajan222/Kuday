@@ -29,6 +29,18 @@ export const chatService = {
     return data.data;
   },
 
+  async getMessagesByOtherUser(
+    otherUserId: string,
+    limit = 50,
+    page = 1,
+    before?: string
+  ): Promise<ChatMessage[]> {
+    let url = `${API_ENDPOINTS.CHAT.MESSAGES_BY_USER(otherUserId)}?limit=${limit}&page=${page}`;
+    if (before) url += `&before=${encodeURIComponent(before)}`;
+    const { data } = await api.get(url);
+    return data.data;
+  },
+
   async sendMessage(payload: SendMessagePayload): Promise<{ message: ChatMessage; conversation: Conversation }> {
     const { data } = await api.post(API_ENDPOINTS.CHAT.SEND_MESSAGE, payload);
     return data.data;

@@ -6,9 +6,11 @@ import type { IGetConversationsUseCase } from "@application/interfaces/use-case/
 import type { IMarkMessagesAsReadUseCase } from "@application/interfaces/use-case/chat/IMarkMessagesAsReadUseCase";
 import type { IStartConversationUseCase } from "@application/interfaces/use-case/chat/IStartConversationUseCase";
 import type { IGetUnreadCountUseCase } from "@application/interfaces/use-case/chat/IGetUnreadCountUseCase";
+import type { AuthenticatedRequest } from "@presentation/middleware/AuthMiddleware";
 import { ApiResponse } from "@presentation/utils/ApiResponse";
 import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
 import type { SocketService } from "@infrastructure/socket/SocketService";
+import type { SocketGateway } from "@infrastructure/socket/SocketGateway";
 
 export class ChatController implements IChatController {
     constructor(
@@ -18,7 +20,7 @@ export class ChatController implements IChatController {
         private markMessagesAsReadUseCase: IMarkMessagesAsReadUseCase,
         private startConversationUseCase: IStartConversationUseCase,
         private getUnreadCountUseCase: IGetUnreadCountUseCase,
-        private socketService?: SocketService
+        private socketService?: SocketService | SocketGateway
     ) {}
 
     async getConversations(req: Request, res: Response): Promise<void> {
@@ -71,6 +73,47 @@ export class ChatController implements IChatController {
 
             res.status(HttpStatusCodes.OK).json(
                 ApiResponse.success(messages, "Messages fetched successfully")
+            );
+        } catch (error: unknown) {
+            res.status(HttpStatusCodes.BAD_REQUEST).json(
+                ApiResponse.error(error instanceof Error ? error.message : "Failed to fetch messages")
+            );
+        }
+    }
+
+    async getMessagesByOtherUser(req: Request, res: Response): Promise<void> {
+        try {
+            const authReq = req as AuthenticatedRequest;
+            const userId = authReq.user?.id || (req.query.userId as string) || (req.headers["x-user-id"] as string);
+            const otherUserId = req.params.otherUserId as string;
+            const limit = req.query.limit ? Number(req.query.limit) : 50;
+            const page = req.query.page ? Number(req.query.page) : 1;
+            const before = req.query.before as string | undefined;
+
+            if (!userId) {
+                res.status(HttpStatusCodes.UNAUTHORIZED).json(
+                    ApiResponse.error("Unauthorized: user ID missing", HttpStatusCodes.UNAUTHORIZED)
+                );
+                return;
+            }
+
+            if (!otherUserId) {
+                res.status(HttpStatusCodes.BAD_REQUEST).json(
+                    ApiResponse.error("otherUserId parameter is required", HttpStatusCodes.BAD_REQUEST)
+                );
+                return;
+            }
+
+            const result = await this.getMessagesUseCase.executeByUser({
+                userId,
+                otherUserId,
+                limit,
+                page,
+                ...(before ? { before } : {}),
+            });
+
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(result, "Messages fetched successfully")
             );
         } catch (error: unknown) {
             res.status(HttpStatusCodes.BAD_REQUEST).json(

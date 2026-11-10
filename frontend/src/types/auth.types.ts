@@ -145,6 +145,8 @@ export interface AuthUser {
   identityStatus?: 'none' | 'pending' | 'verified' | 'rejected' | string;
   selfieUrl?: string;
   idCardUrl?: string;
+  isPremium?: boolean;
+  premiumExpiresAt?: string;
 }
 
 export interface PendingSignup {

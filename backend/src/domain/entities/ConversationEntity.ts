@@ -1,12 +1,13 @@
 export interface ConversationParticipant {
     id: string;
     firstName: string;
-    lastName?: string;
+    lastName?: string | undefined;
     email: string;
-    selfieUrl?: string;
-    role?: string;
-    occupation?: string;
-    identityVerified?: boolean;
+    selfieUrl?: string | undefined;
+    role?: string | undefined;
+    occupation?: string | undefined;
+    identityVerified?: boolean | undefined;
+    isPremium?: boolean | undefined;
 }
 
 export interface ConversationEntity {

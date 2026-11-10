@@ -37,6 +37,7 @@ export class StartConversationUseCase implements IStartConversationUseCase {
                     role: user.role,
                     occupation: user.occupation,
                     identityVerified: Boolean(user.identityVerified),
+                    isPremium: Boolean(user.isPremium && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date()),
                 });
             }
         }

@@ -71,6 +71,17 @@ export class MongoInterestRepository implements IInterestRepository {
         return docs.map((doc) => this.mapToEntity(doc));
     }
 
+    async findAcceptedBetween(userA: string, userB: string): Promise<InterestEntity | null> {
+        const doc = await InterestModel.findOne({
+            $or: [
+                { senderId: userA, receiverId: userB },
+                { senderId: userB, receiverId: userA },
+            ],
+            status: "accepted",
+        }).exec();
+        return doc ? this.mapToEntity(doc) : null;
+    }
+
     async updateStatus(id: string, status: InterestStatus): Promise<InterestEntity | null> {
         const doc = await InterestModel.findByIdAndUpdate(
             id,

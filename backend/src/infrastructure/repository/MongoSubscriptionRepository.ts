@@ -73,6 +73,11 @@ export class MongoSubscriptionRepository implements ISubscriptionRepository {
         return doc ? this.mapToEntity(doc) : null;
     }
 
+    async isHostPremium(userId: string, session?: unknown): Promise<boolean> {
+        const sub = await this.findActiveByUserId(userId, session);
+        return sub !== null;
+    }
+
     async updateStatus(
         id: string,
         status: SubscriptionStatus,

@@ -4,16 +4,29 @@ import { MessageModel, type MessageDoc } from "@infrastructure/database/model/Me
 
 export class MongoMessageRepository implements IMessageRepository {
     private mapToEntity(doc: MessageDoc): MessageEntity {
-        return {
+        const entity: MessageEntity = {
             id: typeof doc._id === "string" ? doc._id : doc._id.toString(),
             conversationId: doc.conversationId,
             senderId: doc.senderId,
             receiverId: doc.receiverId,
-            content: doc.content,
+            content: doc.content ?? "",
             isRead: Boolean(doc.isRead),
-            createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : undefined,
-            updatedAt: doc.updatedAt ? new Date(doc.updatedAt).toISOString() : undefined,
         };
+        if (doc.type === "text" || doc.type === "call") {
+            entity.type = doc.type;
+        }
+        if (doc.callType === "audio" || doc.callType === "video") {
+            entity.callType = doc.callType;
+        }
+        if (doc.outcome === "completed" || doc.outcome === "missed" || doc.outcome === "declined") {
+            entity.outcome = doc.outcome;
+        }
+        if (doc.startedAt) entity.startedAt = doc.startedAt;
+        if (doc.endedAt) entity.endedAt = doc.endedAt;
+        if (typeof doc.durationSec === "number") entity.durationSec = doc.durationSec;
+        if (doc.createdAt) entity.createdAt = new Date(doc.createdAt).toISOString();
+        if (doc.updatedAt) entity.updatedAt = new Date(doc.updatedAt).toISOString();
+        return entity;
     }
 
     async create(data: Omit<MessageEntity, "id" | "createdAt" | "updatedAt">): Promise<MessageEntity> {
@@ -21,7 +34,13 @@ export class MongoMessageRepository implements IMessageRepository {
             conversationId: data.conversationId,
             senderId: data.senderId,
             receiverId: data.receiverId,
-            content: data.content,
+            content: data.content ?? "",
+            type: data.type ?? "text",
+            ...(data.callType ? { callType: data.callType } : {}),
+            ...(data.outcome ? { outcome: data.outcome } : {}),
+            ...(data.startedAt ? { startedAt: new Date(data.startedAt) } : {}),
+            ...(data.endedAt ? { endedAt: new Date(data.endedAt) } : {}),
+            ...(typeof data.durationSec === "number" ? { durationSec: data.durationSec } : {}),
             isRead: data.isRead ?? false,
         });
         return this.mapToEntity(doc);
@@ -43,6 +62,33 @@ export class MongoMessageRepository implements IMessageRepository {
             .exec();
 
         return docs.map((doc) => this.mapToEntity(doc));
+    }
+
+    async findByConversationIdPaginated(
+        conversationId: string,
+        limit = 50,
+        page = 1,
+        before?: string
+    ): Promise<{ messages: MessageEntity[]; total: number }> {
+        const filter: Record<string, unknown> = { conversationId };
+        if (before) {
+            filter.createdAt = { $lt: new Date(before) };
+        }
+
+        const skip = Math.max(0, (page - 1) * limit);
+        const [docs, total] = await Promise.all([
+            MessageModel.find(filter)
+                .sort({ createdAt: 1 })
+                .skip(skip)
+                .limit(limit)
+                .exec(),
+            MessageModel.countDocuments(filter).exec(),
+        ]);
+
+        return {
+            messages: docs.map((doc) => this.mapToEntity(doc)),
+            total,
+        };
     }
 
     async markAsRead(conversationId: string, receiverId: string): Promise<void> {

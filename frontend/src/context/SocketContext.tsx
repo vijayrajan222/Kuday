@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/hooks/useAuth';
 import { chatService } from '@/services/chatService';
 import { toast } from '@/hooks/useToast';
+import { storage } from '@/utils/storage';
 import type { ChatMessage, Conversation } from '@/types/chat.types';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
@@ -75,8 +76,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
+    const token = storage.getToken();
     const newSocket = io(SOCKET_URL, {
       auth: {
+        token: token || undefined,
         userId: user.id,
       },
       query: {

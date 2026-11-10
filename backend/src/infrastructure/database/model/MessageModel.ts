@@ -22,7 +22,36 @@ export const MessageSchema = new mongoose.Schema(
         },
         content: {
             type: String,
-            required: true,
+            default: "",
+        },
+        type: {
+            type: String,
+            enum: ["text", "call"],
+            default: "text",
+            index: true,
+        },
+        callType: {
+            type: String,
+            enum: ["audio", "video"],
+            required: false,
+        },
+        outcome: {
+            type: String,
+            enum: ["completed", "missed", "declined"],
+            required: false,
+        },
+        startedAt: {
+            type: Date,
+            required: false,
+        },
+        endedAt: {
+            type: Date,
+            required: false,
+        },
+        durationSec: {
+            type: Number,
+            default: 0,
+            required: false,
         },
         isRead: {
             type: Boolean,

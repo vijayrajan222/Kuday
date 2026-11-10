@@ -17,10 +17,20 @@ import {
   Sun,
   SunMedium,
   Moon,
+  Phone,
+  PhoneMissed,
+  PhoneOff,
+  Video,
+  VideoOff,
+  Mic,
+  MicOff,
+  Crown,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSocket } from '@/context/SocketContext';
+import { useCall } from '@/hooks/useCall';
 import { chatService } from '@/services/chatService';
+import { paymentService } from '@/services/paymentService';
 import { visitService } from '@/services/visitService';
 import { ROUTES } from '@/constants/routes';
 import { toast } from '@/hooks/useToast';
@@ -43,6 +53,38 @@ export default function MessagesPage() {
     setActiveChatConvId,
     refreshUnreadCount,
   } = useSocket();
+
+  const {
+    callState,
+    incomingCall,
+    callDuration,
+    callType: activeCallType,
+    isMuted,
+    isVideoOff,
+    localStream,
+    remoteStream,
+    startCall,
+    acceptCall,
+    declineCall,
+    endCall,
+    toggleMute,
+    toggleVideo,
+  } = useCall(socket, user?.id);
+
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
+
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -68,6 +110,58 @@ export default function MessagesPage() {
       activeConversation.participantDetails?.find((p) => p.id !== user.id) || null
     );
   }, [activeConversation, user?.id]);
+
+  const [isCurrentUserPremiumHost, setIsCurrentUserPremiumHost] = useState<boolean>(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (user?.role === 'host') {
+      paymentService
+        .getActiveSubscription()
+        .then((res) => {
+          setIsCurrentUserPremiumHost(Boolean(res?.subscription && res.subscription.status === 'active'));
+        })
+        .catch(() => {
+          setIsCurrentUserPremiumHost(Boolean(user?.isPremium));
+        });
+    } else {
+      setIsCurrentUserPremiumHost(false);
+    }
+  }, [user?.role, user?.isPremium]);
+
+  // Host in current conversation & premium status
+  const conversationHost = useMemo(() => {
+    if (user?.role === 'host') {
+      return { isMe: true, isPremium: isCurrentUserPremiumHost };
+    }
+    if (recipient?.role === 'host') {
+      return { isMe: false, isPremium: Boolean(recipient.isPremium) };
+    }
+    return null;
+  }, [user?.role, recipient?.role, recipient?.isPremium, isCurrentUserPremiumHost]);
+
+  const handleInitiateCall = async (type: 'audio' | 'video') => {
+    if (!recipient) return;
+    if (!conversationHost) {
+      toast.info('Calls are available only for conversations with a host');
+      return;
+    }
+    if (conversationHost.isMe && !conversationHost.isPremium) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    if (!conversationHost.isMe && !conversationHost.isPremium) {
+      toast.error('Calls are available only for premium hosts. The host currently does not have an active Kuday Premium membership.');
+      return;
+    }
+
+    const res = await startCall(recipient.id, type);
+    if (!res.success && res.error && res.error.toLowerCase().includes('premium')) {
+      if (conversationHost.isMe) {
+        setShowUpgradeModal(true);
+      }
+    }
+  };
 
   // Active visit between current user and recipient
   const [activeChatVisit, setActiveChatVisit] = useState<Visit | null>(null);
@@ -398,6 +492,7 @@ export default function MessagesPage() {
     };
 
     socket.on('new_message', handleNewMessage);
+    socket.on('message:new', handleNewMessage);
     socket.on('message_notification', handleMessageNotification);
     socket.on('user_typing', handleUserTyping);
     socket.on('user_stop_typing', handleUserStopTyping);
@@ -405,6 +500,7 @@ export default function MessagesPage() {
 
     return () => {
       socket.off('new_message', handleNewMessage);
+      socket.off('message:new', handleNewMessage);
       socket.off('message_notification', handleMessageNotification);
       socket.off('user_typing', handleUserTyping);
       socket.off('user_stop_typing', handleUserStopTyping);
@@ -515,9 +611,9 @@ export default function MessagesPage() {
     });
   }, [conversations, searchQuery, user?.id]);
 
-  const formatMessageTime = (isoString?: string) => {
+  const formatMessageTime = (isoString?: string | Date) => {
     if (!isoString) return '';
-    const date = new Date(isoString);
+    const date = typeof isoString === 'string' ? new Date(isoString) : isoString;
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -704,16 +800,66 @@ export default function MessagesPage() {
                   </div>
                 </div>
 
-                {/* View Profile Action */}
-                <button
-                  type="button"
-                  onClick={() => navigate(ROUTES.USER_PROFILE.replace(':userId', recipient.id))}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-3 py-1.5 rounded-xl transition-colors border border-slate-200"
-                >
-                  <User className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">View Profile</span>
-                  <ExternalLink className="h-3 w-3 text-slate-400" />
-                </button>
+                {/* Header Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    title={
+                      !conversationHost
+                        ? 'Calls require a host in the conversation'
+                        : conversationHost.isMe && !conversationHost.isPremium
+                        ? 'Upgrade to Kuday Premium to make audio calls'
+                        : !conversationHost.isMe && !conversationHost.isPremium
+                        ? 'Host requires a Kuday Premium membership to receive calls'
+                        : 'Start Voice Call'
+                    }
+                    onClick={() => handleInitiateCall('audio')}
+                    disabled={callState !== 'idle' || (!conversationHost?.isMe && !conversationHost?.isPremium)}
+                    className={`p-2 rounded-xl transition-colors border flex items-center justify-center cursor-pointer ${
+                      conversationHost?.isMe && !conversationHost.isPremium
+                        ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 border-amber-200'
+                        : !conversationHost || (!conversationHost.isMe && !conversationHost.isPremium)
+                        ? 'text-slate-300 bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border-slate-200'
+                    }`}
+                  >
+                    <Phone className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    title={
+                      !conversationHost
+                        ? 'Calls require a host in the conversation'
+                        : conversationHost.isMe && !conversationHost.isPremium
+                        ? 'Upgrade to Kuday Premium to make video calls'
+                        : !conversationHost.isMe && !conversationHost.isPremium
+                        ? 'Host requires a Kuday Premium membership to receive calls'
+                        : 'Start Video Call'
+                    }
+                    onClick={() => handleInitiateCall('video')}
+                    disabled={callState !== 'idle' || (!conversationHost?.isMe && !conversationHost?.isPremium)}
+                    className={`p-2 rounded-xl transition-colors border flex items-center justify-center cursor-pointer ${
+                      conversationHost?.isMe && !conversationHost.isPremium
+                        ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 border-amber-200'
+                        : !conversationHost || (!conversationHost.isMe && !conversationHost.isPremium)
+                        ? 'text-slate-300 bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border-slate-200'
+                    }`}
+                  >
+                    <Video className="h-4 w-4" />
+                  </button>
+
+                  {/* View Profile Action */}
+                  <button
+                    type="button"
+                    onClick={() => navigate(ROUTES.USER_PROFILE.replace(':userId', recipient.id))}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-3 py-1.5 rounded-xl transition-colors border border-slate-200 cursor-pointer"
+                  >
+                    <User className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">View Profile</span>
+                    <ExternalLink className="h-3 w-3 text-slate-400" />
+                  </button>
+                </div>
               </div>
 
               {/* Active Visit Schedule Banner */}
@@ -875,6 +1021,53 @@ export default function MessagesPage() {
                 ) : (
                   messages.map((msg, index) => {
                     const isMine = msg.senderId === user?.id;
+
+                    if (msg.type === 'call') {
+                      const isVideo = msg.callType === 'video';
+                      const isCompleted = msg.outcome === 'completed';
+                      const isMissed = msg.outcome === 'missed';
+                      const isDeclined = msg.outcome === 'declined';
+                      const timeStr = formatMessageTime(msg.createdAt);
+
+                      let label = '';
+                      if (isCompleted) {
+                        const mins = Math.floor((msg.durationSec || 0) / 60);
+                        const secs = (msg.durationSec || 0) % 60;
+                        const durStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+                        label = `${isVideo ? 'Video call' : 'Audio call'} · ${durStr} · ${timeStr}`;
+                      } else if (isMissed) {
+                        label = `Missed ${isVideo ? 'video' : 'audio'} call · ${timeStr}`;
+                      } else if (isDeclined) {
+                        label = `Declined ${isVideo ? 'video' : 'audio'} call · ${timeStr}`;
+                      } else {
+                        label = `${isVideo ? 'Video call' : 'Audio call'} · ${timeStr}`;
+                      }
+
+                      return (
+                        <div key={msg.id || index} className="flex justify-center my-2.5">
+                          <div
+                            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium border shadow-2xs ${
+                              isMissed
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : isDeclined
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            {isMissed ? (
+                              <PhoneMissed className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                            ) : isDeclined ? (
+                              <PhoneOff className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                            ) : isVideo ? (
+                              <Video className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                            ) : (
+                              <Phone className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                            )}
+                            <span>{label}</span>
+                          </div>
+                        </div>
+                      );
+                    }
 
                     return (
                       <div
@@ -1067,6 +1260,237 @@ export default function MessagesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Incoming Call Modal */}
+      {incomingCall && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-5 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95">
+            <div className="relative mx-auto w-20 h-20">
+              <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-25" />
+              <div className="relative w-20 h-20 rounded-full bg-slate-900 text-white flex items-center justify-center text-2xl font-bold border-4 border-white shadow-lg">
+                {incomingCall.callerName ? (
+                  incomingCall.callerName.charAt(0).toUpperCase()
+                ) : incomingCall.callType === 'video' ? (
+                  <Video className="h-8 w-8" />
+                ) : (
+                  <Phone className="h-8 w-8" />
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">
+                {incomingCall.callerName || 'Incoming Call'}
+              </h3>
+              <p className="text-xs text-slate-500 mt-1 flex items-center justify-center gap-1.5">
+                {incomingCall.callType === 'video' ? (
+                  <>
+                    <Video className="h-3.5 w-3.5 text-indigo-500" /> Incoming Video Call...
+                  </>
+                ) : (
+                  <>
+                    <Phone className="h-3.5 w-3.5 text-emerald-500" /> Incoming Audio Call...
+                  </>
+                )}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-4 pt-2">
+              <button
+                type="button"
+                onClick={declineCall}
+                className="flex-1 py-3 px-4 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 border border-rose-200 transition-colors cursor-pointer"
+              >
+                <PhoneOff className="h-4 w-4" /> Decline
+              </button>
+              <button
+                type="button"
+                onClick={acceptCall}
+                className="flex-1 py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
+              >
+                <Phone className="h-4 w-4" /> Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Active Call Modal / Screen */}
+      {(callState === 'calling' || callState === 'connected') && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md">
+          <div className="relative w-full max-w-4xl h-[85vh] max-h-[720px] bg-slate-950 rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-slate-800">
+            {/* Top Bar with info & duration */}
+            <div className="absolute top-0 inset-x-0 z-20 p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-between text-white">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm">
+                  {recipient?.firstName || 'Call'}
+                </span>
+                <span className="text-xs text-slate-300">
+                  {callState === 'calling'
+                    ? 'Calling / Ringing...'
+                    : `${Math.floor(callDuration / 60)}:${(callDuration % 60).toString().padStart(2, '0')}`}
+                </span>
+              </div>
+              <div className="text-xs px-2.5 py-1 rounded-full bg-white/10 backdrop-blur font-mono">
+                {activeCallType === 'video' ? 'WebRTC Video' : 'WebRTC Audio'}
+              </div>
+            </div>
+
+            {/* Main Screen (Remote Video or Audio Avatar) */}
+            <div className="flex-1 relative flex items-center justify-center bg-slate-900">
+              {activeCallType === 'video' && remoteStream ? (
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center space-y-4 text-center">
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-full bg-slate-800 border-4 border-slate-700 flex items-center justify-center text-white text-3xl font-bold shadow-xl">
+                      {recipient?.firstName?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    {callState === 'connected' && (
+                      <div className="absolute -inset-2 rounded-full border-2 border-emerald-500 animate-pulse pointer-events-none" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-lg">
+                      {recipient?.firstName} {recipient?.lastName || ''}
+                    </p>
+                    <p className="text-slate-400 text-xs mt-1">
+                      {callState === 'calling' ? 'Calling...' : 'Connected'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Local PIP Video */}
+              {activeCallType === 'video' && (
+                <div className="absolute bottom-20 right-4 w-32 sm:w-48 aspect-video bg-black rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl z-20">
+                  {localStream && !isVideoOff ? (
+                    <video
+                      ref={localVideoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover -scale-x-100"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-400 text-xs">
+                      <VideoOff className="h-6 w-6" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Controls Bar */}
+            <div className="relative z-20 p-4 bg-gradient-to-t from-black/90 to-transparent flex items-center justify-center gap-4">
+              {/* Mute button */}
+              <button
+                type="button"
+                onClick={toggleMute}
+                className={`p-3.5 rounded-full transition-all cursor-pointer ${
+                  isMuted ? 'bg-rose-500 text-white' : 'bg-white/15 text-white hover:bg-white/25'
+                }`}
+                title={isMuted ? 'Unmute Mic' : 'Mute Mic'}
+              >
+                {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              </button>
+
+              {/* Video toggle button */}
+              {activeCallType === 'video' && (
+                <button
+                  type="button"
+                  onClick={toggleVideo}
+                  className={`p-3.5 rounded-full transition-all cursor-pointer ${
+                    isVideoOff ? 'bg-rose-500 text-white' : 'bg-white/15 text-white hover:bg-white/25'
+                  }`}
+                  title={isVideoOff ? 'Turn Video On' : 'Turn Video Off'}
+                >
+                  {isVideoOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
+                </button>
+              )}
+
+              {/* End Call button */}
+              <button
+                type="button"
+                onClick={endCall}
+                className="p-3.5 px-6 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-rose-600/30 transition-all cursor-pointer"
+                title="End Call"
+              >
+                <PhoneOff className="h-5 w-5" />
+                <span>End</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Upgrade Prompt Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-5 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 relative">
+            <button
+              type="button"
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="mx-auto w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-500 flex items-center justify-center shadow-inner">
+              <Crown className="h-8 w-8 text-amber-500" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-slate-900">
+                Premium Host Feature
+              </h3>
+              <p className="text-xs text-slate-600 max-w-sm mx-auto leading-relaxed">
+                Audio and video calling is exclusively available for Kuday Premium Hosts. Upgrade your subscription to connect live and interview potential roommates.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 text-left space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-slate-800 font-semibold">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <span>Unlimited audio & video calls</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-800 font-semibold">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <span>Priority listing & verified badge</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-800 font-semibold">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <span>Direct real-time coordination</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(false)}
+                className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Maybe Later
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUpgradeModal(false);
+                  navigate(ROUTES.MEMBERSHIP);
+                }}
+                className="flex-1 py-3 px-4 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>Upgrade to Premium</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       )}

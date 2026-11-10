@@ -1,9 +1,12 @@
 import { Router } from "express";
-import type { Request, Response } from "express";
+import type { Request, Response, RequestHandler } from "express";
 import type { IChatController } from "@presentation/interface/IChatController";
 
-export function createChatRouter(chatController: IChatController): Router {
+export function createChatRouter(chatController: IChatController, authMiddleware?: RequestHandler): Router {
     const router = Router();
+
+    // REST: GET /api/chat/:otherUserId/messages (auth required)
+    const authHandlers: RequestHandler[] = authMiddleware ? [authMiddleware] : [];
 
     router.get("/unread-count", async (req: Request, res: Response) => {
         return await chatController.getUnreadCount(req, res);
@@ -19,6 +22,10 @@ export function createChatRouter(chatController: IChatController): Router {
 
     router.get("/conversations/:conversationId/messages", async (req: Request, res: Response) => {
         return await chatController.getMessages(req, res);
+    });
+
+    router.get("/:otherUserId/messages", ...authHandlers, async (req: Request, res: Response) => {
+        return await chatController.getMessagesByOtherUser(req, res);
     });
 
     router.post("/messages", async (req: Request, res: Response) => {

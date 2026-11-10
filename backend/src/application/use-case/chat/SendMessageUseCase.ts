@@ -3,23 +3,38 @@ import type { IMessageRepository } from "@application/interfaces/repository/IMes
 import type { IConversationRepository } from "@application/interfaces/repository/IConversationRepository";
 import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
 import type { SendMessageDto, SendMessageResponseDto } from "@application/dto/chat/ChatDto";
 import type { NotificationEntity } from "@domain/entities/NotificationEntity";
+import { AppError } from "@application/errors/AppError";
+import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
 
 export class SendMessageUseCase implements ISendMessageUseCase {
     constructor(
         private messageRepository: IMessageRepository,
         private conversationRepository: IConversationRepository,
         private notificationRepository?: INotificationRepository,
-        private userRepository?: IUserRepository
+        private userRepository?: IUserRepository,
+        private interestRepository?: IInterestRepository
     ) {}
 
     async execute(dto: SendMessageDto): Promise<SendMessageResponseDto> {
         if (!dto.senderId || !dto.receiverId) {
-            throw new Error("Sender and receiver are required");
+            throw new AppError("Sender and receiver are required", HttpStatusCodes.BAD_REQUEST);
         }
         if (!dto.content || !dto.content.trim()) {
-            throw new Error("Message content cannot be empty");
+            throw new AppError("Message content cannot be empty", HttpStatusCodes.BAD_REQUEST);
+        }
+
+        // Verify accepted connection request
+        if (this.interestRepository) {
+            const acceptedConn = await this.interestRepository.findAcceptedBetween(dto.senderId, dto.receiverId);
+            if (!acceptedConn) {
+                throw new AppError(
+                    "Chat is only allowed between users with an accepted connection request",
+                    HttpStatusCodes.FORBIDDEN
+                );
+            }
         }
 
         let conversation = null;
@@ -33,7 +48,7 @@ export class SendMessageUseCase implements ISendMessageUseCase {
 
         // Verify sender is participant
         if (!conversation.participants.includes(dto.senderId)) {
-            throw new Error("User is not authorized in this conversation");
+            throw new AppError("User is not authorized in this conversation", HttpStatusCodes.FORBIDDEN);
         }
 
         const now = new Date().toISOString();
@@ -43,6 +58,7 @@ export class SendMessageUseCase implements ISendMessageUseCase {
             senderId: dto.senderId,
             receiverId: dto.receiverId,
             content: dto.content.trim(),
+            type: "text",
             isRead: false,
         });
 
@@ -87,7 +103,7 @@ export class SendMessageUseCase implements ISendMessageUseCase {
         return {
             message,
             conversation,
-            notification,
+            ...(notification ? { notification } : {}),
             senderName,
         };
     }
