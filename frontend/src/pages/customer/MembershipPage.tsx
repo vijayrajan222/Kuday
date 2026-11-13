@@ -38,11 +38,6 @@ export default function MembershipPage() {
   const [refundReason, setRefundReason] = useState('');
   const [isRefunding, setIsRefunding] = useState(false);
 
-  // Only hosts can access or view Membership
-  if (user && user.role !== 'host') {
-    return <Navigate to={ROUTES.DASHBOARD} replace />;
-  }
-
   // Load plans, active subscription & wallet balance
   const loadData = async () => {
     try {
@@ -145,8 +140,14 @@ export default function MembershipPage() {
         },
       };
 
+      if (!window.Razorpay) {
+        toast.error('Razorpay SDK failed to load. Please try again.');
+        setProcessingPlanId(null);
+        return;
+      }
+
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', (failedRes: any) => {
+      rzp.on('payment.failed', (failedRes: { error?: { description?: string } }) => {
         setProcessingPlanId(null);
         toast.error(failedRes.error?.description || 'Payment failed on Razorpay.');
       });
@@ -204,6 +205,10 @@ export default function MembershipPage() {
       setIsRefunding(false);
     }
   };
+
+  if (user && user.role !== 'host') {
+    return <Navigate to={ROUTES.DASHBOARD} replace />;
+  }
 
   if (isLoading) {
     return (

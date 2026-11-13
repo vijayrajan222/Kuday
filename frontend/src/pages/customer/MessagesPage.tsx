@@ -1029,7 +1029,7 @@ export default function MessagesPage() {
                       const isDeclined = msg.outcome === 'declined';
                       const timeStr = formatMessageTime(msg.createdAt);
 
-                      let label = '';
+                      let label: string;
                       if (isCompleted) {
                         const mins = Math.floor((msg.durationSec || 0) / 60);
                         const secs = (msg.durationSec || 0) % 60;

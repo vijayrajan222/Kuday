@@ -5,22 +5,16 @@ import type { ISubscriptionRepository } from "@application/interfaces/repository
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IWalletService } from "@application/interfaces/services/IWalletService";
 import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import type {
+    IActivateSubscriptionUseCase,
+    ActivateFromPaymentInput,
+    ActivateFromWalletInput,
+} from "@application/interfaces/use-case/subscription/IActivateSubscriptionUseCase";
+import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError";
 
-export interface ActivateFromPaymentInput {
-    userId: string;
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    method?: string | undefined;
-}
+export type { ActivateFromPaymentInput, ActivateFromWalletInput };
 
-export interface ActivateFromWalletInput {
-    userId: string;
-    planId: string;
-}
-
-export class ActivateSubscriptionUseCase {
+export class ActivateSubscriptionUseCase implements IActivateSubscriptionUseCase {
     constructor(
         private readonly paymentRepo: IPaymentRepository,
         private readonly planRepo: IPlanRepository,
@@ -39,25 +33,25 @@ export class ActivateSubscriptionUseCase {
         // 1. Fetch Payment Record
         const payment = await this.paymentRepo.findByRazorpayOrderId(razorpayOrderId);
         if (!payment) {
-            throw new AppError("Payment record not found for order", HttpStatusCodes.NOT_FOUND);
+            throw new NotFoundError("Payment record not found for order");
         }
         if (payment.userId !== userId) {
-            throw new AppError("Unauthorized subscription activation request", HttpStatusCodes.FORBIDDEN);
+            throw new ForbiddenError("Unauthorized subscription activation request");
         }
 
         // Rule 2: Validate User is in host role
         const user = await this.userRepo.findById(userId);
         if (!user || user.role !== "host") {
-            throw new AppError("Only users currently in the host role can activate premium membership", HttpStatusCodes.FORBIDDEN);
+            throw new ForbiddenError("Only users currently in the host role can activate premium membership");
         }
 
         // 2. Fetch Plan
         if (!payment.planId) {
-            throw new AppError("Payment record does not have an associated planId", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Payment record does not have an associated planId");
         }
         const plan = await this.planRepo.findById(payment.planId);
         if (!plan) {
-            throw new AppError("Associated membership plan not found", HttpStatusCodes.NOT_FOUND);
+            throw new NotFoundError("Associated membership plan not found");
         }
 
         // 3. Idempotency Check: "verify + webhook both firing -> activate only once"
@@ -79,7 +73,7 @@ export class ActivateSubscriptionUseCase {
                     "captured",
                     {
                         razorpayPaymentId,
-                        method: method ?? undefined,
+                        ...(method ? { method } : {}),
                     },
                     session
                 );
@@ -152,7 +146,7 @@ export class ActivateSubscriptionUseCase {
                 console.warn("[Subscription] Running in non-replica set mode (sequential fallback)");
                 await this.paymentRepo.updateStatus(payment.id, "captured", {
                     razorpayPaymentId,
-                    method: method ?? undefined,
+                    ...(method ? { method } : {}),
                 });
 
                 const startDate = new Date();
@@ -209,25 +203,24 @@ export class ActivateSubscriptionUseCase {
         // 1. Check existing active subscription
         const activeSub = await this.subRepo.findActiveByUserId(userId);
         if (activeSub && activeSub.status === "active" && activeSub.endDate && activeSub.endDate > new Date()) {
-            throw new AppError(
-                `You already have an active premium membership until ${activeSub.endDate.toLocaleDateString()}`,
-                HttpStatusCodes.BAD_REQUEST
+            throw new ValidationError(
+                `You already have an active premium membership until ${activeSub.endDate.toLocaleDateString()}`
             );
         }
 
         // Rule 2: Validate User is in host role
         const user = await this.userRepo.findById(userId);
         if (!user || user.role !== "host") {
-            throw new AppError("Only users currently in the host role can activate premium membership", HttpStatusCodes.FORBIDDEN);
+            throw new ForbiddenError("Only users currently in the host role can activate premium membership");
         }
 
         // 2. Fetch Plan
         const plan = await this.planRepo.findById(planId);
         if (!plan || !plan.isActive) {
-            throw new AppError("Invalid or inactive plan", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Invalid or inactive plan");
         }
         if (plan.audience && plan.audience !== "host") {
-            throw new AppError("Selected plan is not available for hosts", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Selected plan is not available for hosts");
         }
 
         const session: ClientSession = await mongoose.startSession();

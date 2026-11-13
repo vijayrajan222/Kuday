@@ -14,4 +14,5 @@ export interface ISubscriptionRepository {
         extra?: Partial<SubscriptionEntity>,
         session?: unknown
     ): Promise<SubscriptionEntity | null>;
+    markBenefitsUsed(id: string, session?: unknown): Promise<boolean>;
 }

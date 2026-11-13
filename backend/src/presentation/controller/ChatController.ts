@@ -9,8 +9,7 @@ import type { IGetUnreadCountUseCase } from "@application/interfaces/use-case/ch
 import type { AuthenticatedRequest } from "@presentation/middleware/AuthMiddleware";
 import { ApiResponse } from "@presentation/utils/ApiResponse";
 import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
-import type { SocketService } from "@infrastructure/socket/SocketService";
-import type { SocketGateway } from "@infrastructure/socket/SocketGateway";
+import type { ISocketChatService } from "@application/interfaces/services/ISocketChatService";
 
 export class ChatController implements IChatController {
     constructor(
@@ -20,7 +19,7 @@ export class ChatController implements IChatController {
         private markMessagesAsReadUseCase: IMarkMessagesAsReadUseCase,
         private startConversationUseCase: IStartConversationUseCase,
         private getUnreadCountUseCase: IGetUnreadCountUseCase,
-        private socketService?: SocketService | SocketGateway
+        private socketService?: ISocketChatService
     ) {}
 
     async getConversations(req: Request, res: Response): Promise<void> {

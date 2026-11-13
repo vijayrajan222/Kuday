@@ -1,19 +1,14 @@
 import type { IMessageRepository } from "@application/interfaces/repository/IMessageRepository";
 import type { IConversationRepository } from "@application/interfaces/repository/IConversationRepository";
 import type { MessageEntity, CallType, CallOutcome } from "@domain/entities/MessageEntity";
+import type {
+    ILogCallUseCase,
+    LogCallInput,
+} from "@application/interfaces/use-case/call/ILogCallUseCase";
 
-export interface LogCallInput {
-    callerId: string;
-    receiverId: string;
-    callType: CallType;
-    outcome: CallOutcome;
-    startedAt: Date;
-    answeredAt?: Date;
-    endedAt: Date;
-    conversationId?: string;
-}
+export type { LogCallInput };
 
-export class LogCallUseCase {
+export class LogCallUseCase implements ILogCallUseCase {
     constructor(
         private messageRepository: IMessageRepository,
         private conversationRepository: IConversationRepository

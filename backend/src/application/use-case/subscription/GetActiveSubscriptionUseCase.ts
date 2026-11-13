@@ -2,23 +2,15 @@ import type { ISubscriptionRepository } from "@application/interfaces/repository
 import type { IPlanRepository } from "@application/interfaces/repository/IPlanRepository.js";
 import type { IPaymentRepository } from "@application/interfaces/repository/IPaymentRepository.js";
 import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity.js";
+import type {
+    IGetActiveSubscriptionUseCase,
+    ActiveSubscriptionDetails,
+} from "@application/interfaces/use-case/subscription/IGetActiveSubscriptionUseCase.js";
 import { REFUND_WINDOW_DAYS } from "./CancelSubscriptionUseCase.js";
 
-export interface ActiveSubscriptionDetails {
-    subscription: SubscriptionEntity | null;
-    plan: {
-        id: string;
-        name: string;
-        price: number;
-        durationDays: number;
-    } | null;
-    remainingDays: number;
-    estimatedRefund: number; // in paise
-    isFullRefundEligible: boolean;
-    isRefundEligible: boolean; // Rule 7: strictly true if within 3 days AND benefitsUsedAt is null
-}
+export type { ActiveSubscriptionDetails };
 
-export class GetActiveSubscriptionUseCase {
+export class GetActiveSubscriptionUseCase implements IGetActiveSubscriptionUseCase {
     constructor(
         private readonly subRepo: ISubscriptionRepository,
         private readonly planRepo: IPlanRepository,

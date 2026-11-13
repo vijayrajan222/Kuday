@@ -3,29 +3,16 @@ import type { IPlanRepository } from "@application/interfaces/repository/IPlanRe
 import type { ISubscriptionRepository } from "@application/interfaces/repository/ISubscriptionRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRazorpayService } from "@application/interfaces/services/IRazorpayService";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import type {
+    ICreateOrderUseCase,
+    CreateOrderInput,
+    CreateOrderOutput,
+} from "@application/interfaces/use-case/payment/ICreateOrderUseCase";
+import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError";
 
-export interface CreateOrderInput {
-    userId: string;
-    planId: string;
-    idempotencyKey?: string | undefined;
-}
+export type { CreateOrderInput, CreateOrderOutput };
 
-export interface CreateOrderOutput {
-    orderId: string;
-    amount: number; // in paise
-    currency: string;
-    keyId: string;
-    plan: {
-        id: string;
-        name: string;
-        price: number;
-        durationDays: number;
-    };
-}
-
-export class CreateOrderUseCase {
+export class CreateOrderUseCase implements ICreateOrderUseCase {
     constructor(
         private readonly paymentRepo: IPaymentRepository,
         private readonly planRepo: IPlanRepository,
@@ -38,33 +25,32 @@ export class CreateOrderUseCase {
         // 1. Validate User
         const user = await this.userRepo.findById(input.userId);
         if (!user) {
-            throw new AppError("User not found", HttpStatusCodes.NOT_FOUND);
+            throw new NotFoundError("User not found");
         }
         if (user.isBlocked) {
-            throw new AppError("Account is blocked. Payments not permitted.", HttpStatusCodes.FORBIDDEN);
+            throw new ForbiddenError("Account is blocked. Payments not permitted.");
         }
 
         // Rule 2: Only users currently in the HOST role can buy premium
         if (user.role !== "host") {
-            throw new AppError("Only users currently in the host role can purchase premium membership", HttpStatusCodes.FORBIDDEN);
+            throw new ForbiddenError("Only users currently in the host role can purchase premium membership");
         }
 
         // 2. Rule 5: A host with an active premium cannot buy another one.
         const activeSub = await this.subRepo.findActiveByUserId(input.userId);
         if (activeSub && activeSub.status === "active" && activeSub.endDate && activeSub.endDate > new Date()) {
-            throw new AppError(
-                `You already have an active premium membership until ${activeSub.endDate.toLocaleDateString()}`,
-                HttpStatusCodes.BAD_REQUEST
+            throw new ValidationError(
+                `You already have an active premium membership until ${activeSub.endDate.toLocaleDateString()}`
             );
         }
 
         // 3. Fetch Plan (NEVER trust frontend price/amount)
         const plan = await this.planRepo.findById(input.planId);
         if (!plan || !plan.isActive) {
-            throw new AppError("Selected membership plan is invalid or no longer active", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Selected membership plan is invalid or no longer active");
         }
         if (plan.audience && plan.audience !== "host") {
-            throw new AppError("Selected plan is not available for hosts", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Selected plan is not available for hosts");
         }
 
         // 4. Idempotency Check

@@ -11,7 +11,7 @@ import type {
 
 declare global {
   interface Window {
-    Razorpay?: any;
+    Razorpay?: new (options: unknown) => { open: () => void; on: (event: string, handler: unknown) => void };
   }
 }
 

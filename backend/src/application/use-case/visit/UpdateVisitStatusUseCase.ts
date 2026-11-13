@@ -6,7 +6,7 @@ import type { ISocketNotificationService } from "@application/interfaces/service
 import type { IUpdateVisitStatusUseCase } from "@application/interfaces/use-case/visit/IUpdateVisitStatusUseCase";
 import type { UpdateVisitStatusDto } from "@application/dto/visit/UpdateVisitStatusDto";
 import type { VisitEntity } from "@domain/entities/VisitEntity";
-import { NotFoundError, UnauthorizedError } from "@application/errors/AppError";
+import { NotFoundError, UnauthorizedError, ValidationError } from "@application/errors/AppError";
 
 export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
     constructor(

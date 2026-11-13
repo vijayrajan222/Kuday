@@ -13,13 +13,13 @@ export interface ConversationParticipant {
 export interface ConversationEntity {
     id: string;
     participants: string[];
-    participantDetails?: ConversationParticipant[];
+    participantDetails?: ConversationParticipant[] | undefined;
     lastMessage?: {
         content: string;
         senderId: string;
         createdAt: string;
-    };
-    unreadCount?: number;
-    createdAt?: string;
-    updatedAt?: string;
+    } | undefined;
+    unreadCount?: number | undefined;
+    createdAt?: string | undefined;
+    updatedAt?: string | undefined;
 }

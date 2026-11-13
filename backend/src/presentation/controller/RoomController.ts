@@ -45,7 +45,7 @@ export class RoomController implements IRoomController {
 
     async getRoomById(req: Request, res: Response): Promise<void> {
         try {
-            const roomId = req.params.id;
+            const roomId = String(req.params.id || "");
             const seekerUserId = (req.query.seekerUserId || req.query.userId) as string | undefined;
 
             const room = await this.getRoomsUseCase.getById(roomId, seekerUserId);

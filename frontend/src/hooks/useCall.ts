@@ -80,19 +80,19 @@ export function useCall(socket: Socket | null, currentUserId?: string) {
   // Timer for duration when connected
   useEffect(() => {
     if (callState === 'connected') {
-      setCallDuration(0);
-      timerRef.current = setInterval(() => {
+      const interval = setInterval(() => {
         setCallDuration((prev) => prev + 1);
       }, 1000);
+      timerRef.current = interval;
+      return () => {
+        clearInterval(interval);
+      };
     } else {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
     }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
   }, [callState]);
 
   // Create PeerConnection
@@ -177,7 +177,15 @@ export function useCall(socket: Socket | null, currentUserId?: string) {
     });
   }, [socket, currentUserId, callState, cleanupCall]);
 
-  // 2. Accept incoming call
+  // 2. Decline incoming call
+  const declineCall = useCallback(() => {
+    if (!socket || !incomingCall) return;
+    socket.emit('call:decline', { callId: incomingCall.callId });
+    setIncomingCall(null);
+    setCallState('idle');
+  }, [socket, incomingCall]);
+
+  // 3. Accept incoming call
   const acceptCall = useCallback(async () => {
     if (!socket || !incomingCall) return;
 
@@ -192,6 +200,7 @@ export function useCall(socket: Socket | null, currentUserId?: string) {
       pc.addTrack(track, stream);
     });
 
+    setCallDuration(0);
     setCallType(incomingCall.callType);
     setOtherUserId(incomingCall.callerId);
     setActiveCallId(incomingCall.callId);
@@ -199,15 +208,7 @@ export function useCall(socket: Socket | null, currentUserId?: string) {
     setIncomingCall(null);
 
     socket.emit('call:accept', { callId: incomingCall.callId });
-  }, [socket, incomingCall, getMedia, createPeerConnection]);
-
-  // 3. Decline incoming call
-  const declineCall = useCallback(() => {
-    if (!socket || !incomingCall) return;
-    socket.emit('call:decline', { callId: incomingCall.callId });
-    setIncomingCall(null);
-    setCallState('idle');
-  }, [socket, incomingCall]);
+  }, [socket, incomingCall, getMedia, createPeerConnection, declineCall]);
 
   // 4. End active or ringing call
   const endCall = useCallback(() => {

@@ -40,6 +40,9 @@ export const subscriptionSchema = new mongoose.Schema(
         cancelledAt: {
             type: Date,
         },
+        cancellationReason: {
+            type: String,
+        },
         refundAmount: {
             type: Number,
             default: 0,

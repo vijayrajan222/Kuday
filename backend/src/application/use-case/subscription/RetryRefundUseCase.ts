@@ -2,10 +2,10 @@ import mongoose, { type ClientSession } from "mongoose";
 import type { ISubscriptionRepository } from "@application/interfaces/repository/ISubscriptionRepository";
 import type { IWalletService } from "@application/interfaces/services/IWalletService";
 import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import type { IRetryRefundUseCase } from "@application/interfaces/use-case/subscription/IRetryRefundUseCase";
+import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError";
 
-export class RetryRefundUseCase {
+export class RetryRefundUseCase implements IRetryRefundUseCase {
     constructor(
         private readonly subRepo: ISubscriptionRepository,
         private readonly walletService: IWalletService
@@ -14,16 +14,15 @@ export class RetryRefundUseCase {
     async execute(subscriptionId: string, userId: string): Promise<SubscriptionEntity> {
         const sub = await this.subRepo.findById(subscriptionId);
         if (!sub) {
-            throw new AppError("Subscription not found", HttpStatusCodes.NOT_FOUND);
+            throw new NotFoundError("Subscription not found");
         }
         if (sub.userId !== userId) {
-            throw new AppError("Unauthorized retry request", HttpStatusCodes.FORBIDDEN);
+            throw new ForbiddenError("Unauthorized retry request");
         }
 
         if (sub.refundStatus !== "failed") {
-            throw new AppError(
-                `Refund status is '${sub.refundStatus}'. Retry only applicable for 'failed' refunds`,
-                HttpStatusCodes.BAD_REQUEST
+            throw new ValidationError(
+                `Refund status is '${sub.refundStatus}'. Retry only applicable for 'failed' refunds`
             );
         }
 

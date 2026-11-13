@@ -2,8 +2,9 @@ import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import type { ISendMessageUseCase } from "@application/interfaces/use-case/chat/ISendMessageUseCase";
 import type { IMarkMessagesAsReadUseCase } from "@application/interfaces/use-case/chat/IMarkMessagesAsReadUseCase";
+import type { ISocketChatService } from "@application/interfaces/services/ISocketChatService";
 
-export class SocketService {
+export class SocketService implements ISocketChatService {
     private io: Server | null = null;
     // Map userId -> Set of socketIds (supports multi-tab)
     private userSocketMap = new Map<string, Set<string>>();

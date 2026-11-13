@@ -1,17 +1,14 @@
 import type { IWalletService } from "@application/interfaces/services/IWalletService";
 import type { WalletEntity } from "@domain/entities/WalletEntity";
 import type { WalletTransactionEntity } from "@domain/entities/WalletTransactionEntity";
+import type {
+    IGetWalletUseCase,
+    GetWalletOutput,
+} from "@application/interfaces/use-case/wallet/IGetWalletUseCase";
 
-export interface GetWalletOutput {
-    wallet: WalletEntity;
-    balancePaise: number;
-    balanceRupees: number;
-    transactions: WalletTransactionEntity[];
-    totalTransactions: number;
-    isBalanced: boolean;
-}
+export type { GetWalletOutput };
 
-export class GetWalletUseCase {
+export class GetWalletUseCase implements IGetWalletUseCase {
     constructor(private readonly walletService: IWalletService) {}
 
     async execute(userId: string, limit = 20, skip = 0): Promise<GetWalletOutput> {

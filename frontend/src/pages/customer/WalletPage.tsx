@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Wallet,
@@ -34,7 +34,7 @@ export default function WalletPage() {
   const [customAmount, setCustomAmount] = useState<string>('500');
   const [isProcessingTopUp, setIsProcessingTopUp] = useState(false);
 
-  const loadWallet = async () => {
+  const loadWallet = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await paymentService.getWallet(50, 0);
@@ -44,10 +44,24 @@ export default function WalletPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadWallet();
+    let mounted = true;
+    (async () => {
+      try {
+        setIsLoading(true);
+        const data = await paymentService.getWallet(50, 0);
+        if (mounted) setWalletData(data);
+      } catch {
+        if (mounted) toast.error('Failed to load wallet details.');
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleTopUpPreset = (amount: number) => {
@@ -137,8 +151,14 @@ export default function WalletPage() {
         },
       };
 
+      if (!window.Razorpay) {
+        toast.error('Razorpay SDK failed to load. Please try again.');
+        setIsProcessingTopUp(false);
+        return;
+      }
+
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', (failedRes: any) => {
+      rzp.on('payment.failed', (failedRes: { error?: { description?: string } }) => {
         setIsProcessingTopUp(false);
         toast.error(failedRes.error?.description || 'Top-up payment failed.');
       });

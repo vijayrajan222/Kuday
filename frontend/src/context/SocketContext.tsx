@@ -1,5 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { io, type Socket } from 'socket.io-client';
 import { useAuth } from '@/hooks/useAuth';
 import { chatService } from '@/services/chatService';
 import { toast } from '@/hooks/useToast';
@@ -55,15 +56,21 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch {
       // Ignored
     }
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
+    let isMounted = true;
     if (user?.id) {
-      refreshUnreadCount();
+      chatService.getUnreadCount(user.id).then((count) => {
+        if (isMounted) setUnreadMessageCount(count);
+      }).catch(() => {});
     } else {
       setUnreadMessageCount(0);
     }
-  }, [user?.id, refreshUnreadCount]);
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!isAuthenticated || !user?.id) {

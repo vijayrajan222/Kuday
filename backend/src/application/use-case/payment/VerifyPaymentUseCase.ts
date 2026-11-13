@@ -2,33 +2,22 @@ import mongoose from "mongoose";
 import type { IPaymentRepository } from "@application/interfaces/repository/IPaymentRepository";
 import type { IRazorpayService } from "@application/interfaces/services/IRazorpayService";
 import type { IWalletService } from "@application/interfaces/services/IWalletService";
-import type { ActivateSubscriptionUseCase } from "@application/use-case/subscription/ActivateSubscriptionUseCase";
+import type { IActivateSubscriptionUseCase } from "@application/interfaces/use-case/subscription/IActivateSubscriptionUseCase";
 import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import type {
+    IVerifyPaymentUseCase,
+    VerifyPaymentInput,
+    VerifyPaymentOutput,
+} from "@application/interfaces/use-case/payment/IVerifyPaymentUseCase";
+import { NotFoundError, ForbiddenError, ValidationError, ConflictError } from "@application/errors/AppError";
 
-export interface VerifyPaymentInput {
-    userId: string;
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature: string;
-}
+export type { VerifyPaymentInput, VerifyPaymentOutput };
 
-export interface VerifyPaymentOutput {
-    success: boolean;
-    orderId: string;
-    paymentId: string;
-    amount: number;
-    status: string;
-    alreadyProcessed?: boolean | undefined;
-    subscription?: SubscriptionEntity | undefined;
-}
-
-export class VerifyPaymentUseCase {
+export class VerifyPaymentUseCase implements IVerifyPaymentUseCase {
     constructor(
         private readonly paymentRepo: IPaymentRepository,
         private readonly razorpayService: IRazorpayService,
-        private readonly activateSubscriptionUseCase?: ActivateSubscriptionUseCase,
+        private readonly activateSubscriptionUseCase?: IActivateSubscriptionUseCase,
         private readonly walletService?: IWalletService
     ) {}
 
@@ -38,12 +27,12 @@ export class VerifyPaymentUseCase {
         // 1. Fetch Payment Record from DB
         const payment = await this.paymentRepo.findByRazorpayOrderId(razorpayOrderId);
         if (!payment) {
-            throw new AppError("Payment order not found in records", HttpStatusCodes.NOT_FOUND);
+            throw new NotFoundError("Payment order not found in records");
         }
 
         // 2. Security Check: Payment must belong to the requesting user
         if (payment.userId !== userId) {
-            throw new AppError("Unauthorized payment verification request", HttpStatusCodes.FORBIDDEN);
+            throw new ForbiddenError("Unauthorized payment verification request");
         }
 
         // 3. Idempotency Check: Already captured/verified
@@ -72,20 +61,14 @@ export class VerifyPaymentUseCase {
                 razorpayPaymentId,
                 errorReason: "Tampered or invalid HMAC SHA256 signature",
             });
-            throw new AppError(
-                "Invalid payment signature or tampered verification payload",
-                HttpStatusCodes.BAD_REQUEST
-            );
+            throw new ValidationError("Invalid payment signature or tampered verification payload");
         }
 
         // 5. Replay Attack Check: Ensure razorpayPaymentId isn't claimed by a different order
         const existingWithPaymentId = await this.paymentRepo.findByRazorpayPaymentId(razorpayPaymentId);
         if (existingWithPaymentId && existingWithPaymentId.id !== payment.id) {
             console.warn(`[Payment] Duplicate payment ID submission detected: ${razorpayPaymentId}`);
-            throw new AppError(
-                "This Razorpay payment ID has already been credited to another order",
-                HttpStatusCodes.BAD_REQUEST
-            );
+            throw new ConflictError("This Razorpay payment ID has already been credited to another order");
         }
 
         // 6. Verification with Razorpay API (Edge case: Amount Mismatch & State Audit)
@@ -101,7 +84,7 @@ export class VerifyPaymentUseCase {
                     razorpayPaymentId,
                     errorReason: `Amount mismatch: expected ${payment.amount}, received ${fetched.amount}`,
                 });
-                throw new AppError("Payment amount mismatch detected", HttpStatusCodes.BAD_REQUEST);
+                throw new ValidationError("Payment amount mismatch detected");
             }
         } catch (fetchErr: unknown) {
             // In unit/mock testing without live Razorpay payment ID, allow signature check to stand

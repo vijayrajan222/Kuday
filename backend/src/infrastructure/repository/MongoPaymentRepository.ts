@@ -27,25 +27,26 @@ export class MongoPaymentRepository implements IPaymentRepository {
         data: Omit<PaymentEntity, "id" | "createdAt" | "updatedAt">,
         session?: unknown
     ): Promise<PaymentEntity> {
-        const created = await paymentModel.create(
-            [
-                {
-                    razorpayOrderId: data.razorpayOrderId,
-                    razorpayPaymentId: data.razorpayPaymentId,
-                    amount: data.amount,
-                    status: data.status,
-                    purpose: data.purpose || (data.planId ? "premium" : "wallet_topup"),
-                    userId: data.userId,
-                    planId: data.planId,
-                    idempotencyKey: data.idempotencyKey,
-                    currency: data.currency || "INR",
-                    method: data.method,
-                    errorReason: data.errorReason,
-                },
-            ],
-            { session: (session as ClientSession) || undefined }
-        );
-        return this.mapToEntity(created[0]);
+        const payload: Record<string, unknown> = {
+            razorpayOrderId: data.razorpayOrderId,
+            amount: data.amount,
+            status: data.status,
+            purpose: data.purpose || (data.planId ? "premium" : "wallet_topup"),
+            userId: data.userId,
+            currency: data.currency || "INR",
+        };
+        if (data.razorpayPaymentId) payload.razorpayPaymentId = data.razorpayPaymentId;
+        if (data.planId) payload.planId = data.planId;
+        if (data.idempotencyKey) payload.idempotencyKey = data.idempotencyKey;
+        if (data.method) payload.method = data.method;
+        if (data.errorReason) payload.errorReason = data.errorReason;
+
+        const created = await paymentModel.create([payload as never], {
+            session: (session as ClientSession) || undefined,
+        });
+        const first = created[0];
+        if (!first) throw new Error("Failed to create payment record");
+        return this.mapToEntity(first);
     }
 
     async findById(id: string, session?: unknown): Promise<PaymentEntity | null> {

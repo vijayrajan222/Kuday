@@ -2,14 +2,15 @@ import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import type { IJwtService } from "@application/interfaces/services/IJwtServices";
 import type { ISocketNotificationService } from "@application/interfaces/services/ISocketNotificationService";
+import type { ISocketChatService } from "@application/interfaces/services/ISocketChatService";
 import type { ISendMessageUseCase } from "@application/interfaces/use-case/chat/ISendMessageUseCase";
 import type { IMarkMessagesAsReadUseCase } from "@application/interfaces/use-case/chat/IMarkMessagesAsReadUseCase";
 import type { ICallSessionStore } from "@application/interfaces/services/ICallSessionStore";
 import type { ISubscriptionRepository } from "@application/interfaces/repository/ISubscriptionRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import { ForbiddenError } from "@application/errors/AppError";
-import type { StartCallUseCase } from "@application/use-case/call/StartCallUseCase";
-import type { LogCallUseCase } from "@application/use-case/call/LogCallUseCase";
+import type { IStartCallUseCase } from "@application/interfaces/use-case/call/IStartCallUseCase";
+import type { ILogCallUseCase } from "@application/interfaces/use-case/call/ILogCallUseCase";
 import type { CallOutcome, CallType } from "@domain/entities/MessageEntity";
 
 export interface AuthenticatedSocket extends Socket {
@@ -19,7 +20,7 @@ export interface AuthenticatedSocket extends Socket {
     };
 }
 
-export class SocketGateway implements ISocketNotificationService {
+export class SocketGateway implements ISocketNotificationService, ISocketChatService {
     private io: Server | null = null;
     // Map userId -> Set of socketIds (supports multi-tab)
     private userSocketMap = new Map<string, Set<string>>();
@@ -33,8 +34,8 @@ export class SocketGateway implements ISocketNotificationService {
         private sendMessageUseCase: ISendMessageUseCase,
         private markMessagesAsReadUseCase: IMarkMessagesAsReadUseCase,
         private callSessionStore: ICallSessionStore,
-        private startCallUseCase: StartCallUseCase,
-        private logCallUseCase: LogCallUseCase,
+        private startCallUseCase: IStartCallUseCase,
+        private logCallUseCase: ILogCallUseCase,
         private subscriptionRepository?: ISubscriptionRepository,
         private userRepository?: IUserRepository
     ) {}

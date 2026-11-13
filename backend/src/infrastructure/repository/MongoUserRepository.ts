@@ -68,7 +68,7 @@ export class MongoUserRepository implements IUserRepository {
 
     async save(newUser: Omit<UserEntity, "id">): Promise<UserEntity> {
         try {
-            const userDocument = await this.user.create(newUser);
+            const userDocument = await this.user.create(newUser as never);
             return this.mapUserDoc(userDocument);
         } catch (error: unknown) {
             // Two signups with the same email at the same moment

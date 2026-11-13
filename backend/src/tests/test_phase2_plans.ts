@@ -54,10 +54,15 @@ async function runPhase2Test() {
     console.log(`✓ [4] Yearly Plan verified: "${yearlyPlan.name}", ₹${yearlyPlan.price / 100} (${yearlyPlan.price} paise), audience: "${yearlyPlan.audience}"`);
 
     // 5. Verify sorting by price ascending
-    if (activePlans[0].price > activePlans[1].price) {
+    const plan0 = activePlans[0];
+    const plan1 = activePlans[1];
+    if (!plan0 || !plan1) {
+        throw new Error("Expected at least 2 active plans");
+    }
+    if (plan0.price > plan1.price) {
         throw new Error("Plans must be sorted by price ascending");
     }
-    console.log(`✓ [5] Plans returned sorted by price ascending: [₹${activePlans[0].price / 100}, ₹${activePlans[1].price / 100}]`);
+    console.log(`✓ [5] Plans returned sorted by price ascending: [₹${plan0.price / 100}, ₹${plan1.price / 100}]`);
 
     // 6. Verify non-host/inactive filtering
     const allDbPlans = await planModel.find().lean();

@@ -4,6 +4,7 @@ import type { IRoomRepository } from "@application/interfaces/repository/IRoomRe
 import type { IGetVisitsUseCase } from "@application/interfaces/use-case/visit/IGetVisitsUseCase";
 import type { VisitDetailDto, VisitParticipantDto, VisitRoomSummaryDto } from "@application/dto/visit/VisitDetailDto";
 import type { VisitEntity } from "@domain/entities/VisitEntity";
+import type { RoomEntity } from "@domain/entities/RoomEntity";
 
 export class GetVisitsUseCase implements IGetVisitsUseCase {
     constructor(

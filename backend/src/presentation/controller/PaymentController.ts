@@ -1,32 +1,33 @@
 import type { Request, Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "@presentation/middleware/AuthMiddleware";
-import type { CreateOrderUseCase } from "@application/use-case/payment/CreateOrderUseCase";
-import type { VerifyPaymentUseCase } from "@application/use-case/payment/VerifyPaymentUseCase";
-import type { GetPlansUseCase } from "@application/use-case/payment/GetPlansUseCase";
-import type { HandleWebhookUseCase } from "@application/use-case/payment/HandleWebhookUseCase";
-import type { CreateTopUpOrderUseCase } from "@application/use-case/payment/CreateTopUpOrderUseCase";
-import type { ActivateSubscriptionUseCase } from "@application/use-case/subscription/ActivateSubscriptionUseCase";
-import type { CancelSubscriptionUseCase } from "@application/use-case/subscription/CancelSubscriptionUseCase";
-import type { RetryRefundUseCase } from "@application/use-case/subscription/RetryRefundUseCase";
-import type { GetActiveSubscriptionUseCase } from "@application/use-case/subscription/GetActiveSubscriptionUseCase";
-import type { GetWalletUseCase } from "@application/use-case/wallet/GetWalletUseCase";
+import type { IPaymentController } from "@presentation/interface/IPaymentController";
+import type { ICreateOrderUseCase } from "@application/interfaces/use-case/payment/ICreateOrderUseCase";
+import type { IVerifyPaymentUseCase } from "@application/interfaces/use-case/payment/IVerifyPaymentUseCase";
+import type { IGetPlansUseCase } from "@application/interfaces/use-case/payment/IGetPlansUseCase";
+import type { IHandleWebhookUseCase } from "@application/interfaces/use-case/payment/IHandleWebhookUseCase";
+import type { ICreateTopUpOrderUseCase } from "@application/interfaces/use-case/payment/ICreateTopUpOrderUseCase";
+import type { IActivateSubscriptionUseCase } from "@application/interfaces/use-case/subscription/IActivateSubscriptionUseCase";
+import type { ICancelSubscriptionUseCase } from "@application/interfaces/use-case/subscription/ICancelSubscriptionUseCase";
+import type { IRetryRefundUseCase } from "@application/interfaces/use-case/subscription/IRetryRefundUseCase";
+import type { IGetActiveSubscriptionUseCase } from "@application/interfaces/use-case/subscription/IGetActiveSubscriptionUseCase";
+import type { IGetWalletUseCase } from "@application/interfaces/use-case/wallet/IGetWalletUseCase";
 import type { IRazorpayService } from "@application/interfaces/services/IRazorpayService";
 import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
 import { ApiResponse } from "@presentation/utils/ApiResponse";
 
-export class PaymentController {
+export class PaymentController implements IPaymentController {
     constructor(
-        private readonly createOrderUseCase: CreateOrderUseCase,
-        private readonly verifyPaymentUseCase: VerifyPaymentUseCase,
-        private readonly getPlansUseCase: GetPlansUseCase,
+        private readonly createOrderUseCase: ICreateOrderUseCase,
+        private readonly verifyPaymentUseCase: IVerifyPaymentUseCase,
+        private readonly getPlansUseCase: IGetPlansUseCase,
         private readonly razorpayService: IRazorpayService,
-        private readonly handleWebhookUseCase?: HandleWebhookUseCase,
-        private readonly cancelSubscriptionUseCase?: CancelSubscriptionUseCase,
-        private readonly retryRefundUseCase?: RetryRefundUseCase,
-        private readonly getActiveSubscriptionUseCase?: GetActiveSubscriptionUseCase,
-        private readonly getWalletUseCase?: GetWalletUseCase,
-        private readonly activateSubscriptionUseCase?: ActivateSubscriptionUseCase,
-        private readonly createTopUpOrderUseCase?: CreateTopUpOrderUseCase
+        private readonly handleWebhookUseCase?: IHandleWebhookUseCase,
+        private readonly cancelSubscriptionUseCase?: ICancelSubscriptionUseCase,
+        private readonly retryRefundUseCase?: IRetryRefundUseCase,
+        private readonly getActiveSubscriptionUseCase?: IGetActiveSubscriptionUseCase,
+        private readonly getWalletUseCase?: IGetWalletUseCase,
+        private readonly activateSubscriptionUseCase?: IActivateSubscriptionUseCase,
+        private readonly createTopUpOrderUseCase?: ICreateTopUpOrderUseCase
     ) {}
 
     createOrder = async (

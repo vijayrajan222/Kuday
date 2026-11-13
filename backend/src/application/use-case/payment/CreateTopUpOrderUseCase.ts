@@ -1,23 +1,16 @@
 import type { IPaymentRepository } from "@application/interfaces/repository/IPaymentRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRazorpayService } from "@application/interfaces/services/IRazorpayService";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import type {
+    ICreateTopUpOrderUseCase,
+    CreateTopUpOrderInput,
+    CreateTopUpOrderOutput,
+} from "@application/interfaces/use-case/payment/ICreateTopUpOrderUseCase";
+import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError";
 
-export interface CreateTopUpOrderInput {
-    userId: string;
-    amountPaise: number; // Integer in paise
-    idempotencyKey?: string | undefined;
-}
+export type { CreateTopUpOrderInput, CreateTopUpOrderOutput };
 
-export interface CreateTopUpOrderOutput {
-    orderId: string;
-    amount: number; // in paise
-    currency: string;
-    keyId: string;
-}
-
-export class CreateTopUpOrderUseCase {
+export class CreateTopUpOrderUseCase implements ICreateTopUpOrderUseCase {
     constructor(
         private readonly paymentRepo: IPaymentRepository,
         private readonly userRepo: IUserRepository,
@@ -29,19 +22,19 @@ export class CreateTopUpOrderUseCase {
 
         // 1. Validation
         if (!Number.isInteger(amountPaise) || amountPaise < 1000) {
-            throw new AppError("Top-up amount must be an integer of at least ₹10 (1000 paise)", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Top-up amount must be an integer of at least ₹10 (1000 paise)");
         }
         if (amountPaise > 10000000) {
-            throw new AppError("Maximum top-up amount is ₹100,000", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Maximum top-up amount is ₹100,000");
         }
 
         // 2. Validate User
         const user = await this.userRepo.findById(userId);
         if (!user) {
-            throw new AppError("User not found", HttpStatusCodes.NOT_FOUND);
+            throw new NotFoundError("User not found");
         }
         if (user.isBlocked) {
-            throw new AppError("Account is blocked. Transactions not permitted.", HttpStatusCodes.FORBIDDEN);
+            throw new ForbiddenError("Account is blocked. Transactions not permitted.");
         }
 
         // 3. Idempotency Check

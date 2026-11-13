@@ -19,6 +19,7 @@ export class MongoSubscriptionRepository implements ISubscriptionRepository {
             benefitsUsedAt: doc.benefitsUsedAt ?? null,
             paymentId: doc.paymentId ? doc.paymentId.toString() : undefined,
             cancelledAt: doc.cancelledAt ?? undefined,
+            cancellationReason: doc.cancellationReason ?? undefined,
             refundAmount: doc.refundAmount ?? 0,
             refundStatus: (doc.refundStatus as "none" | "pending" | "completed" | "failed") ?? "none",
             createdAt: doc.createdAt ?? undefined,
@@ -30,25 +31,27 @@ export class MongoSubscriptionRepository implements ISubscriptionRepository {
         data: Omit<SubscriptionEntity, "id" | "createdAt" | "updatedAt">,
         session?: unknown
     ): Promise<SubscriptionEntity> {
-        const created = await subscriptionModel.create(
-            [
-                {
-                    userId: data.userId,
-                    planId: data.planId,
-                    status: data.status,
-                    startDate: data.startDate,
-                    endDate: data.endDate,
-                    purchasedAt: data.purchasedAt || new Date(),
-                    benefitsUsedAt: data.benefitsUsedAt ?? null,
-                    paymentId: data.paymentId,
-                    cancelledAt: data.cancelledAt,
-                    refundAmount: data.refundAmount,
-                    refundStatus: data.refundStatus,
-                },
-            ],
-            { session: (session as ClientSession) || undefined }
-        );
-        return this.mapToEntity(created[0]);
+        const payload: Record<string, unknown> = {
+            userId: data.userId,
+            planId: data.planId,
+            status: data.status,
+            purchasedAt: data.purchasedAt || new Date(),
+            benefitsUsedAt: data.benefitsUsedAt ?? null,
+            refundAmount: data.refundAmount ?? 0,
+            refundStatus: data.refundStatus ?? "none",
+        };
+        if (data.startDate) payload.startDate = data.startDate;
+        if (data.endDate) payload.endDate = data.endDate;
+        if (data.paymentId) payload.paymentId = data.paymentId;
+        if (data.cancelledAt) payload.cancelledAt = data.cancelledAt;
+        if (data.cancellationReason) payload.cancellationReason = data.cancellationReason;
+
+        const created = await subscriptionModel.create([payload as never], {
+            session: (session as ClientSession) || undefined,
+        });
+        const first = created[0];
+        if (!first) throw new Error("Failed to create subscription record");
+        return this.mapToEntity(first);
     }
 
     async findById(id: string, session?: unknown): Promise<SubscriptionEntity | null> {
@@ -99,5 +102,16 @@ export class MongoSubscriptionRepository implements ISubscriptionRepository {
             .exec();
 
         return doc ? this.mapToEntity(doc) : null;
+    }
+
+    async markBenefitsUsed(id: string, session?: unknown): Promise<boolean> {
+        const doc = await subscriptionModel
+            .findByIdAndUpdate(
+                id,
+                { benefitsUsedAt: new Date() },
+                { session: (session as ClientSession) || undefined }
+            )
+            .exec();
+        return doc !== null;
     }
 }

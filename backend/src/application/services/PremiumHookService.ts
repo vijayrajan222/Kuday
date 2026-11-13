@@ -1,8 +1,8 @@
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
 import type { ISubscriptionRepository } from "@application/interfaces/repository/ISubscriptionRepository.js";
-import { subscriptionModel } from "@infrastructure/database/model/SubscriptionModel.js";
+import type { IPremiumHookService } from "@application/interfaces/services/IPremiumHookService.js";
 
-export class PremiumHookService {
+export class PremiumHookService implements IPremiumHookService {
     constructor(
         private readonly userRepo: IUserRepository,
         private readonly subRepo: ISubscriptionRepository
@@ -46,9 +46,6 @@ export class PremiumHookService {
             return true; // Already marked
         }
 
-        await subscriptionModel.findByIdAndUpdate(activeSub.id, {
-            benefitsUsedAt: new Date(),
-        });
-        return true;
+        return this.subRepo.markBenefitsUsed(activeSub.id);
     }
 }

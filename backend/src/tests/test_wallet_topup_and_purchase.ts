@@ -133,7 +133,8 @@ async function run() {
 
         // Check ledger
         const { transactions: ledgerTxs } = await txRepo.findByUserId(userId);
-        if (ledgerTxs.length !== 1 || ledgerTxs[0].reason !== "topup" || ledgerTxs[0].type !== "credit") {
+        const firstTx = ledgerTxs[0];
+        if (ledgerTxs.length !== 1 || !firstTx || firstTx.reason !== "topup" || firstTx.type !== "credit") {
             throw new Error(`Invalid ledger entry for top-up`);
         }
         console.log(`✓ TEST 1 PASSED: Wallet successfully topped up to ₹${walletAfterTopup / 100} with verified ledger entry.\n`);

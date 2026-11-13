@@ -32,6 +32,7 @@ export class MongoConversationRepository implements IConversationRepository {
         if (existingDocs.length > 0) {
             // Keep the one that contains messages or is the most recently updated
             const primary = existingDocs.find((d) => Boolean(d.lastMessage?.content)) || existingDocs[0];
+            if (!primary) throw new Error("Conversation not found");
 
             // Clean up any empty ghost duplicates in the background
             if (existingDocs.length > 1) {
@@ -100,6 +101,7 @@ export class MongoConversationRepository implements IConversationRepository {
 
         if (docs.length === 0) return null;
         const primary = docs.find((d) => Boolean(d.lastMessage?.content)) || docs[0];
+        if (!primary) return null;
         return this.mapToEntity(primary);
     }
 

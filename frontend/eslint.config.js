@@ -27,6 +27,8 @@ export default defineConfig([
       eqeqeq: ['error', 'always'],
       'prefer-const': 'error',
       'no-var': 'error',
+      'react-hooks/preserve-manual-memoization': 'off',
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
 ]);

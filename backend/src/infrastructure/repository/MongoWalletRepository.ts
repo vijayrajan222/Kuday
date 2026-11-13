@@ -2,8 +2,7 @@ import type { ClientSession } from "mongoose";
 import type { IWalletRepository } from "@application/interfaces/repository/IWalletRepository";
 import type { WalletEntity } from "@domain/entities/WalletEntity";
 import { walletModel, type WalletDoc } from "@infrastructure/database/model/WalletModel";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import { ValidationError } from "@application/errors/AppError";
 
 export class MongoWalletRepository implements IWalletRepository {
     private mapToEntity(doc: WalletDoc): WalletEntity {
@@ -36,7 +35,9 @@ export class MongoWalletRepository implements IWalletRepository {
                 [{ userId, balance: 0, version: 0 }],
                 { session: (session as ClientSession) || undefined }
             );
-            doc = created[0];
+            const first = created[0];
+            if (!first) throw new Error("Failed to create wallet");
+            return this.mapToEntity(first);
         }
 
         return this.mapToEntity(doc);
@@ -44,7 +45,7 @@ export class MongoWalletRepository implements IWalletRepository {
 
     async atomicCredit(userId: string, amount: number, session?: unknown): Promise<WalletEntity> {
         if (!Number.isInteger(amount) || amount <= 0) {
-            throw new AppError("Credit amount must be a positive integer in paise", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Credit amount must be a positive integer in paise");
         }
 
         const doc = await walletModel
@@ -67,7 +68,7 @@ export class MongoWalletRepository implements IWalletRepository {
 
     async atomicDebit(userId: string, amount: number, session?: unknown): Promise<WalletEntity> {
         if (!Number.isInteger(amount) || amount <= 0) {
-            throw new AppError("Debit amount must be a positive integer in paise", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Debit amount must be a positive integer in paise");
         }
 
         const doc = await walletModel
@@ -88,7 +89,7 @@ export class MongoWalletRepository implements IWalletRepository {
             .exec();
 
         if (!doc) {
-            throw new AppError("Insufficient wallet balance for this transaction", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Insufficient wallet balance for this transaction");
         }
 
         return this.mapToEntity(doc);

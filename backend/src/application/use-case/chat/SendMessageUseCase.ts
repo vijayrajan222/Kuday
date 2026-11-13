@@ -6,8 +6,7 @@ import type { IUserRepository } from "@application/interfaces/repository/IUserRe
 import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
 import type { SendMessageDto, SendMessageResponseDto } from "@application/dto/chat/ChatDto";
 import type { NotificationEntity } from "@domain/entities/NotificationEntity";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import { ValidationError, ForbiddenError } from "@application/errors/AppError";
 
 export class SendMessageUseCase implements ISendMessageUseCase {
     constructor(
@@ -20,19 +19,18 @@ export class SendMessageUseCase implements ISendMessageUseCase {
 
     async execute(dto: SendMessageDto): Promise<SendMessageResponseDto> {
         if (!dto.senderId || !dto.receiverId) {
-            throw new AppError("Sender and receiver are required", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Sender and receiver are required");
         }
         if (!dto.content || !dto.content.trim()) {
-            throw new AppError("Message content cannot be empty", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Message content cannot be empty");
         }
 
         // Verify accepted connection request
         if (this.interestRepository) {
             const acceptedConn = await this.interestRepository.findAcceptedBetween(dto.senderId, dto.receiverId);
             if (!acceptedConn) {
-                throw new AppError(
-                    "Chat is only allowed between users with an accepted connection request",
-                    HttpStatusCodes.FORBIDDEN
+                throw new ForbiddenError(
+                    "Chat is only allowed between users with an accepted connection request"
                 );
             }
         }
@@ -48,7 +46,7 @@ export class SendMessageUseCase implements ISendMessageUseCase {
 
         // Verify sender is participant
         if (!conversation.participants.includes(dto.senderId)) {
-            throw new AppError("User is not authorized in this conversation", HttpStatusCodes.FORBIDDEN);
+            throw new ForbiddenError("User is not authorized in this conversation");
         }
 
         const now = new Date().toISOString();

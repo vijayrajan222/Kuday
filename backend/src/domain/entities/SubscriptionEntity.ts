@@ -11,6 +11,7 @@ export interface SubscriptionEntity {
     benefitsUsedAt?: Date | null | undefined;
     paymentId?: string | undefined;
     cancelledAt?: Date | undefined;
+    cancellationReason?: string | undefined;
     refundAmount?: number | undefined; // Integer in paise
     refundStatus?: 'none' | 'pending' | 'completed' | 'failed' | undefined;
     createdAt?: Date | undefined;

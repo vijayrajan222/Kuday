@@ -7,8 +7,7 @@ import type { IMessageRepository } from "@application/interfaces/repository/IMes
 import type { IConversationRepository } from "@application/interfaces/repository/IConversationRepository";
 import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
 import type { MessageEntity } from "@domain/entities/MessageEntity";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import { NotFoundError, ForbiddenError } from "@application/errors/AppError";
 
 export class GetMessagesUseCase implements IGetMessagesUseCase {
     constructor(
@@ -25,11 +24,11 @@ export class GetMessagesUseCase implements IGetMessagesUseCase {
     ): Promise<MessageEntity[]> {
         const conversation = await this.conversationRepository.findById(conversationId);
         if (!conversation) {
-            throw new AppError("Conversation not found", HttpStatusCodes.NOT_FOUND);
+            throw new NotFoundError("Conversation not found");
         }
 
         if (!conversation.participants.includes(userId)) {
-            throw new AppError("User is not a participant in this conversation", HttpStatusCodes.FORBIDDEN);
+            throw new ForbiddenError("User is not a participant in this conversation");
         }
 
         return this.messageRepository.findByConversationId(conversationId, limit, before);
@@ -41,9 +40,8 @@ export class GetMessagesUseCase implements IGetMessagesUseCase {
         if (this.interestRepository) {
             const accepted = await this.interestRepository.findAcceptedBetween(userId, otherUserId);
             if (!accepted) {
-                throw new AppError(
-                    "Chat is only allowed between users with an accepted connection request",
-                    HttpStatusCodes.FORBIDDEN
+                throw new ForbiddenError(
+                    "Chat is only allowed between users with an accepted connection request"
                 );
             }
         }

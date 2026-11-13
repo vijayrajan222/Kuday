@@ -1,9 +1,9 @@
 import { Router, type RequestHandler } from "express";
-import { PaymentController } from "@presentation/controller/PaymentController";
+import type { IPaymentController } from "@presentation/interface/IPaymentController";
 import { paymentRateLimiter } from "@presentation/middleware/PaymentRateLimiter";
 
 export function createPaymentRouter(
-    paymentController: PaymentController,
+    paymentController: IPaymentController,
     authMiddleware: RequestHandler
 ): Router {
     const router = Router();

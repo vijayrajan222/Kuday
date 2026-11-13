@@ -34,7 +34,9 @@ export default function AdminDashboardPage() {
   const [isSearching, setIsSearching] = useState(false);
   const isInitialMount = useRef(true);
   const searchQueryRef = useRef(searchQuery);
-  searchQueryRef.current = searchQuery;
+  useEffect(() => {
+    searchQueryRef.current = searchQuery;
+  }, [searchQuery]);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
 
   // Inspection Modal State

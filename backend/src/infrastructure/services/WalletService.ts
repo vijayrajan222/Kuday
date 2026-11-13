@@ -8,8 +8,7 @@ import type { IWalletRepository } from "@application/interfaces/repository/IWall
 import type { IWalletTransactionRepository } from "@application/interfaces/repository/IWalletTransactionRepository";
 import type { WalletEntity } from "@domain/entities/WalletEntity";
 import type { WalletTransactionEntity } from "@domain/entities/WalletTransactionEntity";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import { ValidationError } from "@application/errors/AppError";
 
 export class WalletService implements IWalletService {
     constructor(
@@ -26,7 +25,7 @@ export class WalletService implements IWalletService {
         externalSession?: unknown
     ): Promise<{ wallet: WalletEntity; transaction: WalletTransactionEntity }> {
         if (!Number.isInteger(dto.amount) || dto.amount <= 0) {
-            throw new AppError("Amount must be a positive integer in paise", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Amount must be a positive integer in paise");
         }
 
         // If an external session is passed, participate in that transaction directly
@@ -104,7 +103,7 @@ export class WalletService implements IWalletService {
         externalSession?: unknown
     ): Promise<{ wallet: WalletEntity; transaction: WalletTransactionEntity }> {
         if (!Number.isInteger(dto.amount) || dto.amount <= 0) {
-            throw new AppError("Amount must be a positive integer in paise", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Amount must be a positive integer in paise");
         }
 
         // If an external session is passed, participate in that transaction directly

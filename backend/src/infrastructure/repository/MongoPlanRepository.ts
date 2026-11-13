@@ -24,8 +24,8 @@ export class MongoPlanRepository implements IPlanRepository {
             price: data.price,
             durationDays: data.durationDays,
             audience: data.audience ?? "host",
-            description: data.description,
-            features: data.features,
+            description: data.description ?? "",
+            features: data.features ?? [],
             isActive: data.isActive ?? true,
         });
         return this.mapToEntity(doc);

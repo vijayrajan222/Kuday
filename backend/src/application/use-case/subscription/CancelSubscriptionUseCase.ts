@@ -5,32 +5,27 @@ import type { IPaymentRepository } from "@application/interfaces/repository/IPay
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository.js";
 import type { IWalletService } from "@application/interfaces/services/IWalletService.js";
 import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity.js";
-import { AppError } from "@application/errors/AppError.js";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes.js";
+import type {
+    ICancelSubscriptionUseCase,
+    RequestRefundInput,
+    RequestRefundOutput,
+    CancelSubscriptionInput,
+    CancelSubscriptionOutput,
+} from "@application/interfaces/use-case/subscription/ICancelSubscriptionUseCase.js";
+import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError.js";
 
 // Refund window: 3 days grace period (configurable via env, default 3)
 export const REFUND_WINDOW_DAYS = Number(process.env.REFUND_WINDOW_DAYS) || 3;
 export const FULL_REFUND_WINDOW_DAYS = REFUND_WINDOW_DAYS; // Alias for backwards compatibility
 
-export interface RequestRefundInput {
-    userId: string;
-    subscriptionId: string;
-    reason?: string | undefined;
-}
+export type {
+    RequestRefundInput,
+    RequestRefundOutput,
+    CancelSubscriptionInput,
+    CancelSubscriptionOutput,
+};
 
-// Alias for backwards compatibility
-export type CancelSubscriptionInput = RequestRefundInput;
-
-export interface RequestRefundOutput {
-    subscription: SubscriptionEntity;
-    refundAmount: number; // in paise
-    isFullRefund: boolean;
-    refundStatus: string;
-}
-
-export type CancelSubscriptionOutput = RequestRefundOutput;
-
-export class RequestRefundUseCase {
+export class RequestRefundUseCase implements ICancelSubscriptionUseCase {
     constructor(
         private readonly subRepo: ISubscriptionRepository,
         private readonly planRepo: IPlanRepository,
@@ -40,37 +35,37 @@ export class RequestRefundUseCase {
     ) {}
 
     async execute(input: RequestRefundInput): Promise<RequestRefundOutput> {
-        const { userId, subscriptionId, reason } = input;
+        const { userId, subscriptionId } = input;
+        const reason = input.reason || input.cancellationReason;
 
         // 1. Fetch Subscription
         const sub = await this.subRepo.findById(subscriptionId);
         if (!sub) {
-            throw new AppError("Subscription not found", HttpStatusCodes.NOT_FOUND);
+            throw new NotFoundError("Subscription not found");
         }
         if (sub.userId !== userId) {
-            throw new AppError("Unauthorized refund request", HttpStatusCodes.FORBIDDEN);
+            throw new ForbiddenError("Unauthorized refund request");
         }
 
         // 2. Double Refund / Already Cancelled Defense
         if (sub.status === "refunded" || sub.status === "cancelled") {
-            throw new AppError("Subscription has already been refunded", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Subscription has already been refunded");
         }
 
         // 3. Expiry Defense
         const now = new Date();
         if (sub.status === "expired" || (sub.endDate && new Date(sub.endDate) <= now)) {
-            throw new AppError("Subscription has already expired and cannot be refunded", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Subscription has already expired and cannot be refunded");
         }
 
         if (sub.status !== "active") {
-            throw new AppError(`Cannot refund subscription in '${sub.status}' state`, HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError(`Cannot refund subscription in '${sub.status}' state`);
         }
 
         // 4. Rule 7 Condition A: benefitsUsedAt must be null
         if (sub.benefitsUsedAt !== null && sub.benefitsUsedAt !== undefined) {
-            throw new AppError(
-                "Refund is not permitted because premium benefits have already been used.",
-                HttpStatusCodes.BAD_REQUEST
+            throw new ValidationError(
+                "Refund is not permitted because premium benefits have already been used."
             );
         }
 
@@ -85,16 +80,15 @@ export class RequestRefundUseCase {
         const elapsedMs = Math.max(0, now.getTime() - purchasedAt.getTime());
 
         if (elapsedMs > refundWindowMs) {
-            throw new AppError(
-                `Refund window has expired. Premium subscriptions can only be refunded within ${REFUND_WINDOW_DAYS} days of purchase.`,
-                HttpStatusCodes.BAD_REQUEST
+            throw new ValidationError(
+                `Refund window has expired. Premium subscriptions can only be refunded within ${REFUND_WINDOW_DAYS} days of purchase.`
             );
         }
 
         // 6. Fetch Paid Amount (Capped at amount paid)
         const plan = await this.planRepo.findById(sub.planId);
         if (!plan) {
-            throw new AppError("Associated plan not found", HttpStatusCodes.NOT_FOUND);
+            throw new NotFoundError("Associated plan not found");
         }
 
         let paidAmount = plan.price;
@@ -149,7 +143,6 @@ export class RequestRefundUseCase {
                     userId,
                     {
                         isPremium: false,
-                        premiumExpiresAt: undefined,
                     },
                     session
                 );
@@ -188,7 +181,6 @@ export class RequestRefundUseCase {
 
                 await this.userRepo.updateUser(userId, {
                     isPremium: false,
-                    premiumExpiresAt: undefined,
                 });
 
                 return {

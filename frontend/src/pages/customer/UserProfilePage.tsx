@@ -31,14 +31,41 @@ import { ROUTES } from '@/constants/routes';
 import { deduplicateAmenities, type FormattedAmenity } from '@/utils/amenitiesHelper';
 import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.types';
 
+interface TargetUserProfile {
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  dob?: string;
+  gender?: string;
+  occupation?: string;
+  bio?: string;
+  role?: string;
+  selfieUrl?: string;
+  idCardUrl?: string;
+  identityVerified?: boolean;
+  identityStatus?: string;
+  isPremium?: boolean;
+}
+
+interface TargetLifestyle {
+  smoking?: string;
+  drinking?: string;
+  sleepSchedule?: string;
+  diet?: string;
+  cleanliness?: string;
+  visitorPolicy?: string;
+  roommateGenderPref?: string;
+}
+
 export default function UserProfilePage() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
-  const [targetUser, setTargetUser] = useState<any>(null);
-  const [lifestyle, setLifestyle] = useState<any>(null);
+  const [targetUser, setTargetUser] = useState<TargetUserProfile | null>(null);
+  const [lifestyle, setLifestyle] = useState<TargetLifestyle | null>(null);
   const [hostRoom, setHostRoom] = useState<RoomEntity | null>(null);
   const [seekerPref, setSeekerPref] = useState<SeekerPreferenceEntity | null>(null);
 
@@ -124,7 +151,7 @@ export default function UserProfilePage() {
 
   // Deduplicated & normalized amenities
   const displayedAmenities: FormattedAmenity[] = useMemo(() => {
-    let rawList: string[] = [];
+    let rawList: string[];
     if (isHost) {
       if (hostRoom?.amenities && hostRoom.amenities.length > 0) {
         rawList = hostRoom.amenities;

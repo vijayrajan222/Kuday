@@ -3,45 +3,21 @@ import type { IPaymentRepository } from "@application/interfaces/repository/IPay
 import type { ISubscriptionRepository } from "@application/interfaces/repository/ISubscriptionRepository";
 import type { IRazorpayService } from "@application/interfaces/services/IRazorpayService";
 import type { IWalletService } from "@application/interfaces/services/IWalletService";
-import type { ActivateSubscriptionUseCase } from "@application/use-case/subscription/ActivateSubscriptionUseCase";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import type { IActivateSubscriptionUseCase } from "@application/interfaces/use-case/subscription/IActivateSubscriptionUseCase";
+import type {
+    IHandleWebhookUseCase,
+    HandleWebhookInput,
+} from "@application/interfaces/use-case/payment/IHandleWebhookUseCase";
+import { ValidationError } from "@application/errors/AppError";
 
-export interface HandleWebhookInput {
-    rawBody: string;
-    signature: string;
-    eventPayload: {
-        event: string;
-        payload: {
-            payment?: {
-                entity: {
-                    id: string;
-                    order_id?: string;
-                    amount: number;
-                    status: string;
-                    method?: string;
-                    error_code?: string;
-                    error_description?: string;
-                };
-            };
-            refund?: {
-                entity: {
-                    id: string;
-                    payment_id: string;
-                    amount: number;
-                    status: string;
-                };
-            };
-        };
-    };
-}
+export type { HandleWebhookInput };
 
-export class HandleWebhookUseCase {
+export class HandleWebhookUseCase implements IHandleWebhookUseCase {
     constructor(
         private readonly paymentRepo: IPaymentRepository,
         private readonly subRepo: ISubscriptionRepository,
         private readonly razorpayService: IRazorpayService,
-        private readonly activateSubscriptionUseCase: ActivateSubscriptionUseCase,
+        private readonly activateSubscriptionUseCase: IActivateSubscriptionUseCase,
         private readonly walletService?: IWalletService
     ) {}
 
@@ -52,7 +28,7 @@ export class HandleWebhookUseCase {
         const isValid = this.razorpayService.verifyWebhookSignature(rawBody, signature);
         if (!isValid) {
             console.warn("[Webhook] Invalid or tampered webhook signature received from Razorpay!");
-            throw new AppError("Invalid webhook signature", HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError("Invalid webhook signature");
         }
 
         const { event, payload } = eventPayload;

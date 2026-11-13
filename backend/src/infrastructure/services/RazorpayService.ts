@@ -5,8 +5,7 @@ import type {
     CreateRazorpayOrderOptions,
     RazorpayOrderResult,
 } from "@application/interfaces/services/IRazorpayService";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import { ApplicationError, ValidationError } from "@application/errors/AppError";
 
 export class RazorpayService implements IRazorpayService {
     private client: Razorpay | null = null;
@@ -30,9 +29,9 @@ export class RazorpayService implements IRazorpayService {
     private getClient(): Razorpay {
         if (!this.client) {
             if (!this.keyId || !this.keySecret) {
-                throw new AppError(
+                throw new ApplicationError(
                     "Razorpay credentials are not configured in environment variables",
-                    HttpStatusCodes.INTERNAL_SERVER_ERROR
+                    500
                 );
             }
             this.client = new Razorpay({
@@ -49,20 +48,27 @@ export class RazorpayService implements IRazorpayService {
 
     async createOrder(options: CreateRazorpayOrderOptions): Promise<RazorpayOrderResult> {
         if (!Number.isInteger(options.amount) || options.amount <= 0) {
-            throw new AppError(
-                "Order amount must be a positive integer in paise",
-                HttpStatusCodes.BAD_REQUEST
-            );
+            throw new ValidationError("Order amount must be a positive integer in paise");
         }
 
         const client = this.getClient();
         try {
-            const order = await client.orders.create({
+            const orderPayload: { amount: number; currency: string; receipt: string; notes?: Record<string, string> } = {
                 amount: options.amount,
                 currency: options.currency || "INR",
                 receipt: options.receipt,
-                notes: options.notes,
-            });
+            };
+            if (options.notes) {
+                orderPayload.notes = options.notes;
+            }
+
+            const order = (await client.orders.create(orderPayload as never)) as {
+                id: string;
+                amount: number | string;
+                currency: string;
+                receipt?: string;
+                status: string;
+            };
 
             return {
                 id: order.id,
@@ -75,7 +81,7 @@ export class RazorpayService implements IRazorpayService {
             const err = error as { description?: string; message?: string };
             const errorMsg = err.description || err.message || "Failed to create Razorpay order";
             console.error("[Razorpay] Order creation failed:", errorMsg);
-            throw new AppError(errorMsg, HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError(errorMsg);
         }
     }
 
@@ -160,7 +166,7 @@ export class RazorpayService implements IRazorpayService {
             const err = error as { description?: string; message?: string };
             const errorMsg = err.description || err.message || "Failed to fetch payment details";
             console.error("[Razorpay] Fetch payment failed:", errorMsg);
-            throw new AppError(errorMsg, HttpStatusCodes.BAD_REQUEST);
+            throw new ValidationError(errorMsg);
         }
     }
 }

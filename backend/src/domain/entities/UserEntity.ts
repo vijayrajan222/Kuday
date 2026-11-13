@@ -6,10 +6,10 @@ export interface UserEntity {
     hashedPassword?: string;
     isVerified: boolean;
     isBlocked: boolean;
-    isAdmin?: boolean;
-    isPremium?: boolean;
-    premiumExpiresAt?: Date;
-    otp?: number;
+    isAdmin?: boolean | undefined;
+    isPremium?: boolean | undefined;
+    premiumExpiresAt?: Date | undefined;
+    otp?: number | null | undefined;
 
     // Profile Fields
     dob?: string;

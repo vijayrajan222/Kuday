@@ -1,1 +1,0 @@
-import{a as e,n as t,t as n}from"./jsx-runtime-D3jfb0Ew.js";import{p as r}from"./index-C1S6iezS.js";var i=e(t(),1),a=n(),o=(0,i.forwardRef)(({className:e,...t},n)=>(0,a.jsx)(`div`,{ref:n,className:r(`rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`,e),...t}));o.displayName=`Card`;export{o as t};
