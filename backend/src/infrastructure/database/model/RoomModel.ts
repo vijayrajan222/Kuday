@@ -33,6 +33,16 @@ export const RoomSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        coordinates: {
+            lat: {
+                type: Number,
+                required: false,
+            },
+            lng: {
+                type: Number,
+                required: false,
+            },
+        },
         capacity: {
             type: Number,
             required: true,

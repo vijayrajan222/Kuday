@@ -22,6 +22,10 @@ export interface RoomWithHostDto {
     roomType: string;
     monthlyRent: number;
     location: string;
+    coordinates?: {
+        lat: number;
+        lng: number;
+    } | undefined;
     capacity: number;
     availabilityNotes: string;
     amenities: string[];

@@ -4,6 +4,10 @@ export interface CreateRoomDto {
     roomType: string;
     monthlyRent: number;
     location: string;
+    coordinates?: {
+        lat: number;
+        lng: number;
+    };
     capacity: number;
     availabilityNotes: string;
     amenities: string[];

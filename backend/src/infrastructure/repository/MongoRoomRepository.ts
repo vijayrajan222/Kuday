@@ -11,6 +11,12 @@ export class MongoRoomRepository implements IRoomRepository {
             roomType: doc.roomType,
             monthlyRent: doc.monthlyRent,
             location: doc.location,
+            coordinates:
+                doc.coordinates &&
+                typeof doc.coordinates.lat === "number" &&
+                typeof doc.coordinates.lng === "number"
+                    ? { lat: doc.coordinates.lat, lng: doc.coordinates.lng }
+                    : undefined,
             capacity: doc.capacity,
             availabilityNotes: doc.availabilityNotes,
             amenities: doc.amenities ?? [],
@@ -23,7 +29,7 @@ export class MongoRoomRepository implements IRoomRepository {
     }
 
     async create(roomData: Omit<RoomEntity, "id">): Promise<RoomEntity> {
-        const payload = {
+        const payload: Record<string, unknown> = {
             hostId: roomData.hostId,
             roomType: roomData.roomType,
             monthlyRent: roomData.monthlyRent,
@@ -36,6 +42,9 @@ export class MongoRoomRepository implements IRoomRepository {
             description: roomData.description || "",
             isActive: roomData.isActive ?? true,
         };
+        if (roomData.coordinates) {
+            payload.coordinates = roomData.coordinates;
+        }
         const doc = await RoomModel.create(payload);
         return this.mapToEntity(doc);
     }
