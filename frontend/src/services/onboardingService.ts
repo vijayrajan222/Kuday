@@ -80,8 +80,8 @@ export const onboardingService = {
     return data.data;
   },
 
-  async getUserProfile(userId: string) {
-    const { data } = await api.get(API_ENDPOINTS.USER.GET_USER(userId));
+  async getUserProfile(userId: string, signal?: AbortSignal) {
+    const { data } = await api.get(API_ENDPOINTS.USER.GET_USER(userId), { signal });
     return data.data;
   },
 

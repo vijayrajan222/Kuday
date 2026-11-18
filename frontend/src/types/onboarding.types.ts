@@ -20,12 +20,18 @@ export interface LifestylePayload {
   roommateGenderPref: string;
 }
 
+export interface RoomCoordinates {
+  lat: number;
+  lng: number;
+}
+
 export interface RoomPayload {
   hostId: string;
   title?: string;
   roomType: string;
   monthlyRent: number;
   location: string;
+  coordinates?: RoomCoordinates;
   capacity: number;
   availabilityNotes: string;
   amenities: string[];
@@ -42,6 +48,7 @@ export interface HostProfile {
   gender?: string;
   occupation?: string;
   bio?: string;
+  coordinates?: RoomCoordinates;
   selfieUrl?: string;
   idCardUrl?: string;
   identityVerified: boolean;
@@ -56,6 +63,7 @@ export interface RoomEntity {
   roomType: string;
   monthlyRent: number;
   location: string;
+  coordinates?: RoomCoordinates;
   capacity: number;
   availabilityNotes: string;
   amenities: string[];

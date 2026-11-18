@@ -10,6 +10,7 @@ import { onboardingService } from '@/services/onboardingService';
 import { ROUTES } from '@/constants/routes';
 import { toast } from '@/hooks/useToast';
 import { getErrorMessage } from '@/utils/errorHandler';
+import { LocationCoordinatePicker, type Coordinates } from '@/components/common/LocationCoordinatePicker';
 import {
   Calendar,
   ArrowRight,
@@ -25,6 +26,7 @@ import {
   Users,
   Clock,
   LogOut,
+  X,
 } from 'lucide-react';
 
 // Available Amenities options for checklist
@@ -176,6 +178,7 @@ export default function OnboardingProfilePage() {
     roomType: 'private_bedroom',
     monthlyRent: '',
     location: '',
+    coordinates: null as Coordinates | null,
     capacity: '1',
     availabilityNotes: '',
     description: '',
@@ -372,6 +375,7 @@ export default function OnboardingProfilePage() {
         roomType: roomData.roomType,
         monthlyRent: rentNum,
         location: roomData.location.trim(),
+        coordinates: roomData.coordinates || undefined,
         capacity: capNum || 1,
         availabilityNotes: roomData.availabilityNotes,
         amenities: roomData.amenities,
@@ -884,23 +888,6 @@ export default function OnboardingProfilePage() {
               </div>
 
               <div>
-                <Label htmlFor="location">City / Location</Label>
-                <div className="relative mt-1.5">
-                  <Input
-                    id="location"
-                    type="text"
-                    required
-                    placeholder="e.g. Bangalore, Indiranagar"
-                    value={roomData.location}
-                    onChange={(e) => setRoomData({ ...roomData, location: e.target.value })}
-                    leftIcon={<MapPin className="h-4 w-4" />}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
                 <Label htmlFor="capacity">Vacant Count / Capacity</Label>
                 <div className="relative mt-1.5">
                   <Input
@@ -915,19 +902,27 @@ export default function OnboardingProfilePage() {
                   />
                 </div>
               </div>
+            </div>
 
-              <div>
-                <Label htmlFor="availabilityNotes">Visit Slot Availability</Label>
-                <div className="relative mt-1.5">
-                  <Input
-                    id="availabilityNotes"
-                    type="text"
-                    placeholder="e.g. Available on weekends"
-                    value={roomData.availabilityNotes}
-                    onChange={(e) => setRoomData({ ...roomData, availabilityNotes: e.target.value })}
-                    leftIcon={<Clock className="h-4 w-4" />}
-                  />
-                </div>
+            {/* Location & Map Coordinates Picker */}
+            <LocationCoordinatePicker
+              location={roomData.location}
+              onLocationChange={(loc) => setRoomData((prev) => ({ ...prev, location: loc }))}
+              coordinates={roomData.coordinates}
+              onCoordinatesChange={(coords) => setRoomData((prev) => ({ ...prev, coordinates: coords }))}
+            />
+
+            <div>
+              <Label htmlFor="availabilityNotes">Visit Slot Availability</Label>
+              <div className="relative mt-1.5">
+                <Input
+                  id="availabilityNotes"
+                  type="text"
+                  placeholder="e.g. Available on weekends"
+                  value={roomData.availabilityNotes}
+                  onChange={(e) => setRoomData({ ...roomData, availabilityNotes: e.target.value })}
+                  leftIcon={<Clock className="h-4 w-4" />}
+                />
               </div>
             </div>
 
@@ -946,9 +941,9 @@ export default function OnboardingProfilePage() {
                           imagesBase64: prev.imagesBase64.filter((_, i) => i !== idx),
                         }))
                       }
-                      className="absolute top-1 right-1 rounded-full bg-slate-900/70 p-1 text-white hover:bg-slate-900 text-[10px]"
+                      className="absolute top-1 right-1 rounded-full bg-slate-900/70 p-1 text-white hover:bg-slate-900"
                     >
-                      ✕
+                      <X className="h-3 w-3" />
                     </button>
                   </div>
                 ))}

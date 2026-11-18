@@ -17,6 +17,7 @@ import {
   Utensils,
   Laptop,
   Wine,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInterest } from '@/hooks/useInterest';
@@ -24,6 +25,8 @@ import { onboardingService } from '@/services/onboardingService';
 import { ROUTES } from '@/constants/routes';
 import { deduplicateAmenities } from '@/utils/amenitiesHelper';
 import type { RoomEntity } from '@/types/onboarding.types';
+import { HostLocationMap } from '@/components/common/HostLocationMap';
+import { ReportUserModal } from '@/components/common/ReportUserModal';
 
 export default function RoomDetailsPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -32,6 +35,7 @@ export default function RoomDetailsPage() {
 
   const [room, setRoom] = useState<RoomEntity | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Interest hook for sending/checking interest status
   const {
@@ -333,31 +337,14 @@ export default function RoomDetailsPage() {
             </div>
           </div>
 
-          {/* Location Map Placeholder */}
-          <div className="space-y-3 pt-2">
-            <h2 className="text-lg font-bold text-slate-900">Location</h2>
-            <div className="relative h-64 w-full rounded-3xl bg-slate-100 border border-slate-200/90 overflow-hidden flex items-center justify-center">
-              {/* Map stylized background grid */}
-              <div
-                className="absolute inset-0 opacity-20"
-                style={{
-                  backgroundImage:
-                    'radial-gradient(circle, #94a3b8 1px, transparent 1px)',
-                  backgroundSize: '24px 24px',
-                }}
-              />
-              <div className="relative flex flex-col items-center gap-2">
-                <div className="h-12 w-12 rounded-full bg-black text-white flex items-center justify-center shadow-lg animate-bounce">
-                  <MapPin className="h-6 w-6" />
-                </div>
-                <span className="text-xs font-bold text-slate-800 bg-white/95 px-3 py-1 rounded-full shadow-2xs border border-slate-200">
-                  {room.location}
-                </span>
-              </div>
-            </div>
-            <p className="text-[11px] text-slate-400">
-              The exact address is provided after mutual connection and initial screening.
-            </p>
+          {/* Room Location Map with Navigation */}
+          <div className="pt-2">
+            <HostLocationMap
+              location={room.location}
+              coordinates={room.coordinates}
+              hostName={hostName}
+              title="Room Location & Navigation Map"
+            />
           </div>
         </div>
 
@@ -498,6 +485,18 @@ export default function RoomDetailsPage() {
               >
                 View Matches &amp; Requests
               </button>
+
+              {/* Report Host / Listing (Available for Seeker or other users) */}
+              {user?.id && hostUserId && user.id !== hostUserId && (
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="w-full text-center text-[11px] font-semibold text-slate-400 hover:text-rose-600 transition-colors flex items-center justify-center gap-1.5 py-1 pt-1.5 border-t border-slate-100"
+                >
+                  <ShieldAlert className="h-3.5 w-3.5 text-rose-500" />
+                  <span>Report Host / Listing</span>
+                </button>
+              )}
             </div>
 
             {/* Verification Meter */}
@@ -521,6 +520,18 @@ export default function RoomDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* Report Host Modal Dialog */}
+      {hostUserId && (
+        <ReportUserModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          reportedUserId={hostUserId}
+          reportedUserName={hostName}
+          reportedUserRole="host"
+          reportedUserAvatar={room.host?.selfieUrl}
+        />
+      )}
     </div>
   );
 }
