@@ -16,6 +16,10 @@ export interface UserEntity {
     gender?: string;
     occupation?: string;
     bio?: string;
+    coordinates?: {
+        lat: number;
+        lng: number;
+    } | undefined;
     role?: 'host' | 'seeker' | 'admin' | 'none';
     isOnboarded?: boolean;
 

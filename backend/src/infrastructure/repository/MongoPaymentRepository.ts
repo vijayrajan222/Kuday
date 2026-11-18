@@ -81,6 +81,14 @@ export class MongoPaymentRepository implements IPaymentRepository {
         return doc ? this.mapToEntity(doc) : null;
     }
 
+    async findAll(filter?: { status?: PaymentStatus; purpose?: "premium" | "wallet_topup" }): Promise<PaymentEntity[]> {
+        const query: Record<string, unknown> = {};
+        if (filter?.status) query.status = filter.status;
+        if (filter?.purpose) query.purpose = filter.purpose;
+        const docs = await paymentModel.find(query).sort({ createdAt: -1 }).exec();
+        return docs.map((d) => this.mapToEntity(d));
+    }
+
     async updateStatus(
         id: string,
         status: PaymentStatus,

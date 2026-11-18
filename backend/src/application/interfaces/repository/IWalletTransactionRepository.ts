@@ -10,5 +10,9 @@ export interface IWalletTransactionRepository {
         limit?: number,
         skip?: number
     ): Promise<{ transactions: WalletTransactionEntity[]; total: number }>;
+    findAll(
+        limit?: number,
+        skip?: number
+    ): Promise<{ transactions: WalletTransactionEntity[]; total: number }>;
     calculateLedgerBalance(userId: string): Promise<number>;
 }

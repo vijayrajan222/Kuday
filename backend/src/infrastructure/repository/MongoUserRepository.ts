@@ -14,6 +14,7 @@ const PROFILE_UPDATABLE_FIELDS = [
     "gender",
     "occupation",
     "bio",
+    "coordinates",
     "selfieUrl",
     "idCardUrl",
     "role",
@@ -55,6 +56,12 @@ export class MongoUserRepository implements IUserRepository {
             gender: doc.gender ?? "",
             occupation: doc.occupation ?? "",
             bio: doc.bio ?? "",
+            coordinates:
+                doc.coordinates &&
+                typeof doc.coordinates.lat === "number" &&
+                typeof doc.coordinates.lng === "number"
+                    ? { lat: doc.coordinates.lat, lng: doc.coordinates.lng }
+                    : undefined,
             role: (doc.role as "host" | "seeker" | "admin" | "none") ?? "none",
             isOnboarded: Boolean(doc.isOnboarded),
             idCardUrl: doc.idCardUrl ?? "",

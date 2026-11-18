@@ -63,6 +63,26 @@ export class MongoWalletTransactionRepository implements IWalletTransactionRepos
         };
     }
 
+    async findAll(
+        limit = 100,
+        skip = 0
+    ): Promise<{ transactions: WalletTransactionEntity[]; total: number }> {
+        const [docs, total] = await Promise.all([
+            walletTransactionModel
+                .find({})
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .exec(),
+            walletTransactionModel.countDocuments({}).exec(),
+        ]);
+
+        return {
+            transactions: docs.map((d) => this.mapToEntity(d)),
+            total,
+        };
+    }
+
     async calculateLedgerBalance(userId: string): Promise<number> {
         const result = await walletTransactionModel.aggregate([
             { $match: { userId: typeof userId === "string" ? new (await import("mongoose")).Types.ObjectId(userId) : userId } },

@@ -48,6 +48,16 @@ export const userSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
+        coordinates: {
+            lat: {
+                type: Number,
+                required: false,
+            },
+            lng: {
+                type: Number,
+                required: false,
+            },
+        },
 
         // Account Status
         isVerified: {

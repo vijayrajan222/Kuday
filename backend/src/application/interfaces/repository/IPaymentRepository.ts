@@ -9,6 +9,7 @@ export interface IPaymentRepository {
     findByRazorpayOrderId(orderId: string, session?: unknown): Promise<PaymentEntity | null>;
     findByRazorpayPaymentId(paymentId: string, session?: unknown): Promise<PaymentEntity | null>;
     findByIdempotencyKey(key: string, session?: unknown): Promise<PaymentEntity | null>;
+    findAll(filter?: { status?: PaymentStatus; purpose?: "premium" | "wallet_topup" }): Promise<PaymentEntity[]>;
     updateStatus(
         id: string,
         status: PaymentStatus,
