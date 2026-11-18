@@ -23,6 +23,7 @@ import {
   Shirt,
   MapPin,
   ExternalLink,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInterest } from '@/hooks/useInterest';
@@ -30,6 +31,8 @@ import { onboardingService } from '@/services/onboardingService';
 import { ROUTES } from '@/constants/routes';
 import { deduplicateAmenities, type FormattedAmenity } from '@/utils/amenitiesHelper';
 import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.types';
+import { HostLocationMap } from '@/components/common/HostLocationMap';
+import { ReportUserModal } from '@/components/common/ReportUserModal';
 
 interface TargetUserProfile {
   id?: string;
@@ -68,6 +71,7 @@ export default function UserProfilePage() {
   const [lifestyle, setLifestyle] = useState<TargetLifestyle | null>(null);
   const [hostRoom, setHostRoom] = useState<RoomEntity | null>(null);
   const [seekerPref, setSeekerPref] = useState<SeekerPreferenceEntity | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Interest hook for connection status and actions
   const {
@@ -368,6 +372,18 @@ export default function UserProfilePage() {
                   Back to Dashboard
                 </button>
               )}
+
+              {/* Report User Action (Common for Host and Seeker) */}
+              {currentUser?.id && targetId && currentUser.id !== targetId && (
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="w-full py-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50/60 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+                >
+                  <ShieldAlert className="h-3.5 w-3.5" />
+                  <span>Report User</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -533,10 +549,32 @@ export default function UserProfilePage() {
                   </span>
                 </div>
               </div>
+
+              {/* Property Location Map with Navigation */}
+              <div className="pt-2">
+                <HostLocationMap
+                  location={hostRoom.location}
+                  coordinates={hostRoom.coordinates}
+                  hostName={`${targetUser.firstName} ${targetUser.lastName || ''}`}
+                  title="Host Property Location & Map Navigation"
+                />
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Report User Modal Dialog */}
+      {targetId && (
+        <ReportUserModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          reportedUserId={targetId}
+          reportedUserName={fullName}
+          reportedUserRole={targetUser.role}
+          reportedUserAvatar={targetUser.selfieUrl}
+        />
+      )}
     </div>
   );
 }

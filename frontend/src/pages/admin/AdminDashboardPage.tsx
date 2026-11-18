@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Users,
   Building2,
@@ -15,6 +16,8 @@ import {
   ChevronRight,
   FileCheck2,
   Loader2,
+  TrendingUp,
+  ArrowUpRight,
 } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import type { AdminStats, AdminUser } from '@/types/admin.types';
@@ -23,8 +26,10 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/useToast';
 import { getErrorMessage } from '@/utils/errorHandler';
+import { ROUTES } from '@/constants/routes';
 
 export default function AdminDashboardPage() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,6 +225,52 @@ export default function AdminDashboardPage() {
           >
             Refresh Data
           </Button>
+        </div>
+      </div>
+
+      {/* Platform Financials Quick Banner */}
+      <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-slate-900/60 to-emerald-950/30 p-5 sm:p-6 shadow-xl backdrop-blur-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="rounded-2xl bg-indigo-500/10 p-3.5 text-indigo-400 border border-indigo-500/20 shadow-inner">
+              <TrendingUp className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">
+                  Platform Financial Snapshot
+                </span>
+                <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400 border border-emerald-500/20">
+                  Live Transactions
+                </span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-baseline gap-x-6 gap-y-1">
+                <div>
+                  <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                    ₹{(stats?.totalRevenue || 0).toLocaleString('en-IN')}
+                  </span>
+                  <span className="ml-1.5 text-xs text-slate-400">Gross App Revenue</span>
+                </div>
+                <div className="text-xs text-slate-400 border-l border-slate-700/60 pl-6 hidden sm:block">
+                  <span className="text-emerald-400 font-bold">
+                    ₹{(stats?.monthlyRevenue || 0).toLocaleString('en-IN')}
+                  </span>
+                  <span className="ml-1 text-slate-400">this month</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => navigate(ROUTES.ADMIN_REVENUE)}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 text-xs font-semibold gap-1.5"
+            >
+              <span>View Revenue Page & Graph</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
 
