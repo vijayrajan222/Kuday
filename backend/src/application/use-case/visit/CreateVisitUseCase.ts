@@ -71,7 +71,7 @@ export class CreateVisitUseCase implements ICreateVisitUseCase {
         try {
             const notif = await this.notificationRepo.create({
                 userId: dto.hostId,
-                title: "New Visit Request 📅",
+                title: "New Visit Request",
                 message: `${seekerName} requested to schedule a visit on ${dto.date} (${dto.slotTime}).`,
                 type: "visit_request",
                 isRead: false,
@@ -87,7 +87,7 @@ export class CreateVisitUseCase implements ICreateVisitUseCase {
         // Send automated message in chat thread
         if (this.sendMessageUseCase) {
             try {
-                const chatContent = `📅 Schedule Visit Request: Proposed visit on ${dto.date} during ${dto.timeSlot} (${dto.slotTime}).${dto.message ? `\n\n"${dto.message}"` : ""}`;
+                const chatContent = `Schedule Visit Request: Proposed visit on ${dto.date} during ${dto.timeSlot} (${dto.slotTime}).${dto.message ? `\n\n"${dto.message}"` : ""}`;
                 await this.sendMessageUseCase.execute({
                     senderId: dto.seekerId,
                     receiverId: dto.hostId,

@@ -24,7 +24,7 @@ export class VerifyUserIdentityUseCase implements IVerifyUserIdentityUseCase {
 
             await this.notificationRepository.create({
                 userId: input.userId,
-                title: "Identity Verified 🎉",
+                title: "Identity Verified",
                 message: "Congratulations! Your identity documents (Selfie & ID) have been verified by the Admin.",
                 type: "admin_verification",
                 isRead: false,
@@ -41,7 +41,7 @@ export class VerifyUserIdentityUseCase implements IVerifyUserIdentityUseCase {
 
             await this.notificationRepository.create({
                 userId: input.userId,
-                title: "Identity Verification Action Required ⚠️",
+                title: "Identity Verification Action Required",
                 message: `Your identity verification request was rejected: ${reason}`,
                 type: "admin_verification",
                 isRead: false,

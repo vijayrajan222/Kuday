@@ -58,7 +58,7 @@ export class SuggestVisitUseCase implements ISuggestVisitUseCase {
         try {
             const notif = await this.notificationRepo.create({
                 userId: recipientId,
-                title: "Visit Reschedule Suggested 🔄",
+                title: "Visit Reschedule Suggested",
                 message: `${actorName} proposed a new visit time: ${dto.suggestedDate} (${dto.suggestedSlotTime}).`,
                 type: "visit_request",
                 isRead: false,
@@ -74,7 +74,7 @@ export class SuggestVisitUseCase implements ISuggestVisitUseCase {
         // Chat message
         if (this.sendMessageUseCase) {
             try {
-                const chatContent = `🔄 Reschedule Suggested: ${actorName} suggested ${dto.suggestedDate} during ${dto.suggestedTimeSlot} (${dto.suggestedSlotTime}).${dto.suggestedMessage ? `\n\nNote: "${dto.suggestedMessage}"` : ""}`;
+                const chatContent = `Reschedule Suggested: ${actorName} suggested ${dto.suggestedDate} during ${dto.suggestedTimeSlot} (${dto.suggestedSlotTime}).${dto.suggestedMessage ? `\n\nNote: "${dto.suggestedMessage}"` : ""}`;
                 await this.sendMessageUseCase.execute({
                     senderId: dto.userId,
                     receiverId: recipientId,

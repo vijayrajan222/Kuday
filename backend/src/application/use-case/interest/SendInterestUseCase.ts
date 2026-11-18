@@ -45,7 +45,7 @@ export class SendInterestUseCase implements ISendInterestUseCase {
 
             await this.notificationRepo.create({
                 userId: dto.receiverId,
-                title: "Interest Request Accepted! 🎉",
+                title: "Interest Request Accepted",
                 message: `${senderName} also showed interest in you! You are now connected.`,
                 type: "interest_request",
                 isRead: false,
@@ -125,7 +125,7 @@ export class SendInterestUseCase implements ISendInterestUseCase {
         // Dispatch real-time notification to the receiver
         await this.notificationRepo.create({
             userId: dto.receiverId,
-            title: "New Interest Request 💌",
+            title: "New Interest Request",
             message: `${senderName} expressed interest in your ${dto.targetType === "room" ? "room listing" : "profile"}!`,
             type: "interest_request",
             isRead: false,

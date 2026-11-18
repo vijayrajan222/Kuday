@@ -16,6 +16,7 @@ import { MongoWalletTransactionRepository } from "@infrastructure/repository/Mon
 import { MongoPlanRepository } from "@infrastructure/repository/MongoPlanRepository";
 import { MongoSubscriptionRepository } from "@infrastructure/repository/MongoSubscriptionRepository";
 import { MongoPaymentRepository } from "@infrastructure/repository/MongoPaymentRepository";
+import { MongoReportRepository } from "@infrastructure/repository/MongoReportRepository";
 
 // Services
 import { HashService } from "@infrastructure/services/HashingService";
@@ -76,6 +77,7 @@ import { SuggestVisitUseCase } from "@application/use-case/visit/SuggestVisitUse
 // Admin Use Cases
 import { AdminLoginUseCase } from "@application/use-case/admin/AdminLoginUseCase";
 import { GetAdminStatsUseCase } from "@application/use-case/admin/GetAdminStatsUseCase";
+import { GetAdminRevenueUseCase } from "@application/use-case/admin/GetAdminRevenueUseCase";
 import { GetAllUsersUseCase } from "@application/use-case/admin/GetAllUsersUseCase";
 import { VerifyUserIdentityUseCase } from "@application/use-case/admin/VerifyUserIdentityUseCase";
 import { ToggleBlockUserUseCase } from "@application/use-case/admin/ToggleBlockUserUseCase";
@@ -101,6 +103,28 @@ import { GetActiveSubscriptionUseCase } from "@application/use-case/subscription
 import { GetWalletUseCase } from "@application/use-case/wallet/GetWalletUseCase";
 import { PremiumHookService } from "@application/services/PremiumHookService";
 
+// Report Use Cases
+import { CreateReportUseCase } from "@application/use-case/report/CreateReportUseCase";
+import { GetReportsUseCase } from "@application/use-case/report/GetReportsUseCase";
+
+// Agreement Use Cases & Repository
+import { MongoAgreementRepository } from "@infrastructure/repository/MongoAgreementRepository";
+import { CheckAgreementUnlockUseCase } from "@application/use-case/agreement/CheckAgreementUnlockUseCase";
+import { CreateOrGetAgreementUseCase } from "@application/use-case/agreement/CreateOrGetAgreementUseCase";
+import { GetAgreementUseCase } from "@application/use-case/agreement/GetAgreementUseCase";
+import { UpdateCommonTermsUseCase } from "@application/use-case/agreement/UpdateCommonTermsUseCase";
+import { DraftClauseUseCase } from "@application/use-case/agreement/DraftClauseUseCase";
+import { ProposeCustomClauseUseCase } from "@application/use-case/agreement/ProposeCustomClauseUseCase";
+import { RespondCustomClauseUseCase } from "@application/use-case/agreement/RespondCustomClauseUseCase";
+import { CreateAgreementPaymentOrderUseCase } from "@application/use-case/agreement/CreateAgreementPaymentOrderUseCase";
+import { VerifyAgreementPaymentUseCase } from "@application/use-case/agreement/VerifyAgreementPaymentUseCase";
+import { HandleAgreementWebhookUseCase } from "@application/use-case/agreement/HandleAgreementWebhookUseCase";
+import { SignAgreementUseCase } from "@application/use-case/agreement/SignAgreementUseCase";
+import { GetAgreementPdfUseCase } from "@application/use-case/agreement/GetAgreementPdfUseCase";
+import { MockAgreementPaymentService } from "@infrastructure/services/MockAgreementPaymentService";
+import { RazorpayAgreementPaymentService } from "@infrastructure/services/RazorpayAgreementPaymentService";
+import { PdfGeneratorService } from "@infrastructure/services/PdfGeneratorService";
+
 // Socket Service & Call
 import { SocketService } from "@infrastructure/socket/SocketService";
 import { SocketGateway } from "@infrastructure/socket/SocketGateway";
@@ -120,6 +144,8 @@ import { InterestController } from "@presentation/controller/InterestController"
 import { ChatController } from "@presentation/controller/ChatController";
 import { VisitController } from "@presentation/controller/VisitController";
 import { PaymentController } from "@presentation/controller/PaymentController";
+import { ReportController } from "@presentation/controller/ReportController";
+import { AgreementController } from "@presentation/controller/AgreementController";
 
 // Routers
 import { createAuthRouter } from "@presentation/router/AuthRouter";
@@ -133,6 +159,8 @@ import { createInterestRouter } from "@presentation/router/InterestRouter";
 import { createChatRouter } from "@presentation/router/ChatRouter";
 import { createVisitRouter } from "@presentation/router/VisitRouter";
 import { createPaymentRouter } from "@presentation/router/PaymentRouter";
+import { createReportRouter } from "@presentation/router/ReportRouter";
+import { createAgreementRouter } from "@presentation/router/AgreementRouter";
 import { createAuthMiddleware } from "@presentation/middleware/AuthMiddleware";
 
 export function setupAppDependencies(app: Express): SocketGateway {
@@ -152,6 +180,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
     const planrepo = new MongoPlanRepository();
     const subscriptionrepo = new MongoSubscriptionRepository();
     const paymentrepo = new MongoPaymentRepository();
+    const reportrepo = new MongoReportRepository();
+    const agreementrepo = new MongoAgreementRepository();
 
     // 2. Infrastructure Services
     const hasher = new HashService();
@@ -203,7 +233,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
     const getSentInterestsUseCase = new GetSentInterestsUseCase(interestrepo, userrepo);
 
     const adminLoginUseCase = new AdminLoginUseCase(userrepo, hasher, jwtService);
-    const getAdminStatsUseCase = new GetAdminStatsUseCase(userrepo, roomrepo);
+    const getAdminStatsUseCase = new GetAdminStatsUseCase(userrepo, roomrepo, paymentrepo);
+    const getAdminRevenueUseCase = new GetAdminRevenueUseCase(paymentrepo, walletTxRepo, userrepo);
     const getAllUsersUseCase = new GetAllUsersUseCase(userrepo);
     const verifyUserIdentityUseCase = new VerifyUserIdentityUseCase(userrepo, notificationrepo);
     const toggleBlockUserUseCase = new ToggleBlockUserUseCase(userrepo);
@@ -307,12 +338,120 @@ export function setupAppDependencies(app: Express): SocketGateway {
         markNotificationReadUseCase
     );
 
+    // Report Use Cases & Controller
+    const createReportUseCase = new CreateReportUseCase(
+        reportrepo,
+        userrepo,
+        cloudinaryService
+    );
+    const getReportsUseCase = new GetReportsUseCase(reportrepo, userrepo);
+    const reportController = new ReportController(
+        createReportUseCase,
+        getReportsUseCase
+    );
+
+    // Agreement Use Cases & Controller
+    const checkAgreementUnlockUseCase = new CheckAgreementUnlockUseCase(
+        agreementrepo,
+        visitrepo,
+        conversationrepo,
+        messagerepo
+    );
+    const createOrGetAgreementUseCase = new CreateOrGetAgreementUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        checkAgreementUnlockUseCase
+    );
+    const getAgreementUseCase = new GetAgreementUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo
+    );
+    const updateCommonTermsUseCase = new UpdateCommonTermsUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        socketGateway
+    );
+    const draftClauseUseCase = new DraftClauseUseCase(agreementrepo);
+    const proposeCustomClauseUseCase = new ProposeCustomClauseUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        socketGateway
+    );
+    const respondCustomClauseUseCase = new RespondCustomClauseUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        socketGateway
+    );
+    const agreementPaymentService =
+        process.env.PAYMENT_PROVIDER === "mock"
+            ? new MockAgreementPaymentService()
+            : new RazorpayAgreementPaymentService(razorpayService);
+    const createAgreementPaymentOrderUseCase = new CreateAgreementPaymentOrderUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        agreementPaymentService,
+        socketGateway
+    );
+    const verifyAgreementPaymentUseCase = new VerifyAgreementPaymentUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        agreementPaymentService,
+        socketGateway
+    );
+    const handleAgreementWebhookUseCase = new HandleAgreementWebhookUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        agreementPaymentService,
+        socketGateway
+    );
+    const pdfGeneratorService = new PdfGeneratorService();
+    const signAgreementUseCase = new SignAgreementUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        notificationrepo,
+        socketGateway
+    );
+    const getAgreementPdfUseCase = new GetAgreementPdfUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        pdfGeneratorService
+    );
+    const agreementController = new AgreementController(
+        createOrGetAgreementUseCase,
+        getAgreementUseCase,
+        checkAgreementUnlockUseCase,
+        updateCommonTermsUseCase,
+        draftClauseUseCase,
+        proposeCustomClauseUseCase,
+        respondCustomClauseUseCase,
+        createAgreementPaymentOrderUseCase,
+        verifyAgreementPaymentUseCase,
+        handleAgreementWebhookUseCase,
+        signAgreementUseCase,
+        getAgreementPdfUseCase
+    );
+
     const adminController = new AdminController(
         adminLoginUseCase,
         getAdminStatsUseCase,
         getAllUsersUseCase,
         verifyUserIdentityUseCase,
-        toggleBlockUserUseCase
+        toggleBlockUserUseCase,
+        getAdminRevenueUseCase,
+        getReportsUseCase,
+        reportrepo,
+        notificationrepo,
+        socketGateway
     );
 
     const interestController = new InterestController(
@@ -422,6 +561,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
     app.use("/api/chat", createChatRouter(chatController, authMiddleware));
     app.use("/visits", createVisitRouter(visitController));
     app.use("/payment", createPaymentRouter(paymentController, authMiddleware));
+    app.use("/reports", createReportRouter(reportController, authMiddleware));
+    app.use("/agreements", createAgreementRouter(agreementController, authMiddleware));
 
     return socketGateway;
 }

@@ -36,7 +36,7 @@ export class UploadIdentityUseCase implements IUploadIdentityUseCase {
         if (this.notificationRepository) {
             await this.notificationRepository.create({
                 userId: dto.userId,
-                title: "Identity Documents Submitted 📄",
+                title: "Identity Documents Submitted",
                 message: "Your identity verification documents (ID Card & Selfie) have been submitted and are pending admin review.",
                 type: "admin_verification",
                 isRead: false,

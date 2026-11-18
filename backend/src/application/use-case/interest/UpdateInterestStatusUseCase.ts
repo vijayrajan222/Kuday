@@ -78,7 +78,7 @@ export class UpdateInterestStatusUseCase implements IUpdateInterestStatusUseCase
             // Notify the original sender that their interest was accepted
             await this.notificationRepo.create({
                 userId: interest.senderId,
-                title: "Interest Request Accepted! 🎉",
+                title: "Interest Request Accepted",
                 message: `${receiverName} accepted your interest request! You are now connected.`,
                 type: "interest_request",
                 isRead: false,
