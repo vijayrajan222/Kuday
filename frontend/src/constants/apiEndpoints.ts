@@ -49,9 +49,13 @@ export const API_ENDPOINTS = {
   ADMIN: {
     LOGIN: '/admin/login',
     STATS: '/admin/stats',
+    REVENUE: '/admin/revenue',
     USERS: '/admin/users',
     VERIFY_IDENTITY: (userId: string) => `/admin/users/${userId}/verify-identity`,
     TOGGLE_BLOCK: (userId: string) => `/admin/users/${userId}/toggle-block`,
+    REPORTS: '/admin/reports',
+    UPDATE_REPORT_STATUS: (reportId: string) => `/admin/reports/${reportId}/status`,
+    WARN_REPORTED_USER: (reportId: string) => `/admin/reports/${reportId}/warn`,
   },
   CHAT: {
     CONVERSATIONS: (userId: string) => `/chat/conversations?userId=${userId}`,
@@ -82,5 +86,23 @@ export const API_ENDPOINTS = {
     WALLET: '/payment/wallet',
     PAY_WITH_WALLET: '/payment/subscriptions/pay-with-wallet',
     CREATE_TOPUP_ORDER: '/payment/wallet/topup/orders',
+  },
+  REPORT: {
+    CREATE: '/reports',
+    GET_ALL: '/reports',
+  },
+  AGREEMENT: {
+    CREATE: '/agreements',
+    CHECK_UNLOCK: '/agreements/unlock-status',
+    GET_BY_ID: (id: string) => `/agreements/${id}`,
+    PROPOSE_TERMS: (id: string) => `/agreements/${id}/common-terms/propose`,
+    RESPOND_TERMS: (id: string) => `/agreements/${id}/common-terms/respond`,
+    DRAFT_CLAUSE: (id: string) => `/agreements/${id}/clauses/draft`,
+    PROPOSE_CLAUSE: (id: string) => `/agreements/${id}/clauses`,
+    RESPOND_CLAUSE: (id: string, clauseId: string) => `/agreements/${id}/clauses/${clauseId}`,
+    CREATE_PAYMENT_ORDER: (id: string) => `/agreements/${id}/payment/order`,
+    VERIFY_PAYMENT: (id: string) => `/agreements/${id}/payment/verify`,
+    SIGN: (id: string) => `/agreements/${id}/sign`,
+    GET_PDF: (id: string) => `/agreements/${id}/pdf`,
   },
 } as const;

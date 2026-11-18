@@ -31,10 +31,13 @@ const OnboardingProfilePage = lazy(() => import('@/pages/onboarding/OnboardingPr
 const ProfilePage = lazy(() => import('@/pages/customer/ProfilePage'));
 const MembershipPage = lazy(() => import('@/pages/customer/MembershipPage'));
 const WalletPage = lazy(() => import('@/pages/customer/WalletPage'));
+const AgreementPage = lazy(() => import('@/pages/customer/AgreementPage'));
 
 // Dedicated Admin Portal Lazy Imports
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
+const AdminRevenuePage = lazy(() => import('@/pages/admin/AdminRevenuePage'));
+const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'));
 
 function RootRedirect() {
   const { isAuthenticated, user } = useAuth();
@@ -89,6 +92,7 @@ export function AppRoutes() {
             <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
             <Route path={ROUTES.MEMBERSHIP} element={<MembershipPage />} />
             <Route path={ROUTES.WALLET} element={<WalletPage />} />
+            <Route path={ROUTES.AGREEMENT} element={<AgreementPage />} />
           </Route>
         </Route>
 
@@ -96,6 +100,8 @@ export function AppRoutes() {
         <Route element={<AdminProtectedRoute />}>
           <Route element={<AdminLayout />}>
             <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
+            <Route path={ROUTES.ADMIN_REVENUE} element={<AdminRevenuePage />} />
+            <Route path={ROUTES.ADMIN_REPORTS} element={<AdminReportsPage />} />
           </Route>
         </Route>
 

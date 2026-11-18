@@ -21,4 +21,7 @@ export const ROUTES = {
   ONBOARDING_PROFILE: '/onboarding/profile',
   ADMIN_LOGIN: '/admin/login',
   ADMIN_DASHBOARD: '/admin',
+  ADMIN_REVENUE: '/admin/revenue',
+  ADMIN_REPORTS: '/admin/reports',
+  AGREEMENT: '/agreements/:agreementId',
 } as const;

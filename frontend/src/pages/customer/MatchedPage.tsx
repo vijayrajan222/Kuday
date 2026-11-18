@@ -13,15 +13,21 @@ import {
   Sun,
   SunMedium,
   Moon,
+  Users,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInterest } from '@/hooks/useInterest';
 import { useSocket } from '@/context/SocketContext';
 import { visitService } from '@/services/visitService';
+import { agreementService } from '@/services/agreementService';
+import { onboardingService } from '@/services/onboardingService';
+import { getErrorMessage } from '@/utils/errorHandler';
 import { toast } from '@/hooks/useToast';
 import { ROUTES } from '@/constants/routes';
 import type { InterestDetail } from '@/types/interest.types';
 import type { Visit, TimeSlot } from '@/types/visit.types';
+import { ReportUserModal } from '@/components/common/ReportUserModal';
 
 export default function MatchedPage() {
   const navigate = useNavigate();
@@ -48,6 +54,12 @@ export default function MatchedPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [dismissedCancelledVisits, setDismissedCancelledVisits] = useState<Set<string>>(new Set());
+  const [reportTarget, setReportTarget] = useState<{
+    id: string;
+    name: string;
+    role?: string;
+    avatar?: string;
+  } | null>(null);
 
   // Reschedule form state
   const [suggestDate, setSuggestDate] = useState('');
@@ -107,7 +119,7 @@ export default function MatchedPage() {
     if (!user?.id) return;
     try {
       await visitService.updateStatus(visitId, user.id, 'confirmed');
-      toast.success('Visit confirmed! ✅');
+      toast.success('Visit confirmed');
       setManageScheduleVisit(null);
       loadUserVisits();
     } catch (err: unknown) {
@@ -148,12 +160,68 @@ export default function MatchedPage() {
     if (!user?.id) return;
     try {
       await visitService.acceptSuggestion(visitId, user.id);
-      toast.success('Rescheduled visit confirmed! 🎉');
+      toast.success('Rescheduled visit confirmed');
       setManageScheduleVisit(null);
       loadUserVisits();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Failed to accept reschedule');
+    }
+  };
+
+  const handleCompleteVisit = async (visitId: string) => {
+    if (!user?.id) return;
+    try {
+      await visitService.updateStatus(visitId, user.id, 'completed');
+      toast.success('Visit confirmed as completed. Rental agreement unlocked!');
+      setManageScheduleVisit(null);
+      loadUserVisits();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Failed to complete visit');
+    }
+  };
+
+  const [agreementLoadingId, setAgreementLoadingId] = useState<string | null>(null);
+
+  const handleProceedWithAgreement = async (item: InterestDetail, activeVisit?: Visit) => {
+    if (!user?.id) return;
+    const otherUser = item.senderId === user.id ? item.receiver : item.sender;
+    if (!otherUser?.id) return;
+
+    try {
+      setAgreementLoadingId(item.id);
+      const isUserHost = user.role === 'host';
+      const isOtherHost = otherUser.role === 'host';
+      const hostId = isUserHost ? user.id : isOtherHost ? otherUser.id : (activeVisit?.hostId || item.receiverId);
+      const seekerId = hostId === user.id ? otherUser.id : user.id;
+
+      let roomId = (item.targetType === 'room' ? item.targetId : activeVisit?.roomId) || activeVisit?.roomId;
+
+      if (!roomId) {
+        // Resolve host room
+        const hostRooms = await onboardingService.getRooms(hostId);
+        if (Array.isArray(hostRooms) && hostRooms.length > 0 && hostRooms[0]?._id) {
+          roomId = hostRooms[0]._id;
+        }
+      }
+
+      if (!roomId) {
+        toast.error('Could not locate a room listing for this match. Please ensure a room is listed.');
+        return;
+      }
+
+      const agreement = await agreementService.createOrGetAgreement({
+        hostId,
+        seekerId,
+        roomId,
+      });
+
+      navigate(ROUTES.AGREEMENT.replace(':agreementId', agreement.id));
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setAgreementLoadingId(null);
     }
   };
 
@@ -424,7 +492,7 @@ export default function MatchedPage() {
       {/* Section 3: Matched (Mutual Accepted Connections) */}
       <section className="space-y-4 pt-2">
         <div className="flex items-center gap-2">
-          <span className="text-lg">💎</span>
+          <Users className="h-5 w-5 text-slate-800" />
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">Matched</h2>
           <span className="rounded-md bg-slate-100 text-slate-700 px-2 py-0.5 text-xs font-bold">
             {mutualMatches.length}
@@ -543,6 +611,22 @@ export default function MatchedPage() {
                       >
                         <UserX className="h-3.5 w-3.5" />
                         <span className="hidden sm:inline">Unmatch</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setReportTarget({
+                            id: otherUser?.id || '',
+                            name: otherName,
+                            role: otherUser?.role || 'member',
+                            avatar: otherUser?.selfieUrl,
+                          })
+                        }
+                        className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Report user"
+                      >
+                        <ShieldAlert className="h-3.5 w-3.5" />
                       </button>
 
                       <button
@@ -701,7 +785,7 @@ export default function MatchedPage() {
                             <div className="flex items-center gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                               <span className="text-xs font-bold text-emerald-950">
-                                ✓ Confirmed Visit: {activeVisit.date} at {activeVisit.slotTime} ({activeVisit.timeSlot})
+                                Confirmed Visit: {activeVisit.date} at {activeVisit.slotTime} ({activeVisit.timeSlot})
                               </span>
                             </div>
                             <p className="text-xs text-emerald-800 pl-6">
@@ -710,6 +794,14 @@ export default function MatchedPage() {
                           </div>
 
                           <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleCompleteVisit(activeVisit.id)}
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold transition-colors cursor-pointer"
+                              title="Confirm that the in-person visit was completed"
+                            >
+                              Visit Done
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
@@ -732,6 +824,23 @@ export default function MatchedPage() {
                         </div>
                       )}
 
+                      {/* Completed Visit Banner */}
+                      {activeVisit.status === 'completed' && (
+                        <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4 text-sky-600" />
+                              <span className="text-xs font-bold text-sky-950">
+                                Visit Completed: {activeVisit.date}
+                              </span>
+                            </div>
+                            <p className="text-xs text-sky-800 pl-6">
+                              The visit has been marked as completed. Agreement creation is unlocked!
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       {/* 4. Cancelled Visit Alert Banner */}
                       {activeVisit.status === 'cancelled' && !dismissedCancelledVisits.has(activeVisit.id) && (
                         <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -739,7 +848,7 @@ export default function MatchedPage() {
                             <div className="flex items-center gap-2">
                               <X className="h-4 w-4 text-rose-600" />
                               <span className="text-xs font-bold text-rose-950">
-                                Visit Cancelled ❌
+                                Visit Cancelled
                               </span>
                             </div>
                             <p className="text-xs text-rose-700 pl-6">
@@ -787,7 +896,7 @@ export default function MatchedPage() {
                             <div className="flex items-center gap-2">
                               <X className="h-4 w-4 text-rose-600" />
                               <span className="text-xs font-bold text-rose-950">
-                                Visit Request Declined ❌
+                                Visit Request Declined
                               </span>
                             </div>
                             <p className="text-xs text-rose-700 pl-6">
@@ -830,15 +939,43 @@ export default function MatchedPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-end pt-1 border-t border-slate-100">
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {activeVisit?.status === 'completed'
+                        ? 'Visit completed'
+                        : 'Requires completed visit or call'}
+                    </span>
                     <button
                       type="button"
-                      onClick={() =>
-                        toast.success('Rental agreement setup will be available in the next release!')
+                      disabled={agreementLoadingId === item.id}
+                      onClick={() => {
+                        if (activeVisit?.status === 'completed') {
+                          handleProceedWithAgreement(item, activeVisit);
+                        } else {
+                          toast.error(
+                            'Agreement creation is locked. Complete an in-person visit or video call first.'
+                          );
+                        }
+                      }}
+                      title={
+                        activeVisit?.status === 'completed'
+                          ? 'Create or view shared rental agreement'
+                          : 'Locked: Complete a visit or video call first'
                       }
-                      className="text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-800 transition-colors"
+                      className={`text-[11px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 ${
+                        activeVisit?.status === 'completed'
+                          ? 'text-emerald-600 hover:text-emerald-700 cursor-pointer'
+                          : 'text-slate-400 cursor-not-allowed hover:text-slate-500'
+                      }`}
                     >
-                      Proceed with Agreement &rarr;
+                      {agreementLoadingId === item.id ? (
+                        <span>Loading Agreement...</span>
+                      ) : (
+                        <>
+                          <span>Proceed with Agreement</span>
+                          <span>&rarr;</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1413,6 +1550,18 @@ export default function MatchedPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Report User Modal Dialog */}
+      {reportTarget && (
+        <ReportUserModal
+          isOpen={Boolean(reportTarget)}
+          onClose={() => setReportTarget(null)}
+          reportedUserId={reportTarget.id}
+          reportedUserName={reportTarget.name}
+          reportedUserRole={reportTarget.role}
+          reportedUserAvatar={reportTarget.avatar}
+        />
       )}
     </div>
   );
