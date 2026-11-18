@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AuthContext, type AuthContextValue } from '@/context/authContext';
 import { AUTH_UNAUTHORIZED_EVENT } from '@/constants/events';
 import type { AuthUser, PendingSignup } from '@/types';
@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState(getInitialToken);
   const [user, setUser] = useState(getInitialUser);
   const [pendingSignup, setPending] = useState(() => storage.getPending());
+  const fetchedUserIdRef = useRef<string | null>(null);
 
   const setPendingSignup = useCallback((pending: PendingSignup) => {
     storage.setPending(pending);
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     storage.setToken(newToken);
     storage.setUser(newUser);
     storage.setPending(null);
+    fetchedUserIdRef.current = null;
     setToken(newToken);
     setUser(newUser);
     setPending(null);
@@ -58,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    fetchedUserIdRef.current = null;
     storage.setToken(null);
     storage.setUser(null);
     storage.setPending(null);
@@ -66,55 +69,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPending(null);
   }, []);
 
-  // Sync user profile from backend once per session (using userId to avoid loop)
+  // Single-owner user profile sync: AuthProvider syncs user profile from backend once per session
   const userId = user?.id;
   useEffect(() => {
-    if (userId && token) {
-      onboardingService
-        .getUserProfile(userId)
-        .then((profile) => {
-          if (profile) {
-            setUser((currentUser) => {
-              const updatedUser: AuthUser = {
-                id: profile.id || userId,
-                email: profile.email || currentUser?.email || '',
-                firstName: profile.firstName || currentUser?.firstName || '',
-                lastName: profile.lastName || currentUser?.lastName || '',
-                dob: profile.dob,
-                gender: profile.gender,
-                occupation: profile.occupation,
-                bio: profile.bio,
-                role: profile.role,
-                isOnboarded: Boolean(profile.isOnboarded),
-                identityVerified: Boolean(profile.identityVerified),
-                selfieUrl: profile.selfieUrl,
-                idCardUrl: profile.idCardUrl,
-              };
+    if (!userId || !token) return;
+    if (fetchedUserIdRef.current === userId) return;
 
-              const isDifferent =
-                !currentUser ||
-                currentUser.isOnboarded !== updatedUser.isOnboarded ||
-                currentUser.role !== updatedUser.role ||
-                currentUser.identityVerified !== updatedUser.identityVerified ||
-                currentUser.firstName !== updatedUser.firstName ||
-                currentUser.lastName !== updatedUser.lastName;
+    fetchedUserIdRef.current = userId;
+    const controller = new AbortController();
 
-              if (isDifferent) {
-                storage.setUser(updatedUser);
-                return updatedUser;
-              }
-              return currentUser;
-            });
-          }
-        })
-        .catch((err) => {
-          // If session is invalid or user doc doesn't exist, clear session asynchronously
-          const status = err?.response?.status;
-          if (status === 401 || status === 404 || status === 403) {
-            logout();
-          }
-        });
-    }
+    onboardingService
+      .getUserProfile(userId, controller.signal)
+      .then((profile) => {
+        if (profile) {
+          setUser((currentUser) => {
+            const updatedUser: AuthUser = {
+              id: profile.id || userId,
+              email: profile.email || currentUser?.email || '',
+              firstName: profile.firstName || currentUser?.firstName || '',
+              lastName: profile.lastName || currentUser?.lastName || '',
+              dob: profile.dob,
+              gender: profile.gender,
+              occupation: profile.occupation,
+              bio: profile.bio,
+              role: profile.role,
+              isOnboarded: Boolean(profile.isOnboarded),
+              identityVerified: Boolean(profile.identityVerified),
+              selfieUrl: profile.selfieUrl,
+              idCardUrl: profile.idCardUrl,
+            };
+
+            const isDifferent =
+              !currentUser ||
+              currentUser.isOnboarded !== updatedUser.isOnboarded ||
+              currentUser.role !== updatedUser.role ||
+              currentUser.identityVerified !== updatedUser.identityVerified ||
+              currentUser.firstName !== updatedUser.firstName ||
+              currentUser.lastName !== updatedUser.lastName;
+
+            if (isDifferent) {
+              storage.setUser(updatedUser);
+              return updatedUser;
+            }
+            return currentUser;
+          });
+        }
+      })
+      .catch((err) => {
+        if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
+        // If session is invalid or user doc doesn't exist, clear session asynchronously
+        const status = err?.response?.status;
+        if (status === 401 || status === 404 || status === 403) {
+          logout();
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
   }, [userId, token, logout]);
 
   // axios interceptor fires this event on 401 -> log out

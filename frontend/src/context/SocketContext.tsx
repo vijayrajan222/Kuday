@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { useAuth } from '@/hooks/useAuth';
 import { chatService } from '@/services/chatService';
@@ -42,6 +42,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const socketRef = useRef<Socket | null>(null);
   const activeChatConvIdRef = useRef<string | null>(null);
+  const isRefreshingUnreadRef = useRef<boolean>(false);
 
   const setActiveChatConvId = useCallback((convId: string | null) => {
     activeChatConvIdRef.current = convId;
@@ -49,14 +50,17 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   const refreshUnreadCount = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || isRefreshingUnreadRef.current) return;
+    isRefreshingUnreadRef.current = true;
     try {
       const count = await chatService.getUnreadCount(user.id);
       setUnreadMessageCount(count);
     } catch {
       // Ignored
+    } finally {
+      isRefreshingUnreadRef.current = false;
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     let isMounted = true;
@@ -70,7 +74,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => {
       isMounted = false;
     };
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!isAuthenticated || !user?.id) {
@@ -144,15 +148,15 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     newSocket.on('visit_update', (visit: { date?: string; slotTime?: string; status?: string; suggestedDate?: string; suggestedSlotTime?: string }) => {
       if (visit?.status === 'confirmed') {
-        toast.success('Visit Confirmed! ✅', `Scheduled for ${visit.date} at ${visit.slotTime}`);
+        toast.success('Visit Confirmed', `Scheduled for ${visit.date} at ${visit.slotTime}`);
       } else if (visit?.status === 'rescheduled') {
-        toast.info('Visit Reschedule Proposed 🔄', `Proposed: ${visit.suggestedDate} at ${visit.suggestedSlotTime}`);
+        toast.info('Visit Reschedule Proposed', `Proposed: ${visit.suggestedDate} at ${visit.suggestedSlotTime}`);
       } else if (visit?.status === 'pending') {
-        toast.info('New Visit Request 📅', `Visit requested for ${visit.date} at ${visit.slotTime}`);
+        toast.info('New Visit Request', `Visit requested for ${visit.date} at ${visit.slotTime}`);
       } else if (visit?.status === 'rejected') {
-        toast.info('Visit Declined ❌', `The scheduled visit was declined.`);
+        toast.info('Visit Declined', `The scheduled visit was declined.`);
       } else if (visit?.status === 'cancelled') {
-        toast.info('Visit Cancelled ❌', `The scheduled visit was cancelled.`);
+        toast.info('Visit Cancelled', `The scheduled visit was cancelled.`);
       }
     });
 
@@ -227,21 +231,38 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [user?.id]);
 
-  const value: SocketContextType = {
-    socket,
-    isConnected,
-    onlineUserIds,
-    unreadMessageCount,
-    activeChatConvId,
-    setActiveChatConvId,
-    refreshUnreadCount,
-    joinConversation,
-    leaveConversation,
-    sendSocketMessage,
-    emitTyping,
-    emitStopTyping,
-    markConversationAsRead,
-  };
+  const value = useMemo<SocketContextType>(
+    () => ({
+      socket,
+      isConnected,
+      onlineUserIds,
+      unreadMessageCount,
+      activeChatConvId,
+      setActiveChatConvId,
+      refreshUnreadCount,
+      joinConversation,
+      leaveConversation,
+      sendSocketMessage,
+      emitTyping,
+      emitStopTyping,
+      markConversationAsRead,
+    }),
+    [
+      socket,
+      isConnected,
+      onlineUserIds,
+      unreadMessageCount,
+      activeChatConvId,
+      setActiveChatConvId,
+      refreshUnreadCount,
+      joinConversation,
+      leaveConversation,
+      sendSocketMessage,
+      emitTyping,
+      emitStopTyping,
+      markConversationAsRead,
+    ]
+  );
 
   return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
 };

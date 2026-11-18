@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import { AUTH_UNAUTHORIZED_EVENT } from '@/constants/events';
 import { HttpStatusCodes } from '@/shared/enums/HttpStatusCodes';
@@ -90,3 +90,62 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+// --- IN-FLIGHT DEDUPLICATION & SHORT-LIVED CACHE FOR GET REQUESTS ---
+// Prevents duplicate identical network requests fired on single clicks or rapid page transitions
+const inFlightRequests = new Map<string, Promise<unknown>>();
+const responseCache = new Map<string, { response: unknown; expiry: number }>();
+const CACHE_TTL_MS = 2000; // 2 seconds micro-cache
+
+export const clearApiCache = (): void => {
+  responseCache.clear();
+  inFlightRequests.clear();
+};
+
+const originalGet = api.get.bind(api);
+
+api.get = function <T = unknown, R = AxiosResponse<T>, D = unknown>(
+  url: string,
+  config?: AxiosRequestConfig<D>
+): Promise<R> {
+  const token = storage.getToken() || '';
+  const paramsKey = config?.params ? JSON.stringify(config.params) : '';
+  const cacheKey = `${token}::${url}::${paramsKey}`;
+
+  const now = Date.now();
+  const cached = responseCache.get(cacheKey);
+  if (cached && cached.expiry > now) {
+    return Promise.resolve(cached.response as R);
+  }
+
+  const inFlight = inFlightRequests.get(cacheKey);
+  if (inFlight) {
+    return inFlight as Promise<R>;
+  }
+
+  const promise = originalGet<T, AxiosResponse<T>, D>(url, config)
+    .then((res) => {
+      responseCache.set(cacheKey, {
+        response: res,
+        expiry: Date.now() + CACHE_TTL_MS,
+      });
+      return res as unknown as R;
+    })
+    .finally(() => {
+      inFlightRequests.delete(cacheKey);
+    });
+
+  inFlightRequests.set(cacheKey, promise);
+  return promise;
+} as typeof api.get;
+
+// Invalidate cache immediately on any mutating request
+const mutationMethods = ['post', 'put', 'patch', 'delete'] as const;
+for (const method of mutationMethods) {
+  const originalMethod = (api[method] as (...args: unknown[]) => unknown).bind(api);
+  (api[method] as unknown) = async function (...args: unknown[]) {
+    clearApiCache();
+    return originalMethod(...args);
+  };
+}
+

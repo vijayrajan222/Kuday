@@ -3,20 +3,86 @@ import { interestService } from '@/services/interestService';
 import type { InterestDetail, SendInterestPayload } from '@/types/interest.types';
 import { toast } from '@/hooks/useToast';
 
+// Module-level cache to share interest state across pages and prevent duplicate network calls
+const cachedSentInterests: Record<string, InterestDetail[]> = {};
+const cachedReceivedInterests: Record<string, InterestDetail[]> = {};
+const lastInterestFetchTime: Record<string, number> = {};
+const inFlightInterestPromise: Record<
+  string,
+  Promise<{ sent: InterestDetail[]; received: InterestDetail[] }> | undefined
+> = {};
+
+const INTEREST_CACHE_TTL_MS = 8000; // 8 seconds memory cache across page transitions
+
+export function clearInterestCache(userId?: string) {
+  if (userId) {
+    delete cachedSentInterests[userId];
+    delete cachedReceivedInterests[userId];
+    delete lastInterestFetchTime[userId];
+    delete inFlightInterestPromise[userId];
+  } else {
+    for (const key of Object.keys(cachedSentInterests)) delete cachedSentInterests[key];
+    for (const key of Object.keys(cachedReceivedInterests)) delete cachedReceivedInterests[key];
+    for (const key of Object.keys(lastInterestFetchTime)) delete lastInterestFetchTime[key];
+    for (const key of Object.keys(inFlightInterestPromise)) delete inFlightInterestPromise[key];
+  }
+}
+
 export function useInterest(userId?: string) {
-  const [sentInterests, setSentInterests] = useState<InterestDetail[]>([]);
-  const [receivedInterests, setReceivedInterests] = useState<InterestDetail[]>([]);
+  const [sentInterests, setSentInterests] = useState<InterestDetail[]>(() => {
+    return userId && cachedSentInterests[userId] ? cachedSentInterests[userId] : [];
+  });
+  const [receivedInterests, setReceivedInterests] = useState<InterestDetail[]>(() => {
+    return userId && cachedReceivedInterests[userId] ? cachedReceivedInterests[userId] : [];
+  });
   const [loading, setLoading] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const fetchInterests = useCallback(async () => {
+  const fetchInterests = useCallback(async (force = false) => {
     if (!userId) return;
+
+    const now = Date.now();
+    const lastFetch = lastInterestFetchTime[userId] || 0;
+    const isCacheFresh = now - lastFetch < INTEREST_CACHE_TTL_MS;
+
+    // Use cached data immediately if fresh and not forced
+    if (!force && isCacheFresh && cachedSentInterests[userId] && cachedReceivedInterests[userId]) {
+      setSentInterests(cachedSentInterests[userId]);
+      setReceivedInterests(cachedReceivedInterests[userId]);
+      return;
+    }
+
+    // Reuse in-flight request if already in progress for this user
+    if (inFlightInterestPromise[userId]) {
+      try {
+        const { sent, received } = await inFlightInterestPromise[userId]!;
+        setSentInterests(sent);
+        setReceivedInterests(received);
+      } catch {
+        // Handled by original request
+      }
+      return;
+    }
+
     setLoading(true);
+    const fetchPromise = Promise.all([
+      interestService.getSentInterests(userId),
+      interestService.getReceivedInterests(userId),
+    ])
+      .then(([sent, received]) => {
+        cachedSentInterests[userId] = sent;
+        cachedReceivedInterests[userId] = received;
+        lastInterestFetchTime[userId] = Date.now();
+        return { sent, received };
+      })
+      .finally(() => {
+        delete inFlightInterestPromise[userId];
+      });
+
+    inFlightInterestPromise[userId] = fetchPromise;
+
     try {
-      const [sent, received] = await Promise.all([
-        interestService.getSentInterests(userId),
-        interestService.getReceivedInterests(userId),
-      ]);
+      const { sent, received } = await fetchPromise;
       setSentInterests(sent);
       setReceivedInterests(received);
     } catch (err: unknown) {
@@ -28,6 +94,10 @@ export function useInterest(userId?: string) {
 
   useEffect(() => {
     if (userId) {
+      if (cachedSentInterests[userId] && cachedReceivedInterests[userId]) {
+        setSentInterests(cachedSentInterests[userId]);
+        setReceivedInterests(cachedReceivedInterests[userId]);
+      }
       fetchInterests();
     }
   }, [userId, fetchInterests]);
@@ -38,7 +108,7 @@ export function useInterest(userId?: string) {
         setProcessingId(payload.targetId);
         await interestService.sendInterest(payload);
         toast.success(`Interest request sent to ${recipientName}!`);
-        await fetchInterests();
+        await fetchInterests(true);
       } catch (err: unknown) {
         const error = err as { response?: { data?: { message?: string } } };
         toast.error(error.response?.data?.message || 'Failed to send interest request');
@@ -55,8 +125,8 @@ export function useInterest(userId?: string) {
       try {
         setProcessingId(interestId);
         await interestService.updateStatus(interestId, userId, 'accepted');
-        toast.success('Interest request accepted! You are now connected 🎉');
-        await fetchInterests();
+        toast.success('Interest request accepted! You are now connected');
+        await fetchInterests(true);
       } catch (err: unknown) {
         const error = err as { response?: { data?: { message?: string } } };
         toast.error(error.response?.data?.message || 'Failed to accept interest');
@@ -74,7 +144,7 @@ export function useInterest(userId?: string) {
         setProcessingId(interestId);
         await interestService.updateStatus(interestId, userId, 'declined');
         toast.success('Interest request declined.');
-        await fetchInterests();
+        await fetchInterests(true);
       } catch (err: unknown) {
         const error = err as { response?: { data?: { message?: string } } };
         toast.error(error.response?.data?.message || 'Failed to decline interest');
@@ -92,7 +162,7 @@ export function useInterest(userId?: string) {
         setProcessingId(interestId);
         await interestService.updateStatus(interestId, userId, 'cancelled');
         toast.success('Connection request cancelled.');
-        await fetchInterests();
+        await fetchInterests(true);
       } catch (err: unknown) {
         const error = err as { response?: { data?: { message?: string } } };
         toast.error(error.response?.data?.message || 'Failed to cancel request');
@@ -110,7 +180,7 @@ export function useInterest(userId?: string) {
         setProcessingId(interestId);
         await interestService.updateStatus(interestId, userId, 'unmatched');
         toast.success(partnerName ? `Unmatched with ${partnerName}` : 'Connection removed');
-        await fetchInterests();
+        await fetchInterests(true);
       } catch (err: unknown) {
         const error = err as { response?: { data?: { message?: string } } };
         toast.error(error.response?.data?.message || 'Failed to unmatch');
