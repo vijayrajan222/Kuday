@@ -1,12 +1,14 @@
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
+import type { IPaymentRepository } from "@application/interfaces/repository/IPaymentRepository";
 import type { IGetAdminStatsUseCase } from "@application/interfaces/use-case/admin/IGetAdminStatsUseCase";
 import type { AdminStatsResultDto } from "@application/dto/admin/AdminStatsDto";
 
 export class GetAdminStatsUseCase implements IGetAdminStatsUseCase {
     constructor(
         private userRepository: IUserRepository,
-        private roomRepository: IRoomRepository
+        private roomRepository: IRoomRepository,
+        private paymentRepository?: IPaymentRepository
     ) {}
 
     async execute(): Promise<AdminStatsResultDto> {
@@ -28,13 +30,47 @@ export class GetAdminStatsUseCase implements IGetAdminStatsUseCase {
             activeListingsCount = hostsCount; // Fallback estimate
         }
 
-        // Platform Revenue Calculations (Calculated from active hosts, listings, & memberships)
-        // Standard model: ₹499 per host listing fee + ₹199 seeker match fee + 5% booking commission on host rooms
-        const listingFees = hostsCount * 499;
-        const subscriptionRevenue = seekersCount * 199;
-        const bookingCommissions = activeListingsCount * 1250; // Average 5% commission on ₹25,000 avg rent
-        const totalRevenue = listingFees + subscriptionRevenue + bookingCommissions;
-        const monthlyRevenue = Math.round(totalRevenue * 0.35); // Estimated current month portion
+        let totalRevenue = 0;
+        let monthlyRevenue = 0;
+        let listingFees = 0;
+        let subscriptionRevenue = 0;
+        let bookingCommissions = 0;
+
+        if (this.paymentRepository) {
+            try {
+                const captured = await this.paymentRepository.findAll({ status: "captured" });
+                const now = new Date();
+                const curMonth = now.getMonth();
+                const curYear = now.getFullYear();
+
+                for (const p of captured) {
+                    const rupees = p.amount / 100;
+                    totalRevenue += rupees;
+
+                    if (p.purpose === "wallet_topup") {
+                        listingFees += rupees;
+                    } else {
+                        subscriptionRevenue += rupees;
+                    }
+
+                    const pDate = p.createdAt ? new Date(p.createdAt) : now;
+                    if (pDate.getMonth() === curMonth && pDate.getFullYear() === curYear) {
+                        monthlyRevenue += rupees;
+                    }
+                }
+            } catch {
+                // Fallback to model estimate below
+            }
+        }
+
+        // If no real transactions yet, provide model estimates
+        if (totalRevenue === 0) {
+            listingFees = hostsCount * 499;
+            subscriptionRevenue = seekersCount * 199;
+            bookingCommissions = activeListingsCount * 1250;
+            totalRevenue = listingFees + subscriptionRevenue + bookingCommissions;
+            monthlyRevenue = Math.round(totalRevenue * 0.35);
+        }
 
         return {
             totalUsers: nonAdminUsers.length,
@@ -44,13 +80,14 @@ export class GetAdminStatsUseCase implements IGetAdminStatsUseCase {
             verifiedUsers,
             blockedUsers,
             activeListings: activeListingsCount,
-            totalRevenue,
-            monthlyRevenue,
+            totalRevenue: Math.round(totalRevenue),
+            monthlyRevenue: Math.round(monthlyRevenue),
             revenueBreakdown: {
-                listingFees,
-                subscriptionRevenue,
-                bookingCommissions,
+                listingFees: Math.round(listingFees),
+                subscriptionRevenue: Math.round(subscriptionRevenue),
+                bookingCommissions: Math.round(bookingCommissions),
             },
         };
     }
 }
+

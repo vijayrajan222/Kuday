@@ -41,7 +41,7 @@ export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) 
       if (targetRole === 'host') {
         toast.success(
           'Switched to Room Host mode!',
-          'Optional: Check out Host Premium in Membership to verify your listings.'
+          'Manage your room location, GPS coordinates, and navigation map in Profile.'
         );
       } else {
         toast.success(
