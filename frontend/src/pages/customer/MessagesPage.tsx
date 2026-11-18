@@ -25,6 +25,7 @@ import {
   Mic,
   MicOff,
   Crown,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSocket } from '@/context/SocketContext';
@@ -33,7 +34,9 @@ import { chatService } from '@/services/chatService';
 import { paymentService } from '@/services/paymentService';
 import { visitService } from '@/services/visitService';
 import { ROUTES } from '@/constants/routes';
+import { ReportUserModal } from '@/components/common/ReportUserModal';
 import { toast } from '@/hooks/useToast';
+import { cleanEmojis } from '@/utils/textHelper';
 import type { ChatMessage, Conversation } from '@/types/chat.types';
 import type { Visit, TimeSlot } from '@/types/visit.types';
 
@@ -93,10 +96,12 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const remoteTypingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // Active conversation object
   const activeConversation = useMemo(() => {
@@ -218,7 +223,7 @@ export default function MessagesPage() {
     if (!user?.id) return;
     try {
       await visitService.updateStatus(visitId, user.id, 'confirmed');
-      toast.success('Visit confirmed! ✅');
+      toast.success('Visit confirmed');
       loadChatVisit();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -254,7 +259,7 @@ export default function MessagesPage() {
     if (!user?.id) return;
     try {
       await visitService.acceptSuggestion(visitId, user.id);
-      toast.success('Rescheduled visit confirmed! 🎉');
+      toast.success('Rescheduled visit confirmed');
       loadChatVisit();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -406,6 +411,22 @@ export default function MessagesPage() {
           if (prev.some((m) => m.id === msg.id)) return prev;
           return [...prev, msg];
         });
+
+        // Sender delivered message, so clear typing state
+        if (msg.senderId) {
+          const timeout = remoteTypingTimeoutsRef.current.get(msg.senderId);
+          if (timeout) {
+            clearTimeout(timeout);
+            remoteTypingTimeoutsRef.current.delete(msg.senderId);
+          }
+          setTypingUsers((prev) => {
+            if (!prev.has(msg.senderId)) return prev;
+            const next = new Map(prev);
+            next.delete(msg.senderId);
+            return next;
+          });
+        }
+
         if (user?.id && msg.receiverId === user.id) {
           markConversationAsRead(msg.conversationId);
         }
@@ -469,14 +490,40 @@ export default function MessagesPage() {
 
     const handleUserTyping = (data: { conversationId: string; userId: string; userName?: string }) => {
       if (data.conversationId === activeConversationId && data.userId !== user?.id) {
-        setTypingUsers((prev) => new Set(prev).add(data.userName || 'Roommate'));
+        setTypingUsers((prev) => {
+          const next = new Map(prev);
+          next.set(data.userId, data.userName || 'Roommate');
+          return next;
+        });
+
+        // Defensive timeout: auto-clear after 3.5s in case stop_typing is delayed or missed
+        const existingTimeout = remoteTypingTimeoutsRef.current.get(data.userId);
+        if (existingTimeout) clearTimeout(existingTimeout);
+
+        const newTimeout = setTimeout(() => {
+          setTypingUsers((prev) => {
+            if (!prev.has(data.userId)) return prev;
+            const next = new Map(prev);
+            next.delete(data.userId);
+            return next;
+          });
+          remoteTypingTimeoutsRef.current.delete(data.userId);
+        }, 3500);
+
+        remoteTypingTimeoutsRef.current.set(data.userId, newTimeout);
       }
     };
 
     const handleUserStopTyping = (data: { conversationId: string; userId: string }) => {
       if (data.conversationId === activeConversationId) {
+        const existingTimeout = remoteTypingTimeoutsRef.current.get(data.userId);
+        if (existingTimeout) {
+          clearTimeout(existingTimeout);
+          remoteTypingTimeoutsRef.current.delete(data.userId);
+        }
         setTypingUsers((prev) => {
-          const next = new Set(prev);
+          if (!prev.has(data.userId)) return prev;
+          const next = new Map(prev);
           next.delete(data.userId);
           return next;
         });
@@ -508,6 +555,23 @@ export default function MessagesPage() {
     };
   }, [socket, activeConversationId, user?.id, markConversationAsRead]);
 
+  // Reset typing states when changing active conversation
+  useEffect(() => {
+    setTypingUsers(new Map());
+    const remoteTimeouts = remoteTypingTimeoutsRef.current;
+    remoteTimeouts.forEach((t) => clearTimeout(t));
+    remoteTimeouts.clear();
+
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      remoteTimeouts.forEach((t) => clearTimeout(t));
+      remoteTimeouts.clear();
+      if (activeConversationId) {
+        emitStopTyping(activeConversationId);
+      }
+    };
+  }, [activeConversationId, emitStopTyping]);
+
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -515,15 +579,23 @@ export default function MessagesPage() {
 
   // Handle Input Typing
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputText(e.target.value);
+    const value = e.target.value;
+    setInputText(value);
     if (!activeConversationId) return;
+
+    // If input is empty (e.g. backspaced all characters), stop typing immediately!
+    if (!value.trim()) {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      emitStopTyping(activeConversationId);
+      return;
+    }
 
     emitTyping(activeConversationId, user?.firstName);
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       if (activeConversationId) emitStopTyping(activeConversationId);
-    }, 2000);
+    }, 1500);
   };
 
   // Handle Send Message
@@ -723,7 +795,7 @@ export default function MessagesPage() {
                         {conv.lastMessage?.senderId === user?.id && (
                           <span className="font-semibold text-slate-700">You: </span>
                         )}
-                        {conv.lastMessage?.content || 'Started a conversation'}
+                        {cleanEmojis(conv.lastMessage?.content) || 'Started a conversation'}
                       </p>
                     </div>
 
@@ -858,6 +930,16 @@ export default function MessagesPage() {
                     <User className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">View Profile</span>
                     <ExternalLink className="h-3 w-3 text-slate-400" />
+                  </button>
+
+                  {/* Report User Action (Host or Seeker) */}
+                  <button
+                    type="button"
+                    title={`Report ${recipient.firstName} for policy or safety violations`}
+                    onClick={() => setIsReportModalOpen(true)}
+                    className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors border border-slate-200 cursor-pointer"
+                  >
+                    <ShieldAlert className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -1081,7 +1163,7 @@ export default function MessagesPage() {
                               : 'bg-white text-slate-900 border border-slate-200/80 rounded-bl-xs'
                           }`}
                         >
-                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                          <p className="whitespace-pre-wrap break-words">{cleanEmojis(msg.content)}</p>
                         </div>
 
                         {/* Timestamp & Read Receipt */}
@@ -1116,7 +1198,10 @@ export default function MessagesPage() {
                       <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]" />
                       <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]" />
                     </div>
-                    <span>{Array.from(typingUsers).join(', ')} is typing...</span>
+                    <span>
+                      {Array.from(typingUsers.values()).join(', ')}{' '}
+                      {typingUsers.size > 1 ? 'are typing...' : 'is typing...'}
+                    </span>
                   </div>
                 )}
 
@@ -1133,6 +1218,12 @@ export default function MessagesPage() {
                   placeholder={`Message ${recipient.firstName}...`}
                   value={inputText}
                   onChange={handleInputChange}
+                  onBlur={() => {
+                    if (activeConversationId) {
+                      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                      emitStopTyping(activeConversationId);
+                    }
+                  }}
                   className="flex-1 bg-slate-100 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-slate-900 transition-all"
                 />
 
@@ -1493,6 +1584,18 @@ export default function MessagesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Report User Modal Dialog */}
+      {recipient && (
+        <ReportUserModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          reportedUserId={recipient.id}
+          reportedUserName={`${recipient.firstName} ${recipient.lastName || ''}`.trim()}
+          reportedUserRole={recipient.role}
+          reportedUserAvatar={recipient.selfieUrl}
+        />
       )}
     </div>
   );

@@ -123,7 +123,7 @@ export default function MembershipPage() {
               razorpaySignature: response.razorpay_signature,
             });
 
-            toast.success('Membership activated! Welcome to Kuday Premium 🎉');
+            toast.success('Membership activated! Welcome to Kuday Premium');
             await loadData();
           } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } } };
@@ -169,7 +169,7 @@ export default function MembershipPage() {
     try {
       setIsPayingWithWallet(true);
       await paymentService.payWithWallet(walletConfirmPlan.id);
-      toast.success(`Purchased ${walletConfirmPlan.name} with wallet balance! Welcome to Premium 🎉`);
+      toast.success(`Purchased ${walletConfirmPlan.name} with wallet balance! Welcome to Premium`);
       setWalletConfirmPlan(null);
       await loadData();
     } catch (err: unknown) {

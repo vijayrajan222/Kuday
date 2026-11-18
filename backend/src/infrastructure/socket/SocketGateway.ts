@@ -192,6 +192,15 @@ export class SocketGateway implements ISocketNotificationService, ISocketChatSer
                 if (conversationId) socket.leave(`conv_${conversationId}`);
             });
 
+            // Agreement rooms
+            socket.on("join_agreement", (agreementId: string) => {
+                if (agreementId) socket.join(`agreement_${agreementId}`);
+            });
+
+            socket.on("leave_agreement", (agreementId: string) => {
+                if (agreementId) socket.leave(`agreement_${agreementId}`);
+            });
+
             socket.on("typing", (data: { conversationId: string; userId: string; userName?: string }) => {
                 if (data.conversationId) socket.to(`conv_${data.conversationId}`).emit("user_typing", data);
             });
@@ -483,5 +492,10 @@ export class SocketGateway implements ISocketNotificationService, ISocketChatSer
 
     notifyUser(userId: string, event: string, payload: unknown): void {
         this.emitToUser(userId, event, payload);
+    }
+
+    emitToAgreement(agreementId: string, event: string, payload: unknown): void {
+        if (!this.io) return;
+        this.io.to(`agreement_${agreementId}`).emit(event, payload);
     }
 }

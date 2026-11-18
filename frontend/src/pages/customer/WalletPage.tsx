@@ -133,7 +133,7 @@ export default function WalletPage() {
               razorpaySignature: response.razorpay_signature,
             });
 
-            toast.success(`₹${amountRupees} added to your wallet successfully! 💳`);
+            toast.success(`₹${amountRupees} added to your wallet successfully!`);
             setShowTopUpModal(false);
             await loadWallet();
           } catch (err: unknown) {

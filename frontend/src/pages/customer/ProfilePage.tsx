@@ -36,6 +36,8 @@ import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.type
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { PasswordStrength } from '@/components/common/PasswordStrength';
 import { MAX_DOB, MIN_DOB, validateDob } from '../onboarding/OnboardingProfilePage';
+import { LocationCoordinatePicker, type Coordinates } from '@/components/common/LocationCoordinatePicker';
+import { HostLocationMap } from '@/components/common/HostLocationMap';
 
 // Available Amenities for Host/Seeker checklists
 const AMENITY_OPTIONS = [
@@ -163,6 +165,7 @@ export default function ProfilePage() {
     roomType: 'private_bedroom',
     monthlyRent: '',
     location: '',
+    coordinates: null as Coordinates | null,
     capacity: '1',
     availabilityNotes: '',
     description: '',
@@ -321,10 +324,23 @@ export default function ProfilePage() {
         roomType: room.roomType || 'private_bedroom',
         monthlyRent: String(room.monthlyRent || ''),
         location: room.location || '',
+        coordinates: room.coordinates || null,
         capacity: String(room.capacity || '1'),
         availabilityNotes: room.availabilityNotes || '',
         description: room.description || '',
         amenities: room.amenities || [],
+        imagesBase64: [],
+      });
+    } else {
+      setEditRoomForm({
+        roomType: 'private_bedroom',
+        monthlyRent: '',
+        location: '',
+        coordinates: null,
+        capacity: '1',
+        availabilityNotes: '',
+        description: '',
+        amenities: [],
         imagesBase64: [],
       });
     }
@@ -355,6 +371,7 @@ export default function ProfilePage() {
         roomType: editRoomForm.roomType,
         monthlyRent: rent,
         location: editRoomForm.location.trim(),
+        coordinates: editRoomForm.coordinates || undefined,
         capacity: capacity,
         availabilityNotes: editRoomForm.availabilityNotes,
         amenities: editRoomForm.amenities,
@@ -469,6 +486,9 @@ export default function ProfilePage() {
       );
       if (targetRole === 'host') {
         setShowHostPremiumOfferModal(true);
+        if (!room) {
+          openEditRoom();
+        }
       }
       fetchProfileData();
     } catch (err) {
@@ -704,7 +724,7 @@ export default function ProfilePage() {
                 {userProfile.identityVerified ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                    ✓ Verified
+                    Verified
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
@@ -835,11 +855,11 @@ export default function ProfilePage() {
                     </h2>
                     {userProfile.role === 'host' ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
-                        🟢 Active Listing
+                        Active Listing
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">
-                        🔴 Listing Inactive (Disabled)
+                        Listing Inactive (Disabled)
                       </span>
                     )}
                   </div>
@@ -991,6 +1011,16 @@ export default function ProfilePage() {
                       </p>
                     </div>
                   )}
+
+                  {/* Property Location Map with Navigation */}
+                  <div className="pt-2">
+                    <HostLocationMap
+                      location={room.location}
+                      coordinates={room.coordinates}
+                      hostName={`${userProfile.firstName} ${userProfile.lastName}`}
+                      title="Property Location & Map Navigation"
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="p-8 text-center text-slate-500 space-y-3">
@@ -1051,7 +1081,7 @@ export default function ProfilePage() {
                 {userProfile.identityVerified ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                    ✓ Verified
+                    Verified
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
@@ -1149,11 +1179,11 @@ export default function ProfilePage() {
                     </h2>
                     {userProfile.role === 'seeker' ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
-                        🟢 Active Seeking Post
+                        Active Seeking Post
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">
-                        🔴 Post Inactive (Disabled)
+                        Post Inactive (Disabled)
                       </span>
                     )}
                   </div>
@@ -1465,19 +1495,6 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="location">City / Location</Label>
-                  <Input
-                    id="location"
-                    type="text"
-                    required
-                    value={editRoomForm.location}
-                    onChange={(e) => setEditRoomForm({ ...editRoomForm, location: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
                   <Label htmlFor="capacity">Capacity / Vacant Count</Label>
                   <Input
                     id="capacity"
@@ -1488,16 +1505,24 @@ export default function ProfilePage() {
                     onChange={(e) => setEditRoomForm({ ...editRoomForm, capacity: e.target.value })}
                   />
                 </div>
+              </div>
 
-                <div>
-                  <Label htmlFor="availabilityNotes">Visit Slot Availability</Label>
-                  <Input
-                    id="availabilityNotes"
-                    type="text"
-                    value={editRoomForm.availabilityNotes}
-                    onChange={(e) => setEditRoomForm({ ...editRoomForm, availabilityNotes: e.target.value })}
-                  />
-                </div>
+              {/* Location & Map Coordinates Picker */}
+              <LocationCoordinatePicker
+                location={editRoomForm.location}
+                onLocationChange={(loc) => setEditRoomForm((prev) => ({ ...prev, location: loc }))}
+                coordinates={editRoomForm.coordinates}
+                onCoordinatesChange={(coords) => setEditRoomForm((prev) => ({ ...prev, coordinates: coords }))}
+              />
+
+              <div>
+                <Label htmlFor="availabilityNotes">Visit Slot Availability</Label>
+                <Input
+                  id="availabilityNotes"
+                  type="text"
+                  value={editRoomForm.availabilityNotes}
+                  onChange={(e) => setEditRoomForm({ ...editRoomForm, availabilityNotes: e.target.value })}
+                />
               </div>
 
               {/* Add Room Photos */}
@@ -1682,7 +1707,7 @@ export default function ProfilePage() {
 
             <div className="rounded-2xl bg-amber-50/80 border border-amber-200/80 p-4 text-xs text-amber-900 space-y-2 leading-relaxed">
               <p className="font-semibold">
-                ⚠️ <strong>Notice:</strong> If you switch your role to{' '}
+                <strong>Notice:</strong> If you switch your role to{' '}
                 <strong className="underline decoration-amber-500">
                   {userProfile.role === 'host' ? 'Room Seeker' : 'Room Host'}
                 </strong>

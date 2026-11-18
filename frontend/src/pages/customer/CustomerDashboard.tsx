@@ -32,29 +32,11 @@ import { PotentialMatchCard } from '@/components/dashboard/PotentialMatchCard';
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const firstName = user?.firstName;
 
   const isOnboarded = Boolean(user?.isOnboarded);
   const role = (user?.role as 'host' | 'seeker' | 'none') || 'none';
-
-  // Sync active role from backend on mount so switching between host & seeker is always in sync
-  useEffect(() => {
-    if (!user?.id) return;
-    let isMounted = true;
-    onboardingService
-      .getUserProfile(user.id)
-      .then((profile) => {
-        if (isMounted && profile?.role && profile.role !== user.role) {
-          updateUser({ role: profile.role });
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user?.id, user?.role, updateUser]);
 
   // Matches state
   const [rooms, setRooms] = useState<RoomEntity[]>([]);
@@ -1205,7 +1187,7 @@ export default function CustomerDashboard() {
                       disabled
                       className="bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold px-4 py-2 rounded-lg text-xs flex items-center gap-1"
                     >
-                      <Check className="w-4 h-4 text-emerald-600" /> Connected 🎉
+                      <Check className="w-4 h-4 text-emerald-600" /> Connected
                     </button>
                   );
                 }
@@ -1406,7 +1388,7 @@ export default function CustomerDashboard() {
                       disabled
                       className="bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold px-4 py-2 rounded-lg text-xs flex items-center gap-1"
                     >
-                      <Check className="w-4 h-4 text-emerald-600" /> Connected 🎉
+                      <Check className="w-4 h-4 text-emerald-600" /> Connected
                     </button>
                   );
                 }
