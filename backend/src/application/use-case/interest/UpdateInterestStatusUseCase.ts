@@ -1,17 +1,19 @@
 import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository";
+import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
 import type { IUpdateInterestStatusUseCase } from "@application/interfaces/use-case/interest/IUpdateInterestStatusUseCase";
 import type { UpdateInterestStatusDto } from "@application/dto/interest/UpdateInterestStatusDto";
 import type { InterestDetailDto } from "@application/dto/interest/InterestDetailDto";
 import type { InterestEntity } from "@domain/entities/InterestEntity";
-import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError";
+import { NotFoundError, ForbiddenError, ValidationError, ConflictError } from "@application/errors/AppError";
 
 export class UpdateInterestStatusUseCase implements IUpdateInterestStatusUseCase {
     constructor(
         private readonly interestRepo: IInterestRepository,
         private readonly userRepo: IUserRepository,
-        private readonly notificationRepo: INotificationRepository
+        private readonly notificationRepo: INotificationRepository,
+        private readonly agreementRepo?: IAgreementRepository
     ) {}
 
     async execute(dto: UpdateInterestStatusDto): Promise<InterestDetailDto> {
@@ -40,6 +42,23 @@ export class UpdateInterestStatusUseCase implements IUpdateInterestStatusUseCase
         } else if (dto.status === "cancelled") {
             if (!isSender) {
                 throw new ForbiddenError("Only the sender can cancel this interest request.");
+            }
+        }
+
+        // Active Agreement Guard when accepting
+        if (dto.status === "accepted" && this.agreementRepo) {
+            const activeUserIds = await this.agreementRepo.findActiveAgreementUserIds();
+            if (activeUserIds.has(interest.senderId) || activeUserIds.has(interest.receiverId)) {
+                const [senderAgreements, receiverAgreements] = await Promise.all([
+                    this.agreementRepo.findByUser(interest.senderId),
+                    this.agreementRepo.findByUser(interest.receiverId),
+                ]);
+                const isEitherSeekerActive =
+                    senderAgreements.some((a) => a.status === "completed" && a.seekerId === interest.senderId) ||
+                    receiverAgreements.some((a) => a.status === "completed" && a.seekerId === interest.receiverId);
+                if (isEitherSeekerActive) {
+                    throw new ConflictError("Cannot connect: one of the users currently has an active roommate agreement.");
+                }
             }
         }
 

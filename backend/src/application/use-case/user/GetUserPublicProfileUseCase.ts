@@ -2,6 +2,7 @@ import type { IUserRepository } from "@application/interfaces/repository/IUserRe
 import type { ILifestyleRepository } from "@application/interfaces/repository/ILifestyleRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
 import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository";
+import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
 import type { IGetUserPublicProfileUseCase, UserPublicProfileDto } from "@application/interfaces/use-case/user/IGetUserPublicProfileUseCase";
 import { MatchCalculatorService } from "@domain/services/MatchCalculatorService";
 
@@ -10,12 +11,18 @@ export class GetUserPublicProfileUseCase implements IGetUserPublicProfileUseCase
         private readonly userRepository: IUserRepository,
         private readonly lifestyleRepository: ILifestyleRepository,
         private readonly roomRepository: IRoomRepository,
-        private readonly seekerPreferenceRepository: ISeekerPreferenceRepository
+        private readonly seekerPreferenceRepository: ISeekerPreferenceRepository,
+        private readonly agreementRepository?: IAgreementRepository
     ) {}
 
     async execute(userId: string, viewerId?: string): Promise<UserPublicProfileDto | null> {
         const user = await this.userRepository.findById(userId);
         if (!user) return null;
+
+        const activeUserIds = this.agreementRepository
+            ? await this.agreementRepository.findActiveAgreementUserIds()
+            : new Set<string>();
+        const hasActiveAgreement = activeUserIds.has(userId);
 
         const lifestyle = await this.lifestyleRepository.findByUserId(userId);
         let room = null;
@@ -77,6 +84,7 @@ export class GetUserPublicProfileUseCase implements IGetUserPublicProfileUseCase
         if (user.selfieUrl) userDto.selfieUrl = user.selfieUrl;
         if (user.idCardUrl) userDto.idCardUrl = user.idCardUrl;
         if (user.identityStatus) userDto.identityStatus = user.identityStatus;
+        userDto.hasActiveAgreement = hasActiveAgreement;
 
         const roomDto = room ? {
             id: room.id,

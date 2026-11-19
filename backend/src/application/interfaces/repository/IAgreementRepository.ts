@@ -7,6 +7,8 @@ export interface IAgreementRepository {
     update(id: string, updates: Partial<AgreementEntity>): Promise<AgreementEntity | null>;
     findByUser(userId: string): Promise<AgreementEntity[]>;
     findByOrderId(orderId: string): Promise<AgreementEntity | null>;
+    findActiveAgreementUserIds(): Promise<Set<string>>;
+    findActiveSeekerIds(): Promise<Set<string>>;
     markCompletedAtomic(id: string, updates: Partial<AgreementEntity>): Promise<AgreementEntity | null>;
     markTerminatedAtomic(id: string, targetStatus: "ended" | "cancelled"): Promise<AgreementEntity | null>;
 }

@@ -212,7 +212,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
         userrepo,
         lifestylerepo,
         roomrepo,
-        seekerrepo
+        seekerrepo,
+        agreementrepo
     );
     const changePasswordUseCase = new ChangePasswordUseCase(userrepo, hasher);
 
@@ -223,14 +224,14 @@ export function setupAppDependencies(app: Express): SocketGateway {
     const getRoomsUseCase = new GetRoomsUseCase(roomrepo, userrepo, lifestylerepo, seekerrepo);
 
     const createSeekerPreferenceUseCase = new CreateSeekerPreferenceUseCase(seekerrepo, userrepo);
-    const getSeekerPreferencesUseCase = new GetSeekerPreferencesUseCase(seekerrepo, userrepo, lifestylerepo, roomrepo);
+    const getSeekerPreferencesUseCase = new GetSeekerPreferencesUseCase(seekerrepo, userrepo, lifestylerepo, roomrepo, agreementrepo);
 
     const getNotificationsUseCase = new GetNotificationsUseCase(notificationrepo);
     const createNotificationUseCase = new CreateNotificationUseCase(notificationrepo);
     const markNotificationReadUseCase = new MarkNotificationReadUseCase(notificationrepo);
 
-    const sendInterestUseCase = new SendInterestUseCase(interestrepo, userrepo, notificationrepo);
-    const updateInterestStatusUseCase = new UpdateInterestStatusUseCase(interestrepo, userrepo, notificationrepo);
+    const sendInterestUseCase = new SendInterestUseCase(interestrepo, userrepo, notificationrepo, agreementrepo, roomrepo);
+    const updateInterestStatusUseCase = new UpdateInterestStatusUseCase(interestrepo, userrepo, notificationrepo, agreementrepo);
     const getReceivedInterestsUseCase = new GetReceivedInterestsUseCase(interestrepo, userrepo, roomrepo, agreementrepo);
     const getSentInterestsUseCase = new GetSentInterestsUseCase(interestrepo, userrepo, roomrepo, agreementrepo);
 

@@ -2,6 +2,7 @@ import type { ISeekerPreferenceRepository } from "@application/interfaces/reposi
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { ILifestyleRepository } from "@application/interfaces/repository/ILifestyleRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
+import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
 import type { SeekerPreferenceWithUserDto, SeekerProfileDto } from "@application/dto/seeker/GetSeekerResponseDto";
 import type { IGetSeekerPreferencesUseCase } from "@application/interfaces/use-case/seeker/IGetSeekerPreferencesUseCase";
 import { MatchCalculatorService } from "@domain/services/MatchCalculatorService";
@@ -11,11 +12,15 @@ export class GetSeekerPreferencesUseCase implements IGetSeekerPreferencesUseCase
         private seekerPreferenceRepository: ISeekerPreferenceRepository,
         private userRepository: IUserRepository,
         private lifestyleRepository: ILifestyleRepository,
-        private roomRepository: IRoomRepository
+        private roomRepository: IRoomRepository,
+        private agreementRepository?: IAgreementRepository
     ) {}
 
     async execute(hostUserId?: string): Promise<SeekerPreferenceWithUserDto[]> {
         const allPreferences = await this.seekerPreferenceRepository.findAll();
+        const activeUserIds = this.agreementRepository
+            ? await this.agreementRepository.findActiveAgreementUserIds()
+            : new Set<string>();
 
         let hostRoom = null;
         let hostLifestyle = null;
@@ -33,14 +38,24 @@ export class GetSeekerPreferencesUseCase implements IGetSeekerPreferencesUseCase
         const enrichedSeekers: SeekerPreferenceWithUserDto[] = [];
 
         for (const pref of allPreferences) {
+            // 1. Exclude users who already have an active completed roommate agreement
+            if (activeUserIds.has(pref.userId)) {
+                continue;
+            }
+
+            // 2. Exclude inactive seeker preferences
+            if (pref.isActive === false) {
+                continue;
+            }
+
             const seekerUser = await this.userRepository.findById(pref.userId);
 
-            // Seeker visibility depends on role === 'seeker' only
+            // 3. Seeker must exist and have role === 'seeker'
             if (!seekerUser || seekerUser.role !== 'seeker') {
                 continue;
             }
 
-            // Exclude the current user's own seeker preference if they are viewing
+            // 4. Exclude the current user's own seeker preference if they are viewing
             if (hostUserId && pref.userId === hostUserId) {
                 continue;
             }

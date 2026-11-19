@@ -74,6 +74,15 @@ export class CreateOrGetAgreementUseCase implements ICreateOrGetAgreementUseCase
             return this.enrich(existing);
         }
 
+        // 2b. Prevent creating agreement if seeker already has a completed active agreement
+        const userAgreements = await this.agreementRepository.findByUser(seekerId);
+        const hasCompletedAgreement = userAgreements.some(
+            (a) => a.status === "completed" && a.seekerId === seekerId
+        );
+        if (hasCompletedAgreement) {
+            throw new ValidationError("This seeker already has an active finalized rental agreement.");
+        }
+
         // 3. Match Enforcement only (no visit completion required)
         const matched = await this.interestRepository.findAcceptedBetween(hostId, seekerId);
         if (!matched || matched.status !== "accepted") {

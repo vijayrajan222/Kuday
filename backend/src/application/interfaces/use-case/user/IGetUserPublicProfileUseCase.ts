@@ -13,6 +13,7 @@ export interface UserPublicProfileDto {
         idCardUrl?: string | undefined;
         identityVerified?: boolean | undefined;
         identityStatus?: string | undefined;
+        hasActiveAgreement?: boolean | undefined;
     };
     lifestyle: {
         smoking?: string | undefined;

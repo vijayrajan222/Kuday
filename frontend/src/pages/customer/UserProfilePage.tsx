@@ -49,6 +49,7 @@ interface TargetUserProfile {
   identityVerified?: boolean;
   identityStatus?: string;
   isPremium?: boolean;
+  hasActiveAgreement?: boolean;
 }
 
 interface TargetLifestyle {
@@ -342,6 +343,11 @@ export default function UserProfilePage() {
                 >
                   <Heart className="h-4 w-4 text-blue-600" /> Respond in Matched
                 </button>
+              ) : targetUser?.hasActiveAgreement ? (
+                <div className="w-full py-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <span>In Active Agreement</span>
+                </div>
               ) : (
                 <button
                   type="button"

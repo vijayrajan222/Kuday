@@ -1,6 +1,8 @@
 import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository";
+import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
+import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
 import type { ISendInterestUseCase } from "@application/interfaces/use-case/interest/ISendInterestUseCase";
 import type { SendInterestDto } from "@application/dto/interest/SendInterestDto";
 import type { InterestDetailDto } from "@application/dto/interest/InterestDetailDto";
@@ -10,12 +12,49 @@ export class SendInterestUseCase implements ISendInterestUseCase {
     constructor(
         private readonly interestRepo: IInterestRepository,
         private readonly userRepo: IUserRepository,
-        private readonly notificationRepo: INotificationRepository
+        private readonly notificationRepo: INotificationRepository,
+        private readonly agreementRepo?: IAgreementRepository,
+        private readonly roomRepo?: IRoomRepository
     ) {}
 
     async execute(dto: SendInterestDto): Promise<InterestDetailDto> {
         if (dto.senderId === dto.receiverId) {
             throw new ValidationError("You cannot send an interest request to yourself.");
+        }
+
+        // Active Agreement Restrictions (Global Enforcement)
+        if (this.agreementRepo) {
+            const activeUserIds = await this.agreementRepo.findActiveAgreementUserIds();
+
+            // 1. Prevent interest requests to someone who already has an active roommate agreement
+            if (dto.targetType === "seeker" && activeUserIds.has(dto.receiverId)) {
+                throw new ConflictError(
+                    "This user is currently part of an active roommate agreement and cannot receive new interest requests."
+                );
+            }
+
+            // 2. Prevent a seeker who currently has an active agreement from sending requests
+            if (activeUserIds.has(dto.senderId)) {
+                const senderAgreements = await this.agreementRepo.findByUser(dto.senderId);
+                const isSeekerInActive = senderAgreements.some(
+                    (a) => a.status === "completed" && a.seekerId === dto.senderId
+                );
+                if (isSeekerInActive) {
+                    throw new ConflictError(
+                        "You currently have an active roommate agreement and cannot send new interest requests."
+                    );
+                }
+            }
+        }
+
+        // 3. Prevent interest requests to rooms that are occupied or inactive
+        if (dto.targetType === "room" && this.roomRepo) {
+            const room = await this.roomRepo.findById(dto.targetId);
+            if (!room || (room.availableSlots ?? 0) <= 0 || room.isActive === false) {
+                throw new ConflictError(
+                    "This room is currently fully occupied and cannot accept new interest requests."
+                );
+            }
         }
 
         // 1. Check if both users are ALREADY connected

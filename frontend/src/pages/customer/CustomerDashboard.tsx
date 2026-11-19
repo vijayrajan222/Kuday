@@ -59,6 +59,12 @@ export default function CustomerDashboard() {
     loadActiveRoommate();
   }, [loadActiveRoommate]);
 
+  const activeRoommatePartnerIds = useMemo(() => {
+    if (!activeRoommate) return new Set<string>();
+    const list = Array.isArray(activeRoommate) ? activeRoommate : [activeRoommate];
+    return new Set(list.map((r) => r.partner.id));
+  }, [activeRoommate]);
+
   const handleSelectRole = async (targetRole: 'host' | 'seeker') => {
     if (!user?.id || switchingRole) return;
     try {
@@ -261,6 +267,11 @@ export default function CustomerDashboard() {
     if (role !== 'host') return [];
     let list = [...seekers];
 
+    // Exclude users who are active roommate partners
+    if (activeRoommatePartnerIds.size > 0) {
+      list = list.filter((s) => !activeRoommatePartnerIds.has(s.userId));
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(
@@ -298,7 +309,7 @@ export default function CustomerDashboard() {
     }
 
     return list;
-  }, [role, seekers, searchQuery, sortBy, roomTypeFilter, verifiedOnlyFilter, maxPriceFilter]);
+  }, [role, seekers, searchQuery, sortBy, roomTypeFilter, verifiedOnlyFilter, maxPriceFilter, activeRoommatePartnerIds]);
 
   // Top 4 items for display in the dashboard 4-column row
   const displayedRooms = useMemo(() => {

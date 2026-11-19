@@ -193,6 +193,27 @@ export class MongoAgreementRepository implements IAgreementRepository {
         return doc ? this.mapToEntity(doc) : null;
     }
 
+    async findActiveAgreementUserIds(): Promise<Set<string>> {
+        const docs = await AgreementModel.find(
+            { status: "completed" },
+            { seekerId: 1, hostId: 1 }
+        ).lean().exec();
+        const userIds = new Set<string>();
+        for (const doc of docs) {
+            if (doc.seekerId) userIds.add(String(doc.seekerId));
+            if (doc.hostId) userIds.add(String(doc.hostId));
+        }
+        return userIds;
+    }
+
+    async findActiveSeekerIds(): Promise<Set<string>> {
+        const docs = await AgreementModel.find(
+            { status: "completed" },
+            { seekerId: 1 }
+        ).lean().exec();
+        return new Set(docs.map((doc) => String(doc.seekerId)));
+    }
+
     async markCompletedAtomic(id: string, updates: Partial<AgreementEntity>): Promise<AgreementEntity | null> {
         const doc = await AgreementModel.findOneAndUpdate(
             {
