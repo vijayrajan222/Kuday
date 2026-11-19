@@ -2,8 +2,7 @@ export type AgreementStatus =
     | 'draft'
     | 'negotiating'
     | 'awaiting_payment'
-    | 'ready_to_sign'
-    | 'signed'
+    | 'completed'
     | 'cancelled';
 
 export type CustomClauseStatus =
@@ -54,14 +53,14 @@ export interface AgreementPayment {
     status: AgreementPaymentStatus;
 }
 
-export interface PartySignature {
-    signedAt?: string | undefined;
-    ip?: string | undefined;
+export interface EditLock {
+    userId?: string | null | undefined;
+    expiresAt?: string | null | undefined;
 }
 
-export interface AgreementSignatures {
-    host?: PartySignature | undefined;
-    seeker?: PartySignature | undefined;
+export interface AcceptanceTimestamps {
+    host?: string | null | undefined;
+    seeker?: string | null | undefined;
 }
 
 export interface AgreementEntity {
@@ -75,8 +74,13 @@ export interface AgreementEntity {
     hostObligations: string[];
     seekerObligations: string[];
     customClauses: CustomClauseEntity[];
+    editLock: EditLock;
+    revision: number;
+    pendingWith?: string | null | undefined;
+    lastSubmittedBy?: string | null | undefined;
+    acceptedBy: string[];
+    acceptanceTimestamps: AcceptanceTimestamps;
     payment: AgreementPayment;
-    signatures: AgreementSignatures;
     version: number;
     lockedAt?: string | undefined;
     pdfUrl?: string | undefined;

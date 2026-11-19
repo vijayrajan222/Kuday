@@ -77,6 +77,22 @@ export class MongoAgreementRepository implements IAgreementRepository {
             hostObligations: doc.hostObligations || [],
             seekerObligations: doc.seekerObligations || [],
             customClauses,
+            editLock: {
+                userId: doc.editLock?.userId || null,
+                expiresAt: doc.editLock?.expiresAt ? new Date(doc.editLock.expiresAt).toISOString() : null,
+            },
+            revision: typeof doc.revision === "number" ? doc.revision : 1,
+            pendingWith: doc.pendingWith || null,
+            lastSubmittedBy: doc.lastSubmittedBy || null,
+            acceptedBy: doc.acceptedBy || [],
+            acceptanceTimestamps: {
+                host: doc.acceptanceTimestamps?.host
+                    ? new Date(doc.acceptanceTimestamps.host).toISOString()
+                    : null,
+                seeker: doc.acceptanceTimestamps?.seeker
+                    ? new Date(doc.acceptanceTimestamps.seeker).toISOString()
+                    : null,
+            },
             payment: {
                 required: Boolean(doc.payment?.required),
                 payerId: doc.payment?.payerId || undefined,
@@ -85,24 +101,6 @@ export class MongoAgreementRepository implements IAgreementRepository {
                 orderId: doc.payment?.orderId || undefined,
                 paymentId: doc.payment?.paymentId || undefined,
                 status: (doc.payment?.status as AgreementPaymentStatus) || "pending",
-            },
-            signatures: {
-                host: doc.signatures?.host
-                    ? {
-                          signedAt: doc.signatures.host.signedAt
-                              ? new Date(doc.signatures.host.signedAt).toISOString()
-                              : undefined,
-                          ip: doc.signatures.host.ip || undefined,
-                      }
-                    : undefined,
-                seeker: doc.signatures?.seeker
-                    ? {
-                          signedAt: doc.signatures.seeker.signedAt
-                              ? new Date(doc.signatures.seeker.signedAt).toISOString()
-                              : undefined,
-                          ip: doc.signatures.seeker.ip || undefined,
-                      }
-                    : undefined,
             },
             version: doc.version || 1,
             lockedAt: doc.lockedAt ? new Date(doc.lockedAt).toISOString() : undefined,
@@ -122,8 +120,13 @@ export class MongoAgreementRepository implements IAgreementRepository {
             hostObligations: data.hostObligations || [],
             seekerObligations: data.seekerObligations || [],
             customClauses: data.customClauses || [],
+            editLock: data.editLock || { userId: null, expiresAt: null },
+            revision: data.revision || 1,
+            pendingWith: data.pendingWith || null,
+            lastSubmittedBy: data.lastSubmittedBy || null,
+            acceptedBy: data.acceptedBy || [],
+            acceptanceTimestamps: data.acceptanceTimestamps || { host: null, seeker: null },
             payment: data.payment,
-            signatures: data.signatures || {},
             version: data.version || 1,
         };
         if (data.pendingCommonTerms) {
@@ -167,16 +170,15 @@ export class MongoAgreementRepository implements IAgreementRepository {
     async findByUser(userId: string): Promise<AgreementEntity[]> {
         const docs = await AgreementModel.find({
             $or: [{ hostId: userId }, { seekerId: userId }],
+            status: { $ne: "cancelled" },
         })
             .sort({ updatedAt: -1 })
             .exec();
-        return docs.map((doc) => this.mapToEntity(doc));
+        return docs.map((d) => this.mapToEntity(d));
     }
 
     async findByOrderId(orderId: string): Promise<AgreementEntity | null> {
-        const doc = await AgreementModel.findOne({
-            "payment.orderId": orderId,
-        }).exec();
+        const doc = await AgreementModel.findOne({ "payment.orderId": orderId }).exec();
         return doc ? this.mapToEntity(doc) : null;
     }
 }

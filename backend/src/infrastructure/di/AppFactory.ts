@@ -109,17 +109,17 @@ import { GetReportsUseCase } from "@application/use-case/report/GetReportsUseCas
 
 // Agreement Use Cases & Repository
 import { MongoAgreementRepository } from "@infrastructure/repository/MongoAgreementRepository";
-import { CheckAgreementUnlockUseCase } from "@application/use-case/agreement/CheckAgreementUnlockUseCase";
 import { CreateOrGetAgreementUseCase } from "@application/use-case/agreement/CreateOrGetAgreementUseCase";
 import { GetAgreementUseCase } from "@application/use-case/agreement/GetAgreementUseCase";
-import { UpdateCommonTermsUseCase } from "@application/use-case/agreement/UpdateCommonTermsUseCase";
+import { AcquireAgreementLockUseCase } from "@application/use-case/agreement/AcquireAgreementLockUseCase";
+import { HeartbeatAgreementLockUseCase } from "@application/use-case/agreement/HeartbeatAgreementLockUseCase";
+import { ReleaseAgreementLockUseCase } from "@application/use-case/agreement/ReleaseAgreementLockUseCase";
+import { SubmitAgreementProposalUseCase } from "@application/use-case/agreement/SubmitAgreementProposalUseCase";
+import { AcceptAgreementProposalUseCase } from "@application/use-case/agreement/AcceptAgreementProposalUseCase";
 import { DraftClauseUseCase } from "@application/use-case/agreement/DraftClauseUseCase";
-import { ProposeCustomClauseUseCase } from "@application/use-case/agreement/ProposeCustomClauseUseCase";
-import { RespondCustomClauseUseCase } from "@application/use-case/agreement/RespondCustomClauseUseCase";
 import { CreateAgreementPaymentOrderUseCase } from "@application/use-case/agreement/CreateAgreementPaymentOrderUseCase";
 import { VerifyAgreementPaymentUseCase } from "@application/use-case/agreement/VerifyAgreementPaymentUseCase";
 import { HandleAgreementWebhookUseCase } from "@application/use-case/agreement/HandleAgreementWebhookUseCase";
-import { SignAgreementUseCase } from "@application/use-case/agreement/SignAgreementUseCase";
 import { GetAgreementPdfUseCase } from "@application/use-case/agreement/GetAgreementPdfUseCase";
 import { MockAgreementPaymentService } from "@infrastructure/services/MockAgreementPaymentService";
 import { RazorpayAgreementPaymentService } from "@infrastructure/services/RazorpayAgreementPaymentService";
@@ -351,42 +351,52 @@ export function setupAppDependencies(app: Express): SocketGateway {
     );
 
     // Agreement Use Cases & Controller
-    const checkAgreementUnlockUseCase = new CheckAgreementUnlockUseCase(
-        agreementrepo,
-        visitrepo,
-        conversationrepo,
-        messagerepo
-    );
     const createOrGetAgreementUseCase = new CreateOrGetAgreementUseCase(
         agreementrepo,
         userrepo,
         roomrepo,
-        checkAgreementUnlockUseCase
+        interestrepo
     );
     const getAgreementUseCase = new GetAgreementUseCase(
         agreementrepo,
         userrepo,
         roomrepo
     );
-    const updateCommonTermsUseCase = new UpdateCommonTermsUseCase(
+    const acquireAgreementLockUseCase = new AcquireAgreementLockUseCase(
         agreementrepo,
         userrepo,
         roomrepo,
+        socketGateway
+    );
+    const heartbeatAgreementLockUseCase = new HeartbeatAgreementLockUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        socketGateway
+    );
+    const releaseAgreementLockUseCase = new ReleaseAgreementLockUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        socketGateway
+    );
+    const submitAgreementProposalUseCase = new SubmitAgreementProposalUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        notificationrepo,
+        sendMessageUseCase,
+        socketGateway
+    );
+    const acceptAgreementProposalUseCase = new AcceptAgreementProposalUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        notificationrepo,
+        sendMessageUseCase,
         socketGateway
     );
     const draftClauseUseCase = new DraftClauseUseCase(agreementrepo);
-    const proposeCustomClauseUseCase = new ProposeCustomClauseUseCase(
-        agreementrepo,
-        userrepo,
-        roomrepo,
-        socketGateway
-    );
-    const respondCustomClauseUseCase = new RespondCustomClauseUseCase(
-        agreementrepo,
-        userrepo,
-        roomrepo,
-        socketGateway
-    );
     const agreementPaymentService =
         process.env.PAYMENT_PROVIDER === "mock"
             ? new MockAgreementPaymentService()
@@ -413,13 +423,6 @@ export function setupAppDependencies(app: Express): SocketGateway {
         socketGateway
     );
     const pdfGeneratorService = new PdfGeneratorService();
-    const signAgreementUseCase = new SignAgreementUseCase(
-        agreementrepo,
-        userrepo,
-        roomrepo,
-        notificationrepo,
-        socketGateway
-    );
     const getAgreementPdfUseCase = new GetAgreementPdfUseCase(
         agreementrepo,
         userrepo,
@@ -429,15 +432,15 @@ export function setupAppDependencies(app: Express): SocketGateway {
     const agreementController = new AgreementController(
         createOrGetAgreementUseCase,
         getAgreementUseCase,
-        checkAgreementUnlockUseCase,
-        updateCommonTermsUseCase,
+        acquireAgreementLockUseCase,
+        heartbeatAgreementLockUseCase,
+        releaseAgreementLockUseCase,
+        submitAgreementProposalUseCase,
+        acceptAgreementProposalUseCase,
         draftClauseUseCase,
-        proposeCustomClauseUseCase,
-        respondCustomClauseUseCase,
         createAgreementPaymentOrderUseCase,
         verifyAgreementPaymentUseCase,
         handleAgreementWebhookUseCase,
-        signAgreementUseCase,
         getAgreementPdfUseCase
     );
 

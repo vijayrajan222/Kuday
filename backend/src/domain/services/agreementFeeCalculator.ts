@@ -1,6 +1,8 @@
 export interface AgreementPartyFeeInfo {
   id: string;
   isPremium?: boolean | undefined;
+  premiumExpiresAt?: Date | string | undefined;
+  hasActiveSubscription?: boolean | undefined;
 }
 
 export interface AgreementFeeCalculation {
@@ -14,9 +16,10 @@ export interface AgreementFeeCalculation {
 
 /**
  * Calculates the agreement fee based on host and seeker profiles.
- * Rule: Seeker pays a small agreement fee UNLESS the seeker has an active premium account.
- * A premium host does NOT cover the seeker's fee.
- * Host is free for now, but kept in one function for future modifications.
+ * Rule: The seeker pays AGREEMENT_FEE_INR unless the seeker has an active subscription,
+ * in which case fee = 0 and the payment step is skipped.
+ * Check subscription active + not expired using existing subscription/premium fields.
+ * Host is not charged.
  */
 export function getAgreementFee(
   _host: AgreementPartyFeeInfo,
@@ -24,15 +27,21 @@ export function getAgreementFee(
 ): AgreementFeeCalculation {
   const feeInr = parseInt(process.env.AGREEMENT_FEE_INR || "499", 10);
 
-  // If seeker has active premium membership, agreement fee is waived
-  if (seeker.isPremium) {
+  // Check if seeker has an active, unexpired subscription or premium status
+  const isSubscriber = Boolean(
+    seeker.hasActiveSubscription ||
+      (seeker.isPremium &&
+        (!seeker.premiumExpiresAt || new Date(seeker.premiumExpiresAt).getTime() > Date.now()))
+  );
+
+  if (isSubscriber) {
     return {
       required: false,
       payerId: seeker.id,
       amount: 0,
       amountPaise: 0,
       isWaived: true,
-      waiverReason: "Fee waived for Kuday Premium member.",
+      waiverReason: "Fee waived for Kuday subscriber (active subscription).",
     };
   }
 

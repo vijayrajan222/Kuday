@@ -64,18 +64,18 @@ const PaymentSchema = new Schema(
     { _id: false }
 );
 
-const SignaturePartySchema = new Schema(
+const EditLockSchema = new Schema(
     {
-        signedAt: { type: Date },
-        ip: { type: String },
+        userId: { type: String, default: null },
+        expiresAt: { type: Date, default: null },
     },
     { _id: false }
 );
 
-const SignaturesSchema = new Schema(
+const AcceptanceTimestampsSchema = new Schema(
     {
-        host: { type: SignaturePartySchema },
-        seeker: { type: SignaturePartySchema },
+        host: { type: Date, default: null },
+        seeker: { type: Date, default: null },
     },
     { _id: false }
 );
@@ -93,6 +93,7 @@ export const AgreementSchema = new Schema(
                 "awaiting_payment",
                 "ready_to_sign",
                 "signed",
+                "completed",
                 "cancelled",
             ],
             default: "draft",
@@ -103,8 +104,16 @@ export const AgreementSchema = new Schema(
         hostObligations: { type: [String], default: [] },
         seekerObligations: { type: [String], default: [] },
         customClauses: { type: [CustomClauseSchema], default: [] },
+        editLock: { type: EditLockSchema, default: () => ({ userId: null, expiresAt: null }) },
+        revision: { type: Number, default: 1 },
+        pendingWith: { type: String, default: null },
+        lastSubmittedBy: { type: String, default: null },
+        acceptedBy: { type: [String], default: [] },
+        acceptanceTimestamps: {
+            type: AcceptanceTimestampsSchema,
+            default: () => ({ host: null, seeker: null }),
+        },
         payment: { type: PaymentSchema, default: () => ({ required: false, amount: 0, status: "pending" }) },
-        signatures: { type: SignaturesSchema, default: () => ({}) },
         version: { type: Number, default: 1 },
         lockedAt: { type: Date },
         pdfUrl: { type: String, default: "" },

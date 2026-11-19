@@ -5,7 +5,8 @@ import type {
     ProposedCommonTerms,
     CustomClauseEntity,
     AgreementPayment,
-    AgreementSignatures,
+    EditLock,
+    AcceptanceTimestamps,
 } from "@domain/entities/AgreementEntity";
 
 export interface AgreementUserSummary {
@@ -38,8 +39,13 @@ export interface AgreementResponseDto {
     hostObligations: string[];
     seekerObligations: string[];
     customClauses: CustomClauseEntity[];
+    editLock: EditLock;
+    revision: number;
+    pendingWith?: string | null | undefined;
+    lastSubmittedBy?: string | null | undefined;
+    acceptedBy: string[];
+    acceptanceTimestamps: AcceptanceTimestamps;
     payment: AgreementPayment;
-    signatures: AgreementSignatures;
     version: number;
     lockedAt?: string | undefined;
     pdfUrl?: string | undefined;
@@ -53,7 +59,7 @@ export interface AgreementResponseDto {
 export interface AgreementUnlockStatusResponseDto {
     unlocked: boolean;
     reason?: string | undefined;
-    visitCompleted: boolean;
-    callCompleted: boolean;
+    visitCompleted?: boolean | undefined;
+    callCompleted?: boolean | undefined;
     activeAgreementId?: string | undefined;
 }
