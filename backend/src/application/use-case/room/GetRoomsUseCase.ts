@@ -16,7 +16,7 @@ export class GetRoomsUseCase implements IGetRoomsUseCase {
 
     async execute(seekerUserId?: string): Promise<RoomWithHostDto[]> {
         const allRooms = await this.roomRepository.findAll();
-        const activeRooms = allRooms.filter((r) => r.isActive !== false);
+        const activeRooms = allRooms.filter((r) => r.isActive !== false && (r.capacity ?? 1) > 0);
 
         let seekerPreference = null;
         let seekerLifestyle = null;

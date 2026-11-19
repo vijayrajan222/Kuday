@@ -10,6 +10,7 @@ import type { AgreementPaymentStatus } from "@domain/entities/AgreementEntity";
 import { NotFoundError, UnauthorizedError, ConflictError, ValidationError } from "@application/errors/AppError";
 import { getAgreementFee } from "@domain/services/agreementFeeCalculator";
 import { enrichAgreement } from "./helpers/enrichAgreement";
+import { deductRoomVacancy } from "./helpers/occupancyHelper";
 
 export class AcceptAgreementProposalUseCase implements IAcceptAgreementProposalUseCase {
     constructor(
@@ -109,6 +110,10 @@ export class AcceptAgreementProposalUseCase implements IAcceptAgreementProposalU
 
         if (!updated) {
             throw new NotFoundError("Failed to accept agreement proposal.");
+        }
+
+        if (nextStatus === "completed") {
+            await deductRoomVacancy(this.roomRepository, updated.roomId, this.socketService);
         }
 
         const enriched = await enrichAgreement(updated, this.userRepository, this.roomRepository);

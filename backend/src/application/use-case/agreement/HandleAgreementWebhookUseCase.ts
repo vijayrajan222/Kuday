@@ -6,6 +6,7 @@ import type { IAgreementPaymentService } from "@application/interfaces/services/
 import type { ISocketNotificationService } from "@application/interfaces/services/ISocketNotificationService";
 import type { AgreementEntity } from "@domain/entities/AgreementEntity";
 import type { AgreementResponseDto } from "@application/dto/agreement/AgreementResponseDto";
+import { deductRoomVacancy } from "./helpers/occupancyHelper";
 
 export class HandleAgreementWebhookUseCase implements IHandleAgreementWebhookUseCase {
   constructor(
@@ -118,6 +119,7 @@ export class HandleAgreementWebhookUseCase implements IHandleAgreementWebhookUse
     });
 
     if (updated) {
+      await deductRoomVacancy(this.roomRepository, updated.roomId, this.socketService);
       const enriched = await this.enrich(updated);
       if (this.socketService) {
         if (this.socketService.emitToAgreement) {

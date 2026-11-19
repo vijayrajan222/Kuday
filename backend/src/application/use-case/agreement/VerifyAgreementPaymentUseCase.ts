@@ -8,6 +8,7 @@ import type { IAgreementPaymentService } from "@application/interfaces/services/
 import type { ISocketNotificationService } from "@application/interfaces/services/ISocketNotificationService";
 import { NotFoundError, UnauthorizedError, ValidationError } from "@application/errors/AppError";
 import { enrichAgreement } from "./helpers/enrichAgreement";
+import { deductRoomVacancy } from "./helpers/occupancyHelper";
 
 export class VerifyAgreementPaymentUseCase implements IVerifyAgreementPaymentUseCase {
   constructor(
@@ -66,6 +67,8 @@ export class VerifyAgreementPaymentUseCase implements IVerifyAgreementPaymentUse
     if (!updated) {
       throw new NotFoundError("Failed to update agreement payment status.");
     }
+
+    await deductRoomVacancy(this.roomRepository, updated.roomId, this.socketService);
 
     const enriched = await enrichAgreement(updated, this.userRepository, this.roomRepository);
 

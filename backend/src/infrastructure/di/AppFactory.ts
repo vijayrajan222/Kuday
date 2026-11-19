@@ -229,8 +229,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
 
     const sendInterestUseCase = new SendInterestUseCase(interestrepo, userrepo, notificationrepo);
     const updateInterestStatusUseCase = new UpdateInterestStatusUseCase(interestrepo, userrepo, notificationrepo);
-    const getReceivedInterestsUseCase = new GetReceivedInterestsUseCase(interestrepo, userrepo);
-    const getSentInterestsUseCase = new GetSentInterestsUseCase(interestrepo, userrepo);
+    const getReceivedInterestsUseCase = new GetReceivedInterestsUseCase(interestrepo, userrepo, roomrepo);
+    const getSentInterestsUseCase = new GetSentInterestsUseCase(interestrepo, userrepo, roomrepo);
 
     const adminLoginUseCase = new AdminLoginUseCase(userrepo, hasher, jwtService);
     const getAdminStatsUseCase = new GetAdminStatsUseCase(userrepo, roomrepo, paymentrepo);
@@ -398,7 +398,7 @@ export function setupAppDependencies(app: Express): SocketGateway {
     );
     const draftClauseUseCase = new DraftClauseUseCase(agreementrepo);
     const agreementPaymentService =
-        process.env.PAYMENT_PROVIDER === "mock"
+        process.env.PAYMENT_PROVIDER === "mock" && !process.env.RAZORPAY_KEY_ID
             ? new MockAgreementPaymentService()
             : new RazorpayAgreementPaymentService(razorpayService);
     const createAgreementPaymentOrderUseCase = new CreateAgreementPaymentOrderUseCase(

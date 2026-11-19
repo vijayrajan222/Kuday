@@ -39,8 +39,14 @@ export class CreateRoomUseCase implements ICreateRoomUseCase {
         const existingRooms = await this.roomRepository.findByHostId(hostId);
         const existingRoom = existingRooms[0];
         if (existingRoom) {
+            const isNowActive =
+                roomDetails.capacity !== undefined
+                    ? Number(roomDetails.capacity) > 0
+                    : (existingRoom.capacity ?? 1) > 0;
+
             const updatedRoom = await this.roomRepository.update(existingRoom.id, {
                 ...roomDetails,
+                isActive: isNowActive,
                 images: finalImages,
             });
             if (updatedRoom) return updatedRoom;
