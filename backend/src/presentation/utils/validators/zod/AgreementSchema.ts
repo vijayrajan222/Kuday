@@ -22,14 +22,26 @@ export const commonTermsSchema = z.object({
     utilities: z.string().min(2, "Utilities description must be provided").max(500, "Utilities description is too long"),
 });
 
-export const proposeCommonTermsSchema = z.object({
-    terms: commonTermsSchema,
+export const submitAgreementProposalSchema = z.object({
+    revision: z.number().int().min(1, "Valid revision number is required"),
+    commonTerms: commonTermsSchema.optional(),
+    customClauses: z
+        .array(
+            z.object({
+                id: z.string().optional(),
+                proposedBy: z.string().min(1),
+                originalText: z.string().max(500),
+                aiDraftText: z.string().max(1000).optional(),
+                finalText: z.string().min(1).max(1000),
+                status: z.enum(["proposed", "accepted", "rejected", "countered"]).default("accepted"),
+                createdAt: z.string().optional(),
+            })
+        )
+        .optional(),
 });
 
-export const respondCommonTermsSchema = z.object({
-    action: z.enum(["accept", "reject"], {
-        error: "Action must be either 'accept' or 'reject'",
-    }),
+export const acceptAgreementProposalSchema = z.object({
+    revision: z.number().int().min(1, "Valid revision number is required"),
 });
 
 export const draftClauseSchema = z.object({
@@ -37,27 +49,6 @@ export const draftClauseSchema = z.object({
         .string()
         .min(1, "Clause description is required")
         .max(500, "Clause description must not exceed 500 characters"),
-});
-
-export const proposeCustomClauseSchema = z.object({
-    originalText: z
-        .string()
-        .max(500, "Original description must not exceed 500 characters"),
-    aiDraftText: z.string().max(1000).optional(),
-    finalText: z
-        .string()
-        .min(1, "Final clause text is required")
-        .max(1000, "Final clause text must not exceed 1000 characters"),
-});
-
-export const respondCustomClauseSchema = z.object({
-    action: z.enum(["accept", "reject", "counter"], {
-        error: "Action must be 'accept', 'reject', or 'counter'",
-    }),
-    counterText: z
-        .string()
-        .max(1000, "Counter-proposed text must not exceed 1000 characters")
-        .optional(),
 });
 
 export const verifyAgreementPaymentSchema = z.object({

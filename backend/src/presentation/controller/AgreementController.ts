@@ -3,24 +3,21 @@ import type { AuthenticatedRequest } from "@presentation/middleware/AuthMiddlewa
 import type { IAgreementController } from "@presentation/interface/IAgreementController";
 import type { ICreateOrGetAgreementUseCase } from "@application/interfaces/use-case/agreement/ICreateOrGetAgreementUseCase";
 import type { IGetAgreementUseCase } from "@application/interfaces/use-case/agreement/IGetAgreementUseCase";
-import type { ICheckAgreementUnlockUseCase } from "@application/interfaces/use-case/agreement/ICheckAgreementUnlockUseCase";
-import type { IUpdateCommonTermsUseCase } from "@application/interfaces/use-case/agreement/IUpdateCommonTermsUseCase";
+import type { IAcquireAgreementLockUseCase } from "@application/interfaces/use-case/agreement/IAcquireAgreementLockUseCase";
+import type { IHeartbeatAgreementLockUseCase } from "@application/interfaces/use-case/agreement/IHeartbeatAgreementLockUseCase";
+import type { IReleaseAgreementLockUseCase } from "@application/interfaces/use-case/agreement/IReleaseAgreementLockUseCase";
+import type { ISubmitAgreementProposalUseCase } from "@application/interfaces/use-case/agreement/ISubmitAgreementProposalUseCase";
+import type { IAcceptAgreementProposalUseCase } from "@application/interfaces/use-case/agreement/IAcceptAgreementProposalUseCase";
 import type { IDraftClauseUseCase } from "@application/interfaces/use-case/agreement/IDraftClauseUseCase";
-import type { IProposeCustomClauseUseCase } from "@application/interfaces/use-case/agreement/IProposeCustomClauseUseCase";
-import type { IRespondCustomClauseUseCase } from "@application/interfaces/use-case/agreement/IRespondCustomClauseUseCase";
 import type { ICreateAgreementPaymentOrderUseCase } from "@application/interfaces/use-case/agreement/ICreateAgreementPaymentOrderUseCase";
 import type { IVerifyAgreementPaymentUseCase } from "@application/interfaces/use-case/agreement/IVerifyAgreementPaymentUseCase";
 import type { IHandleAgreementWebhookUseCase } from "@application/interfaces/use-case/agreement/IHandleAgreementWebhookUseCase";
-import type { ISignAgreementUseCase } from "@application/interfaces/use-case/agreement/ISignAgreementUseCase";
 import type { IGetAgreementPdfUseCase } from "@application/interfaces/use-case/agreement/IGetAgreementPdfUseCase";
 import {
     createAgreementSchema,
-    checkUnlockSchema,
-    proposeCommonTermsSchema,
-    respondCommonTermsSchema,
+    submitAgreementProposalSchema,
+    acceptAgreementProposalSchema,
     draftClauseSchema,
-    proposeCustomClauseSchema,
-    respondCustomClauseSchema,
     verifyAgreementPaymentSchema,
 } from "@presentation/utils/validators/zod/AgreementSchema";
 import { ApiResponse } from "@presentation/utils/ApiResponse";
@@ -31,15 +28,15 @@ export class AgreementController implements IAgreementController {
     constructor(
         private readonly createOrGetAgreementUseCase: ICreateOrGetAgreementUseCase,
         private readonly getAgreementUseCase: IGetAgreementUseCase,
-        private readonly checkUnlockUseCase: ICheckAgreementUnlockUseCase,
-        private readonly updateCommonTermsUseCase: IUpdateCommonTermsUseCase,
+        private readonly acquireAgreementLockUseCase: IAcquireAgreementLockUseCase,
+        private readonly heartbeatAgreementLockUseCase: IHeartbeatAgreementLockUseCase,
+        private readonly releaseAgreementLockUseCase: IReleaseAgreementLockUseCase,
+        private readonly submitAgreementProposalUseCase: ISubmitAgreementProposalUseCase,
+        private readonly acceptAgreementProposalUseCase: IAcceptAgreementProposalUseCase,
         private readonly draftClauseUseCase: IDraftClauseUseCase,
-        private readonly proposeCustomClauseUseCase: IProposeCustomClauseUseCase,
-        private readonly respondCustomClauseUseCase: IRespondCustomClauseUseCase,
         private readonly createAgreementPaymentOrderUseCase: ICreateAgreementPaymentOrderUseCase,
         private readonly verifyAgreementPaymentUseCase: IVerifyAgreementPaymentUseCase,
         private readonly handleAgreementWebhookUseCase: IHandleAgreementWebhookUseCase,
-        private readonly signAgreementUseCase: ISignAgreementUseCase,
         private readonly getAgreementPdfUseCase: IGetAgreementPdfUseCase
     ) {}
 
@@ -75,66 +72,104 @@ export class AgreementController implements IAgreementController {
         }
     };
 
-    checkUnlock = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    acquireLock = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const validated = checkUnlockSchema.parse({
-                hostId: req.query.hostId,
-                seekerId: req.query.seekerId,
-                roomId: req.query.roomId,
-            });
+            const userId = req.user?.id;
+            if (!userId) throw new UnauthorizedError("Authentication required.");
 
-            const status = await this.checkUnlockUseCase.execute(
-                validated.hostId,
-                validated.seekerId,
-                validated.roomId
-            );
+            const agreementId = req.params.id as string;
+            const agreement = await this.acquireAgreementLockUseCase.execute(agreementId, userId);
 
             res.status(HttpStatusCodes.OK).json(
-                ApiResponse.success(status, "Agreement unlock status evaluated.")
+                ApiResponse.success(agreement, "Edit lock acquired successfully.")
             );
         } catch (err) {
             next(err);
         }
     };
 
-    proposeTerms = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    renewLockHeartbeat = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
         try {
             const userId = req.user?.id;
             if (!userId) throw new UnauthorizedError("Authentication required.");
 
             const agreementId = req.params.id as string;
-            const validated = proposeCommonTermsSchema.parse(req.body);
-
-            const updated = await this.updateCommonTermsUseCase.propose({
-                agreementId,
-                userId,
-                terms: validated.terms,
-            });
+            const agreement = await this.heartbeatAgreementLockUseCase.execute(agreementId, userId);
 
             res.status(HttpStatusCodes.OK).json(
-                ApiResponse.success(updated, "Proposed new common terms successfully.")
+                ApiResponse.success(agreement, "Lock heartbeat renewed successfully.")
             );
         } catch (err) {
             next(err);
         }
     };
 
-    respondTerms = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    releaseLock = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
         try {
             const userId = req.user?.id;
             if (!userId) throw new UnauthorizedError("Authentication required.");
 
             const agreementId = req.params.id as string;
-            const validated = respondCommonTermsSchema.parse(req.body);
-
-            const updated = await this.updateCommonTermsUseCase.respond({
-                agreementId,
-                userId,
-                action: validated.action,
-            });
+            const agreement = await this.releaseAgreementLockUseCase.execute(agreementId, userId);
 
             res.status(HttpStatusCodes.OK).json(
-                ApiResponse.success(updated, `Successfully ${validated.action}ed proposed terms.`)
+                ApiResponse.success(agreement, "Edit lock released successfully.")
+            );
+        } catch (err) {
+            next(err);
+        }
+    };
+
+    submitProposal = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const userId = req.user?.id;
+            if (!userId) throw new UnauthorizedError("Authentication required.");
+
+            const agreementId = req.params.id as string;
+            const validated = submitAgreementProposalSchema.parse(req.body);
+
+            const agreement = await this.submitAgreementProposalUseCase.execute(
+                agreementId,
+                userId,
+                {
+                    revision: validated.revision,
+                    commonTerms: validated.commonTerms,
+                    customClauses: validated.customClauses?.map((c) => ({
+                        id: c.id || "",
+                        proposedBy: c.proposedBy,
+                        originalText: c.originalText,
+                        aiDraftText: c.aiDraftText,
+                        finalText: c.finalText,
+                        status: c.status,
+                        createdAt: c.createdAt,
+                    })),
+                }
+            );
+
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(agreement, "Proposal submitted for review successfully.")
+            );
+        } catch (err) {
+            next(err);
+        }
+    };
+
+    acceptProposal = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const userId = req.user?.id;
+            if (!userId) throw new UnauthorizedError("Authentication required.");
+
+            const agreementId = req.params.id as string;
+            const validated = acceptAgreementProposalSchema.parse(req.body);
+
+            const agreement = await this.acceptAgreementProposalUseCase.execute(
+                agreementId,
+                userId,
+                validated.revision
+            );
+
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(agreement, "Proposal accepted successfully.")
             );
         } catch (err) {
             next(err);
@@ -153,55 +188,6 @@ export class AgreementController implements IAgreementController {
 
             res.status(HttpStatusCodes.OK).json(
                 ApiResponse.success(result, "Clause preview generated.")
-            );
-        } catch (err) {
-            next(err);
-        }
-    };
-
-    proposeClause = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
-        try {
-            const userId = req.user?.id;
-            if (!userId) throw new UnauthorizedError("Authentication required.");
-
-            const agreementId = req.params.id as string;
-            const validated = proposeCustomClauseSchema.parse(req.body);
-
-            const agreement = await this.proposeCustomClauseUseCase.execute(userId, agreementId, {
-                originalText: validated.originalText,
-                aiDraftText: validated.aiDraftText,
-                finalText: validated.finalText,
-            });
-
-            res.status(HttpStatusCodes.CREATED).json(
-                ApiResponse.success(agreement, "Custom clause proposed successfully.")
-            );
-        } catch (err) {
-            next(err);
-        }
-    };
-
-    respondClause = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
-        try {
-            const userId = req.user?.id;
-            if (!userId) throw new UnauthorizedError("Authentication required.");
-
-            const agreementId = req.params.id as string;
-            const clauseId = req.params.clauseId as string;
-            const validated = respondCustomClauseSchema.parse(req.body);
-
-            const agreement = await this.respondCustomClauseUseCase.execute(
-                userId,
-                agreementId,
-                clauseId,
-                {
-                    action: validated.action,
-                    counterText: validated.counterText,
-                }
-            );
-
-            res.status(HttpStatusCodes.OK).json(
-                ApiResponse.success(agreement, `Custom clause response recorded (${validated.action}).`)
             );
         } catch (err) {
             next(err);
@@ -239,7 +225,7 @@ export class AgreementController implements IAgreementController {
             });
 
             res.status(HttpStatusCodes.OK).json(
-                ApiResponse.success(agreement, "Payment verified successfully. Ready to sign!")
+                ApiResponse.success(agreement, "Payment verified successfully. Agreement finalized!")
             );
         } catch (err) {
             next(err);
@@ -253,28 +239,6 @@ export class AgreementController implements IAgreementController {
 
             const result = await this.handleAgreementWebhookUseCase.execute(rawBody, signature, req.body);
             res.status(HttpStatusCodes.OK).json(result);
-        } catch (err) {
-            next(err);
-        }
-    };
-
-    sign = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
-        try {
-            const userId = req.user?.id;
-            if (!userId) throw new UnauthorizedError("Authentication required.");
-
-            const agreementId = req.params.id as string;
-            const clientIp =
-                (req.headers["x-forwarded-for"] as string) ||
-                req.socket.remoteAddress ||
-                req.ip ||
-                "127.0.0.1";
-
-            const agreement = await this.signAgreementUseCase.execute(userId, agreementId, clientIp);
-
-            res.status(HttpStatusCodes.OK).json(
-                ApiResponse.success(agreement, "Agreement signed successfully.")
-            );
         } catch (err) {
             next(err);
         }

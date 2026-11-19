@@ -17,21 +17,22 @@ export function createAgreementRouter(
     // All subsequent agreement routes require authentication
     router.use(authMiddleware);
 
-    // 1. Check if agreement flow is unlocked
-    router.get("/unlock-status", agreementController.checkUnlock as RequestHandler);
-
-    // 2. Create or fetch active agreement for match
+    // 1. Create or fetch active agreement for match (validates match only)
     router.post("/", agreementController.createOrGet as RequestHandler);
 
-    // 3. Get agreement by ID
+    // 2. Get agreement by ID
     router.get("/:id", agreementController.getById as RequestHandler);
 
-    // 4. Propose edits to common terms
-    router.patch("/:id/common-terms", agreementController.proposeTerms as RequestHandler);
-    router.patch("/:id/common-terms/propose", agreementController.proposeTerms as RequestHandler);
+    // 3. Turn-based Editing Lock
+    router.post("/:id/lock", agreementController.acquireLock as RequestHandler);
+    router.post("/:id/heartbeat", agreementController.renewLockHeartbeat as RequestHandler);
+    router.post("/:id/unlock", agreementController.releaseLock as RequestHandler);
 
-    // 5. Accept or reject proposed common terms
-    router.patch("/:id/common-terms/respond", agreementController.respondTerms as RequestHandler);
+    // 4. Submit proposal for review
+    router.post("/:id/submit", agreementController.submitProposal as RequestHandler);
+
+    // 5. Accept proposal
+    router.post("/:id/accept", agreementController.acceptProposal as RequestHandler);
 
     // 6. Draft custom clause with AI (preview only, rate-limited)
     router.post(
@@ -41,22 +42,13 @@ export function createAgreementRouter(
         agreementController.draftClause as RequestHandler
     );
 
-    // 7. Submit confirmed custom clause as proposed
-    router.post("/:id/clauses", agreementController.proposeClause as RequestHandler);
-
-    // 8. Accept, reject, or counter a custom clause
-    router.patch("/:id/clauses/:clauseId", agreementController.respondClause as RequestHandler);
-
-    // 9. Payment: create order (seeker only, checks fee / premium waiver)
+    // 7. Payment: create order (seeker only, checks fee / subscription waiver)
     router.post("/:id/payment/order", agreementController.createPaymentOrder as RequestHandler);
 
-    // 10. Payment: verify transaction (server-side verification)
+    // 8. Payment: verify transaction (server-side verification)
     router.post("/:id/payment/verify", agreementController.verifyPayment as RequestHandler);
 
-    // 11. Dual party signing ("I agree and sign")
-    router.post("/:id/sign", agreementController.sign as RequestHandler);
-
-    // 12. Download final agreement PDF
+    // 9. Download final agreement PDF
     router.get("/:id/pdf", agreementController.getPdf as RequestHandler);
 
     return router;
