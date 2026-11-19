@@ -24,7 +24,7 @@ export class DraftClauseUseCase implements IDraftClauseUseCase {
       throw new AppError("You are not authorized to draft clauses for this agreement", HttpStatusCodes.FORBIDDEN);
     }
 
-    if (agreement.status === "signed" || agreement.status === "cancelled") {
+    if (agreement.status === "completed" || agreement.status === "cancelled") {
       throw new AppError("Cannot draft clauses for locked or cancelled agreements", HttpStatusCodes.BAD_REQUEST);
     }
 

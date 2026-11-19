@@ -3,9 +3,8 @@ import type { IAgreementRepository } from "@application/interfaces/repository/IA
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
 import type { IPdfGeneratorService } from "@application/interfaces/services/IPdfGeneratorService";
-import type { AgreementEntity } from "@domain/entities/AgreementEntity";
-import type { AgreementResponseDto } from "@application/dto/agreement/AgreementResponseDto";
-import { NotFoundError, UnauthorizedError } from "@application/errors/AppError";
+import { NotFoundError, UnauthorizedError, ValidationError } from "@application/errors/AppError";
+import { enrichAgreement } from "./helpers/enrichAgreement";
 
 export class GetAgreementPdfUseCase implements IGetAgreementPdfUseCase {
   constructor(
@@ -14,50 +13,6 @@ export class GetAgreementPdfUseCase implements IGetAgreementPdfUseCase {
     private readonly roomRepository: IRoomRepository,
     private readonly pdfGeneratorService: IPdfGeneratorService
   ) {}
-
-  private async enrich(agreement: AgreementEntity): Promise<AgreementResponseDto> {
-    const [host, seeker, room] = await Promise.all([
-      this.userRepository.findById(agreement.hostId),
-      this.userRepository.findById(agreement.seekerId),
-      this.roomRepository.findById(agreement.roomId),
-    ]);
-
-    return {
-      ...agreement,
-      host: host
-        ? {
-            id: host.id,
-            firstName: host.firstName,
-            lastName: host.lastName,
-            email: host.email,
-            role: host.role || "host",
-            selfieUrl: host.selfieUrl,
-            isPremium: host.isPremium,
-          }
-        : undefined,
-      seeker: seeker
-        ? {
-            id: seeker.id,
-            firstName: seeker.firstName,
-            lastName: seeker.lastName,
-            email: seeker.email,
-            role: seeker.role || "seeker",
-            selfieUrl: seeker.selfieUrl,
-            isPremium: seeker.isPremium,
-          }
-        : undefined,
-      room: room
-        ? {
-            id: room.id,
-            title: room.title,
-            roomType: room.roomType,
-            monthlyRent: room.monthlyRent,
-            location: room.location,
-            images: room.images || [],
-          }
-        : undefined,
-    };
-  }
 
   async execute(userId: string, agreementId: string): Promise<{ buffer: Buffer; fileName: string }> {
     const agreement = await this.agreementRepository.findById(agreementId);
@@ -69,9 +24,17 @@ export class GetAgreementPdfUseCase implements IGetAgreementPdfUseCase {
       throw new UnauthorizedError("You are not authorized to download this agreement PDF.");
     }
 
-    const enriched = await this.enrich(agreement);
+    if (agreement.status !== "completed") {
+      throw new ValidationError("Agreement must be finalized and accepted by both parties before downloading the PDF.");
+    }
+
+    if (agreement.payment?.required && agreement.payment?.status !== "completed" && agreement.payment?.status !== "waived") {
+      throw new ValidationError("Agreement fee must be paid before downloading the PDF.");
+    }
+
+    const enriched = await enrichAgreement(agreement, this.userRepository, this.roomRepository);
     const buffer = await this.pdfGeneratorService.generateAgreementPdf(enriched);
-    const fileName = `Kuday_Agreement_${agreement.id.slice(-6).toUpperCase()}.pdf`;
+    const fileName = `Kuday_Agreement_Rev${agreement.revision || 1}_${agreement.id.slice(-6).toUpperCase()}.pdf`;
 
     return { buffer, fileName };
   }

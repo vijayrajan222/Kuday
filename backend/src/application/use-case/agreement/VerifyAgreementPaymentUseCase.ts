@@ -6,8 +6,8 @@ import type { IUserRepository } from "@application/interfaces/repository/IUserRe
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
 import type { IAgreementPaymentService } from "@application/interfaces/services/IAgreementPaymentService";
 import type { ISocketNotificationService } from "@application/interfaces/services/ISocketNotificationService";
-import type { AgreementEntity } from "@domain/entities/AgreementEntity";
 import { NotFoundError, UnauthorizedError, ValidationError } from "@application/errors/AppError";
+import { enrichAgreement } from "./helpers/enrichAgreement";
 
 export class VerifyAgreementPaymentUseCase implements IVerifyAgreementPaymentUseCase {
   constructor(
@@ -17,50 +17,6 @@ export class VerifyAgreementPaymentUseCase implements IVerifyAgreementPaymentUse
     private readonly paymentService: IAgreementPaymentService,
     private readonly socketService?: ISocketNotificationService
   ) {}
-
-  private async enrich(agreement: AgreementEntity): Promise<AgreementResponseDto> {
-    const [host, seeker, room] = await Promise.all([
-      this.userRepository.findById(agreement.hostId),
-      this.userRepository.findById(agreement.seekerId),
-      this.roomRepository.findById(agreement.roomId),
-    ]);
-
-    return {
-      ...agreement,
-      host: host
-        ? {
-            id: host.id,
-            firstName: host.firstName,
-            lastName: host.lastName,
-            email: host.email,
-            role: host.role || "host",
-            selfieUrl: host.selfieUrl,
-            isPremium: host.isPremium,
-          }
-        : undefined,
-      seeker: seeker
-        ? {
-            id: seeker.id,
-            firstName: seeker.firstName,
-            lastName: seeker.lastName,
-            email: seeker.email,
-            role: seeker.role || "seeker",
-            selfieUrl: seeker.selfieUrl,
-            isPremium: seeker.isPremium,
-          }
-        : undefined,
-      room: room
-        ? {
-            id: room.id,
-            title: room.title,
-            roomType: room.roomType,
-            monthlyRent: room.monthlyRent,
-            location: room.location,
-            images: room.images || [],
-          }
-        : undefined,
-    };
-  }
 
   async execute(
     userId: string,
@@ -78,7 +34,7 @@ export class VerifyAgreementPaymentUseCase implements IVerifyAgreementPaymentUse
 
     // Idempotency: If payment was already completed, return agreement immediately
     if (agreement.payment?.status === "completed") {
-      return this.enrich(agreement);
+      return enrichAgreement(agreement, this.userRepository, this.roomRepository);
     }
 
     // Verify signature with payment provider
@@ -92,9 +48,10 @@ export class VerifyAgreementPaymentUseCase implements IVerifyAgreementPaymentUse
       throw new ValidationError("Payment verification failed. Invalid transaction signature.");
     }
 
-    // Update payment record and transition to ready_to_sign
+    // Update payment record and transition to completed
     const updated = await this.agreementRepository.update(agreement.id, {
-      status: "ready_to_sign",
+      status: "completed",
+      lockedAt: new Date().toISOString(),
       payment: {
         required: true,
         payerId: agreement.payment?.payerId || agreement.seekerId,
@@ -110,12 +67,11 @@ export class VerifyAgreementPaymentUseCase implements IVerifyAgreementPaymentUse
       throw new NotFoundError("Failed to update agreement payment status.");
     }
 
-    const enriched = await this.enrich(updated);
+    const enriched = await enrichAgreement(updated, this.userRepository, this.roomRepository);
 
     if (this.socketService) {
-      if (this.socketService.emitToAgreement) {
-        this.socketService.emitToAgreement(agreement.id, "agreement_updated", enriched);
-      }
+      this.socketService.emitToAgreement?.(agreement.id, "agreement_updated", enriched);
+      this.socketService.emitToAgreement?.(agreement.id, "agreement_finalized", enriched);
       this.socketService.notifyUser(agreement.hostId, "agreement_updated", enriched);
       this.socketService.notifyUser(agreement.seekerId, "agreement_updated", enriched);
     }

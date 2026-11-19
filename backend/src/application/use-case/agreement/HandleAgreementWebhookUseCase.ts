@@ -104,7 +104,8 @@ export class HandleAgreementWebhookUseCase implements IHandleAgreementWebhookUse
     }
 
     const updated = await this.agreementRepository.update(agreement.id, {
-      status: "ready_to_sign",
+      status: "completed",
+      lockedAt: new Date().toISOString(),
       payment: {
         required: true,
         payerId: agreement.payment?.payerId || agreement.seekerId,
