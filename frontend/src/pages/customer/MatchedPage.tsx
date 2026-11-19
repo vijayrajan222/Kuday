@@ -207,23 +207,62 @@ export default function MatchedPage() {
 
   const handleProceedWithAgreement = async (item: InterestDetail, activeVisit?: Visit) => {
     if (!user?.id) return;
+    const otherUserId = item.senderId === user.id ? item.receiverId : item.senderId;
     const otherUser = item.senderId === user.id ? item.receiver : item.sender;
-    if (!otherUser?.id) return;
+    const targetUserId = otherUser?.id || otherUserId;
+    if (!targetUserId) return;
 
     try {
       setAgreementLoadingId(item.id);
       const isUserHost = user.role === 'host';
-      const isOtherHost = otherUser.role === 'host';
-      const hostId = isUserHost ? user.id : isOtherHost ? otherUser.id : (activeVisit?.hostId || item.receiverId);
-      const seekerId = hostId === user.id ? otherUser.id : user.id;
+      const isOtherHost = otherUser?.role === 'host';
 
-      let roomId = (item.targetType === 'room' ? item.targetId : activeVisit?.roomId) || activeVisit?.roomId;
+      let hostId = isUserHost ? user.id : isOtherHost ? targetUserId : (activeVisit?.hostId || '');
+      let seekerId = hostId === user.id ? targetUserId : (hostId === targetUserId ? user.id : '');
 
-      if (!roomId) {
-        // Resolve host room
-        const hostRooms = await onboardingService.getRooms(hostId);
-        if (Array.isArray(hostRooms) && hostRooms.length > 0 && hostRooms[0]?._id) {
-          roomId = hostRooms[0]._id;
+      if (!hostId || !seekerId) {
+        if (item.targetType === 'room') {
+          hostId = item.receiverId;
+          seekerId = item.senderId;
+        } else if (item.targetType === 'seeker') {
+          hostId = item.senderId;
+          seekerId = item.receiverId;
+        } else {
+          hostId = targetUserId;
+          seekerId = user.id;
+        }
+      }
+
+      let roomId =
+        item.room?.id ||
+        (item.targetType === 'room' ? item.targetId : undefined) ||
+        activeVisit?.roomId;
+
+      if (!roomId && hostId) {
+        try {
+          const hostRooms = await onboardingService.getRooms(hostId);
+          if (Array.isArray(hostRooms) && hostRooms.length > 0) {
+            const first = hostRooms[0] as { id?: string; _id?: string };
+            roomId = first.id || first._id;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!roomId && seekerId) {
+        try {
+          const seekerRooms = await onboardingService.getRooms(seekerId);
+          if (Array.isArray(seekerRooms) && seekerRooms.length > 0) {
+            const first = seekerRooms[0] as { id?: string; _id?: string };
+            roomId = first.id || first._id;
+            // Swap host and seeker since the room belongs to seekerId
+            const temp = hostId;
+            hostId = seekerId;
+            seekerId = temp;
+          }
+        } catch {
+          // ignore
         }
       }
 
@@ -688,7 +727,7 @@ export default function MatchedPage() {
                                 hostAvatar: otherUser?.selfieUrl,
                                 isVerified: Boolean(otherUser?.identityVerified),
                                 occupation,
-                                roomId: item.targetType === 'room' ? item.targetId : undefined,
+                                roomId: item.room?.id || (item.targetType === 'room' ? item.targetId : undefined),
                               },
                             });
                           }}
@@ -963,7 +1002,7 @@ export default function MatchedPage() {
                                     hostAvatar: otherUser?.selfieUrl,
                                     isVerified: Boolean(otherUser?.identityVerified),
                                     occupation,
-                                    roomId: item.targetType === 'room' ? item.targetId : undefined,
+                                    roomId: item.room?.id || (item.targetType === 'room' ? item.targetId : undefined),
                                   },
                                 });
                               }}
@@ -1011,7 +1050,7 @@ export default function MatchedPage() {
                                     hostAvatar: otherUser?.selfieUrl,
                                     isVerified: Boolean(otherUser?.identityVerified),
                                     occupation,
-                                    roomId: item.targetType === 'room' ? item.targetId : undefined,
+                                    roomId: item.room?.id || (item.targetType === 'room' ? item.targetId : undefined),
                                   },
                                 });
                               }}

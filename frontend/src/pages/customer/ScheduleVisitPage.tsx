@@ -256,11 +256,24 @@ export default function ScheduleVisitPage() {
 
     try {
       setIsSubmitting(true);
+      let finalRoomId = stateData.roomId;
+      if (!finalRoomId && targetHostId) {
+        try {
+          const rooms = await onboardingService.getRooms(targetHostId);
+          if (Array.isArray(rooms) && rooms.length > 0) {
+            const first = rooms[0] as { id?: string; _id?: string };
+            finalRoomId = first.id || first._id;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       await visitService.createVisit({
         connectionId,
         seekerId: user.id,
         hostId: targetHostId,
-        roomId: stateData.roomId,
+        roomId: finalRoomId,
         date: selectedDate,
         timeSlot: selectedSlot,
         slotTime,
