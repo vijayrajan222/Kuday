@@ -22,14 +22,14 @@ interface AgreementPaymentSectionProps {
   agreement: Agreement;
   isHost: boolean;
   onPaymentSuccess: (updated: Agreement) => void;
-  onProceedToSign: () => void;
+  onProceedToCompleted?: () => void;
 }
 
 export function AgreementPaymentSection({
   agreement,
   isHost,
   onPaymentSuccess,
-  onProceedToSign,
+  onProceedToCompleted,
 }: AgreementPaymentSectionProps) {
   const [processing, setProcessing] = useState(false);
 
@@ -38,14 +38,9 @@ export function AgreementPaymentSection({
   const isPaymentCompleted =
     agreement.payment?.status === "completed" ||
     agreement.payment?.status === "waived" ||
-    agreement.status === "ready_to_sign" ||
-    agreement.status === "signed";
+    agreement.status === "completed";
 
-  const unresolvedClauses = (agreement.customClauses || []).filter(
-    (c) => c.status === "proposed" || c.status === "countered"
-  );
-  const hasPendingTerms = agreement.pendingCommonTerms?.status === "pending";
-  const hasBlockers = unresolvedClauses.length > 0 || hasPendingTerms;
+  const hasBlockers = agreement.status === "draft" || agreement.status === "negotiating";
 
   const handleStartPayment = async () => {
     if (hasBlockers) {
@@ -154,18 +149,10 @@ export function AgreementPaymentSection({
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <h4 className="font-bold">Pending Terms or Clauses</h4>
+            <h4 className="font-bold">Negotiation In Progress</h4>
             <p>
-              Before proceeding to payment and signing, all financial terms and custom clauses must be mutually agreed upon:
+              Both parties must agree on the latest proposal revision before payment can be completed.
             </p>
-            <ul className="list-disc pl-5 space-y-0.5 text-[11px] text-amber-800">
-              {hasPendingTerms && <li>Base common terms have a pending proposal awaiting response.</li>}
-              {unresolvedClauses.length > 0 && (
-                <li>
-                  {unresolvedClauses.length} custom clause{unresolvedClauses.length > 1 ? "s are" : " is"} currently proposed or countered and must be accepted or rejected.
-                </li>
-              )}
-            </ul>
           </div>
         </div>
       )}
@@ -267,7 +254,7 @@ export function AgreementPaymentSection({
                   onClick={handleStartPayment}
                   className="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 rounded-xl shadow-xs cursor-pointer"
                 >
-                  {isPaymentCompleted ? "Proceed to Final Sign Step &rarr;" : "Confirm Waiver & Unlock Signing &rarr;"}
+                  {isPaymentCompleted ? "Proceed to Final Agreement &rarr;" : "Confirm Waiver & Unlock Agreement &rarr;"}
                 </Button>
               </div>
             ) : isPaymentCompleted ? (
@@ -278,17 +265,17 @@ export function AgreementPaymentSection({
                   <div className="space-y-0.5 text-xs text-emerald-950">
                     <span className="font-black">Fee Paid &amp; Verified</span>
                     <p className="text-[11px] text-emerald-800">
-                      Payment of ₹{agreement.payment?.amount || 499} has been successfully processed. The agreement is unlocked for dual signing.
+                      Payment of ₹{agreement.payment?.amount || 499} has been successfully processed. The agreement is completed and available for download.
                     </p>
                   </div>
                 </div>
 
                 <Button
                   type="button"
-                  onClick={onProceedToSign}
+                  onClick={onProceedToCompleted}
                   className="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 rounded-xl shadow-xs cursor-pointer inline-flex items-center justify-center gap-1.5"
                 >
-                  <span>Proceed to Final Sign Step</span>
+                  <span>View Completed Agreement &amp; PDF</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -298,7 +285,7 @@ export function AgreementPaymentSection({
                 <div className="rounded-xl border border-sky-200 bg-sky-50 p-3.5 text-sky-950 space-y-1">
                   <span className="font-bold">Host Exemption</span>
                   <p className="text-[11px] text-sky-800">
-                    Host accounts are exempt from the agreement preparation fee. The fee of ₹499 is covered by the tenant prior to signing.
+                    Host accounts are exempt from the agreement preparation fee. The fee of ₹499 is covered by the tenant prior to downloading the PDF.
                   </p>
                 </div>
 
@@ -344,7 +331,7 @@ export function AgreementPaymentSection({
                   ) : (
                     <>
                       <CreditCard className="h-3.5 w-3.5" />
-                      <span>Pay ₹499 &amp; Unlock Signing</span>
+                      <span>Pay ₹499 &amp; Unlock PDF</span>
                     </>
                   )}
                 </Button>

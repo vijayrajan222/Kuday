@@ -173,7 +173,7 @@ export default function MatchedPage() {
     if (!user?.id) return;
     try {
       await visitService.updateStatus(visitId, user.id, 'completed');
-      toast.success('Visit confirmed as completed. Rental agreement unlocked!');
+      toast.success('Visit marked as completed.');
       setManageScheduleVisit(null);
       loadUserVisits();
     } catch (err: unknown) {
@@ -835,7 +835,7 @@ export default function MatchedPage() {
                               </span>
                             </div>
                             <p className="text-xs text-sky-800 pl-6">
-                              The visit has been marked as completed. Agreement creation is unlocked!
+                              The visit has been marked as completed.
                             </p>
                           </div>
                         </div>
@@ -940,33 +940,21 @@ export default function MatchedPage() {
                   )}
 
                   <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                    <span className="text-[11px] text-slate-400 font-medium">
-                      {activeVisit?.status === 'completed'
-                        ? 'Visit completed'
-                        : 'Requires completed visit or call'}
+                    <span className="text-[11px] font-medium text-slate-500">
+                      {activeVisit?.status === 'completed' ? (
+                        <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
+                          <CheckCircle2 className="h-3 w-3" /> Visit Completed
+                        </span>
+                      ) : (
+                        <span>Matched Connection</span>
+                      )}
                     </span>
                     <button
                       type="button"
                       disabled={agreementLoadingId === item.id}
-                      onClick={() => {
-                        if (activeVisit?.status === 'completed') {
-                          handleProceedWithAgreement(item, activeVisit);
-                        } else {
-                          toast.error(
-                            'Agreement creation is locked. Complete an in-person visit or video call first.'
-                          );
-                        }
-                      }}
-                      title={
-                        activeVisit?.status === 'completed'
-                          ? 'Create or view shared rental agreement'
-                          : 'Locked: Complete a visit or video call first'
-                      }
-                      className={`text-[11px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 ${
-                        activeVisit?.status === 'completed'
-                          ? 'text-emerald-600 hover:text-emerald-700 cursor-pointer'
-                          : 'text-slate-400 cursor-not-allowed hover:text-slate-500'
-                      }`}
+                      onClick={() => handleProceedWithAgreement(item, activeVisit)}
+                      title="Create or view shared rental agreement"
+                      className="text-[11px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {agreementLoadingId === item.id ? (
                         <span>Loading Agreement...</span>
