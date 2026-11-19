@@ -84,9 +84,10 @@ export function AgreementPaymentSection({
         return;
       }
 
+      const feeAmount = agreement.payment?.amount || 250;
       const options = {
-        key: orderData.keyId,
-        amount: orderData.amount,
+        key: orderData.keyId || "rzp_test_Ty9tPfhtsUOceK",
+        amount: orderData.amount || feeAmount * 100,
         currency: orderData.currency || "INR",
         name: "Kuday Room Rentals",
         description: "Residential Agreement Verification Fee",
@@ -237,11 +238,11 @@ export function AgreementPaymentSection({
 
                 <div className="flex items-center justify-between text-xs py-1 border-t border-slate-200">
                   <span className="text-slate-500">Standard Agreement Fee</span>
-                  <span className="line-through text-slate-400">₹499</span>
+                  <span className="line-through text-slate-400">₹{agreement.payment?.amount || 250}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-bold py-1 border-t border-slate-200">
                   <span className="text-emerald-700">Premium Discount</span>
-                  <span className="text-emerald-700">-₹499</span>
+                  <span className="text-emerald-700">-₹{agreement.payment?.amount || 250}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm font-black pt-2 border-t border-slate-200">
                   <span>Net Amount Due</span>
@@ -265,7 +266,7 @@ export function AgreementPaymentSection({
                   <div className="space-y-0.5 text-xs text-emerald-950">
                     <span className="font-black">Fee Paid &amp; Verified</span>
                     <p className="text-[11px] text-emerald-800">
-                      Payment of ₹{agreement.payment?.amount || 499} has been successfully processed. The agreement is completed and available for download.
+                      Payment of ₹{agreement.payment?.amount || 250} has been successfully processed. The agreement is completed and available for download.
                     </p>
                   </div>
                 </div>
@@ -285,7 +286,7 @@ export function AgreementPaymentSection({
                 <div className="rounded-xl border border-sky-200 bg-sky-50 p-3.5 text-sky-950 space-y-1">
                   <span className="font-bold">Host Exemption</span>
                   <p className="text-[11px] text-sky-800">
-                    Host accounts are exempt from the agreement preparation fee. The fee of ₹499 is covered by the tenant prior to downloading the PDF.
+                    Host accounts are exempt from the agreement preparation fee. The fee of ₹{agreement.payment?.amount || 250} is covered by the tenant prior to downloading the PDF.
                   </p>
                 </div>
 
@@ -299,12 +300,12 @@ export function AgreementPaymentSection({
                 </div>
               </div>
             ) : (
-              /* Case D: Seeker Viewing (Must pay ₹499) */
+              /* Case D: Seeker Viewing (Must pay) */
               <div className="space-y-3 text-xs">
                 <div className="space-y-2 border-b border-slate-200 pb-3">
                   <div className="flex items-center justify-between text-slate-600">
                     <span>Agreement Preparation Fee</span>
-                    <span>₹499.00</span>
+                    <span>₹{(agreement.payment?.amount || 250).toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between text-slate-600">
                     <span>Digital Archival &amp; PDF</span>
@@ -314,7 +315,7 @@ export function AgreementPaymentSection({
 
                 <div className="flex items-center justify-between font-black text-sm text-slate-900 pb-1">
                   <span>Total Amount</span>
-                  <span>₹499.00</span>
+                  <span>₹{(agreement.payment?.amount || 250).toFixed(2)}</span>
                 </div>
 
                 <Button
@@ -331,7 +332,7 @@ export function AgreementPaymentSection({
                   ) : (
                     <>
                       <CreditCard className="h-3.5 w-3.5" />
-                      <span>Pay ₹499 &amp; Unlock PDF</span>
+                      <span>Pay ₹{agreement.payment?.amount || 250} &amp; Unlock PDF</span>
                     </>
                   )}
                 </Button>

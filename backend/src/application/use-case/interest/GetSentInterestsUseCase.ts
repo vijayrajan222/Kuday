@@ -1,12 +1,14 @@
 import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
 import type { IGetSentInterestsUseCase } from "@application/interfaces/use-case/interest/IGetSentInterestsUseCase";
 import type { InterestDetailDto } from "@application/dto/interest/InterestDetailDto";
 
 export class GetSentInterestsUseCase implements IGetSentInterestsUseCase {
     constructor(
         private readonly interestRepo: IInterestRepository,
-        private readonly userRepo: IUserRepository
+        private readonly userRepo: IUserRepository,
+        private readonly roomRepo?: IRoomRepository
     ) {}
 
     async execute(userId: string): Promise<InterestDetailDto[]> {
@@ -31,6 +33,31 @@ export class GetSentInterestsUseCase implements IGetSentInterestsUseCase {
                 await this.interestRepo.updateStatusBetweenUsers(userId, interest.receiverId, "accepted");
             }
 
+            let roomSummary: InterestDetailDto["room"] = undefined;
+            if (this.roomRepo) {
+                let roomEntity = null;
+                if (interest.targetType === "room") {
+                    roomEntity = await this.roomRepo.findById(interest.targetId);
+                }
+                if (!roomEntity) {
+                    const hostId = receiver?.role === "host" ? receiver.id : userId;
+                    const hostRooms = await this.roomRepo.findByHostId(hostId);
+                    if (hostRooms.length > 0) {
+                        roomEntity = hostRooms[0];
+                    }
+                }
+                if (roomEntity) {
+                    const isOccupied = (roomEntity.capacity ?? 0) <= 0 || roomEntity.isActive === false;
+                    roomSummary = {
+                        id: roomEntity.id,
+                        title: roomEntity.title || roomEntity.roomType,
+                        capacity: roomEntity.capacity ?? 0,
+                        isActive: roomEntity.isActive ?? true,
+                        isOccupied,
+                    };
+                }
+            }
+
             results.push({
                 id: interest.id,
                 senderId: interest.senderId,
@@ -41,6 +68,7 @@ export class GetSentInterestsUseCase implements IGetSentInterestsUseCase {
                 message: interest.message,
                 createdAt: interest.createdAt,
                 updatedAt: interest.updatedAt,
+                room: roomSummary,
                 receiver: receiver
                     ? {
                           id: receiver.id,

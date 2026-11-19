@@ -12,6 +12,14 @@ export interface InterestUser {
   identityVerified?: boolean;
 }
 
+export interface InterestRoomSummary {
+  id: string;
+  title?: string;
+  capacity: number;
+  isActive: boolean;
+  isOccupied?: boolean;
+}
+
 export interface InterestDetail {
   id: string;
   senderId: string;
@@ -25,6 +33,7 @@ export interface InterestDetail {
   sender?: InterestUser;
   receiver?: InterestUser;
   targetTitle?: string;
+  room?: InterestRoomSummary;
 }
 
 export interface SendInterestPayload {

@@ -15,6 +15,7 @@ import {
   Moon,
   Users,
   ShieldAlert,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInterest } from '@/hooks/useInterest';
@@ -320,11 +321,19 @@ export default function MatchedPage() {
                 ? `${sender.firstName} ${sender.lastName || ''}`.trim()
                 : 'Roommate Seeker';
               const occupation = sender?.occupation?.replace('_', ' ') || sender?.role || 'Seeker';
+              const isRoomFilled = Boolean(
+                item.room?.isOccupied ||
+                (item.room && (item.room.capacity <= 0 || item.room.isActive === false))
+              );
 
               return (
                 <div
                   key={item.id}
-                  className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs hover:border-slate-300 transition-colors flex flex-col justify-between gap-4"
+                  className={`rounded-2xl border p-4 transition-colors flex flex-col justify-between gap-4 ${
+                    isRoomFilled
+                      ? "border-slate-300 bg-slate-100/90 grayscale opacity-75 shadow-none"
+                      : "border-slate-200/90 bg-white shadow-2xs hover:border-slate-300"
+                  }`}
                 >
                   <div className="flex items-start gap-3.5">
                     {/* Selfie Photo */}
@@ -349,6 +358,11 @@ export default function MatchedPage() {
                           <span>{senderName}</span>
                           {sender?.identityVerified && (
                             <CheckCircle2 className="h-4 w-4 text-sky-500 fill-sky-500 text-white shrink-0" />
+                          )}
+                          {isRoomFilled && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-900 text-white text-[9px] font-black uppercase tracking-wider ml-1">
+                              <Lock className="h-2.5 w-2.5 text-amber-400" /> Filled
+                            </span>
                           )}
                         </h3>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
@@ -421,11 +435,19 @@ export default function MatchedPage() {
                 ? `${receiver.firstName} ${receiver.lastName || ''}`.trim()
                 : 'Community Match';
               const occupation = receiver?.occupation?.replace('_', ' ') || receiver?.role || 'Host';
+              const isRoomFilled = Boolean(
+                item.room?.isOccupied ||
+                (item.room && (item.room.capacity <= 0 || item.room.isActive === false))
+              );
 
               return (
                 <div
                   key={item.id}
-                  className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs hover:border-slate-300 transition-colors flex flex-col justify-between gap-4"
+                  className={`rounded-2xl border p-4 transition-colors flex flex-col justify-between gap-4 ${
+                    isRoomFilled
+                      ? "border-slate-300 bg-slate-100/90 grayscale opacity-75 shadow-none"
+                      : "border-slate-200/90 bg-white shadow-2xs hover:border-slate-300"
+                  }`}
                 >
                   <div className="flex items-start gap-3.5">
                     {/* Selfie / Target Photo */}
@@ -446,8 +468,13 @@ export default function MatchedPage() {
                     {/* Details */}
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="font-bold text-slate-900 text-sm truncate">
-                          {receiverName}
+                        <h3 className="font-bold text-slate-900 text-sm truncate flex items-center gap-1">
+                          <span>{receiverName}</span>
+                          {isRoomFilled && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-900 text-white text-[9px] font-black uppercase tracking-wider ml-1">
+                              <Lock className="h-2.5 w-2.5 text-amber-400" /> Filled
+                            </span>
+                          )}
                         </h3>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
                           {occupation}
@@ -509,11 +536,19 @@ export default function MatchedPage() {
               const occupation = otherUser?.occupation?.replace('_', ' ') || otherUser?.role || 'Roommate';
 
               const activeVisit = visitsByConnection.get(item.id);
+              const isRoomFilled = Boolean(
+                item.room?.isOccupied ||
+                (item.room && (item.room.capacity <= 0 || item.room.isActive === false))
+              );
 
               return (
                 <div
                   key={item.id}
-                  className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs hover:border-slate-300 transition-colors flex flex-col gap-4"
+                  className={`rounded-3xl border p-4 sm:p-5 transition-all flex flex-col gap-4 relative overflow-hidden ${
+                    isRoomFilled
+                      ? "border-slate-300 bg-slate-100/90 grayscale opacity-75 shadow-none"
+                      : "border-slate-200/90 bg-white shadow-2xs hover:border-slate-300"
+                  }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     {/* User Info with Active Green Indicator */}
@@ -530,7 +565,11 @@ export default function MatchedPage() {
                             {otherName.charAt(0).toUpperCase()}
                           </div>
                         )}
-                        <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-white" />
+                        <span
+                          className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white ${
+                            isRoomFilled ? "bg-slate-400" : "bg-emerald-500"
+                          }`}
+                        />
                       </div>
 
                       <div>
@@ -538,6 +577,11 @@ export default function MatchedPage() {
                           <span>{otherName}</span>
                           {otherUser?.identityVerified && (
                             <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                          )}
+                          {isRoomFilled && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-black uppercase tracking-wider ml-1">
+                              <Lock className="h-3 w-3 text-amber-400" /> Filled
+                            </span>
                           )}
                         </h3>
                         <p className="text-xs text-slate-500 font-medium capitalize">
@@ -941,7 +985,11 @@ export default function MatchedPage() {
 
                   <div className="flex items-center justify-between pt-1 border-t border-slate-100">
                     <span className="text-[11px] font-medium text-slate-500">
-                      {activeVisit?.status === 'completed' ? (
+                      {isRoomFilled ? (
+                        <span className="inline-flex items-center gap-1 text-slate-500 font-semibold">
+                          <Lock className="h-3 w-3 text-slate-400" /> Room Filled (Occupied)
+                        </span>
+                      ) : activeVisit?.status === 'completed' ? (
                         <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
                           <CheckCircle2 className="h-3 w-3" /> Visit Completed
                         </span>
@@ -949,22 +997,28 @@ export default function MatchedPage() {
                         <span>Matched Connection</span>
                       )}
                     </span>
-                    <button
-                      type="button"
-                      disabled={agreementLoadingId === item.id}
-                      onClick={() => handleProceedWithAgreement(item, activeVisit)}
-                      title="Create or view shared rental agreement"
-                      className="text-[11px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {agreementLoadingId === item.id ? (
-                        <span>Loading Agreement...</span>
-                      ) : (
-                        <>
-                          <span>Proceed with Agreement</span>
-                          <span>&rarr;</span>
-                        </>
-                      )}
-                    </button>
+                    {isRoomFilled ? (
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-not-allowed">
+                        Filled &bull; Awaiting Availability
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={agreementLoadingId === item.id}
+                        onClick={() => handleProceedWithAgreement(item, activeVisit)}
+                        title="Create or view shared rental agreement"
+                        className="text-[11px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {agreementLoadingId === item.id ? (
+                          <span>Loading Agreement...</span>
+                        ) : (
+                          <>
+                            <span>Proceed with Agreement</span>
+                            <span>&rarr;</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               );

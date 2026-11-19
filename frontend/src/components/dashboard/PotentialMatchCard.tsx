@@ -12,6 +12,7 @@ interface PotentialMatchCardProps {
   imageUrl?: string;
   matchScore: number;
   isVerified?: boolean;
+  isFilled?: boolean;
   status?: 'accepted' | 'pending' | 'declined' | 'received_pending' | 'none' | null;
   isProcessing?: boolean;
   onDetails: () => void;
@@ -28,13 +29,20 @@ export const PotentialMatchCard = memo(function PotentialMatchCard({
   imageUrl,
   matchScore,
   isVerified,
+  isFilled,
   status,
   isProcessing,
   onDetails,
   onAction,
 }: PotentialMatchCardProps) {
   return (
-    <div className="group overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xs hover:border-slate-300 hover:shadow-sm transition-all flex flex-col justify-between">
+    <div
+      className={`group overflow-hidden rounded-2xl border transition-all flex flex-col justify-between ${
+        isFilled
+          ? "border-slate-300 bg-slate-100/90 grayscale opacity-75 shadow-none"
+          : "border-slate-200/80 bg-white shadow-2xs hover:border-slate-300 hover:shadow-sm"
+      }`}
+    >
       <div>
         {/* Photo header with overlay badges */}
         <div
@@ -60,9 +68,16 @@ export const PotentialMatchCard = memo(function PotentialMatchCard({
           </span>
 
           {/* Verified Badge */}
-          {isVerified && (
+          {isVerified && !isFilled && (
             <span className="absolute top-3 right-3 rounded-full bg-white/90 backdrop-blur text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold shadow-xs flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified
+            </span>
+          )}
+
+          {/* Filled Badge */}
+          {isFilled && (
+            <span className="absolute top-3 right-3 rounded-full bg-slate-900 text-white px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider shadow-xs flex items-center gap-1">
+              Filled
             </span>
           )}
 

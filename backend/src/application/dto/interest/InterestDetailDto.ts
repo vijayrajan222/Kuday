@@ -31,4 +31,11 @@ export interface InterestDetailDto {
         identityVerified?: boolean | undefined;
     } | undefined;
     targetTitle?: string | undefined;
+    room?: {
+        id: string;
+        title?: string | undefined;
+        capacity: number;
+        isActive: boolean;
+        isOccupied?: boolean | undefined;
+    } | undefined;
 }
