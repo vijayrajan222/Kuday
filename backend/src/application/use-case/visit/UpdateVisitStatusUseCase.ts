@@ -32,6 +32,16 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
             throw new ValidationError("You cannot accept your own visit request. The other party must confirm the visit.");
         }
 
+        // Idempotency: if visit is already completed and caller marks completed again, return existing
+        if (visit.status === "completed" && dto.status === "completed") {
+            if (this.socketService) {
+                const recipientId = dto.userId === visit.seekerId ? visit.hostId : visit.seekerId;
+                this.socketService.notifyUser(recipientId, "visit_update", visit);
+                this.socketService.notifyUser(dto.userId, "visit_update", visit);
+            }
+            return visit;
+        }
+
         const updated = await this.visitRepo.updateStatus(dto.visitId, dto.status);
         if (!updated) {
             throw new NotFoundError("Failed to update visit status.");
@@ -48,6 +58,8 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
                 ? "cancelled"
                 : dto.status === "rejected"
                 ? "declined"
+                : dto.status === "completed"
+                ? "completed"
                 : dto.status;
 
         // Notification
@@ -61,6 +73,8 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
                         ? "Visit Declined"
                         : dto.status === "cancelled"
                         ? "Visit Cancelled"
+                        : dto.status === "completed"
+                        ? "Visit Completed"
                         : "Visit Status Updated",
                 message: `${actorName} has ${statusText} the scheduled visit for ${visit.date} (${visit.slotTime}).${dto.note ? ` Note: "${dto.note}"` : ""}`,
                 type: "visit_request",
@@ -84,6 +98,8 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
                     chatMessage = `Visit Cancelled: The scheduled visit for ${visit.date} was cancelled.${dto.note ? ` Reason: "${dto.note}"` : ""}`;
                 } else if (dto.status === "rejected") {
                     chatMessage = `Visit Declined: The scheduled visit for ${visit.date} was declined.${dto.note ? ` Reason: "${dto.note}"` : ""}`;
+                } else if (dto.status === "completed") {
+                    chatMessage = `Visit Completed: The scheduled visit on ${visit.date} was marked completed.`;
                 }
                 if (chatMessage) {
                     await this.sendMessageUseCase.execute({
@@ -97,6 +113,7 @@ export class UpdateVisitStatusUseCase implements IUpdateVisitStatusUseCase {
             }
         }
 
+        // Instant socket sync to both users
         if (this.socketService) {
             this.socketService.notifyUser(recipientId, "visit_update", updated);
             this.socketService.notifyUser(dto.userId, "visit_update", updated);

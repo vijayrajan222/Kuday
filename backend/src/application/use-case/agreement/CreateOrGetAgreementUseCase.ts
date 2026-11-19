@@ -4,7 +4,7 @@ import type { AgreementResponseDto } from "@application/dto/agreement/AgreementR
 import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
-import type { ICheckAgreementUnlockUseCase } from "@application/interfaces/use-case/agreement/ICheckAgreementUnlockUseCase";
+import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
 import type { AgreementEntity } from "@domain/entities/AgreementEntity";
 import { UnauthorizedError, ValidationError } from "@application/errors/AppError";
 
@@ -13,7 +13,7 @@ export class CreateOrGetAgreementUseCase implements ICreateOrGetAgreementUseCase
         private readonly agreementRepository: IAgreementRepository,
         private readonly userRepository: IUserRepository,
         private readonly roomRepository: IRoomRepository,
-        private readonly checkUnlockUseCase: ICheckAgreementUnlockUseCase
+        private readonly interestRepository: IInterestRepository
     ) {}
 
     private async enrich(agreement: AgreementEntity): Promise<AgreementResponseDto> {
@@ -74,13 +74,10 @@ export class CreateOrGetAgreementUseCase implements ICreateOrGetAgreementUseCase
             return this.enrich(existing);
         }
 
-        // 3. Strict unlock enforcement on backend
-        const unlockStatus = await this.checkUnlockUseCase.execute(hostId, seekerId, roomId);
-        if (!unlockStatus.unlocked) {
-            throw new ValidationError(
-                unlockStatus.reason ||
-                    "Agreement creation is locked. A completed in-person visit or video call is required before creating an agreement."
-            );
+        // 3. Match Enforcement only (no visit completion required)
+        const matched = await this.interestRepository.findAcceptedBetween(hostId, seekerId);
+        if (!matched || matched.status !== "accepted") {
+            throw new ValidationError("An active match connection between host and seeker is required to proceed with an agreement.");
         }
 
         // 4. Fetch room to prefill terms
@@ -125,12 +122,23 @@ export class CreateOrGetAgreementUseCase implements ICreateOrGetAgreementUseCase
             hostObligations,
             seekerObligations,
             customClauses: [],
+            editLock: {
+                userId: null,
+                expiresAt: null,
+            },
+            revision: 1,
+            pendingWith: null,
+            lastSubmittedBy: null,
+            acceptedBy: [],
+            acceptanceTimestamps: {
+                host: null,
+                seeker: null,
+            },
             payment: {
                 required: false,
                 amount: 0,
                 status: "pending",
             },
-            signatures: {},
             version: 1,
         });
 
