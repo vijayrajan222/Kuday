@@ -25,7 +25,7 @@ export function getAgreementFee(
   _host: AgreementPartyFeeInfo,
   seeker: AgreementPartyFeeInfo
 ): AgreementFeeCalculation {
-  const feeInr = parseInt(process.env.AGREEMENT_FEE_INR || "499", 10);
+  const feeInr = parseInt(process.env.AGREEMENT_FEE_INR || "250", 10);
 
   // Check if seeker has an active, unexpired subscription or premium status
   const isSubscriber = Boolean(

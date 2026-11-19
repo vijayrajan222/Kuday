@@ -12,6 +12,10 @@ export class RazorpayAgreementPaymentService implements IAgreementPaymentService
     return "razorpay";
   }
 
+  getKeyId(): string {
+    return this.razorpayService.getKeyId();
+  }
+
   async createOrder(
     receipt: string,
     amountPaise: number,

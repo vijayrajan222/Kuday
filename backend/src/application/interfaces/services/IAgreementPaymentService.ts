@@ -14,6 +14,7 @@ export interface VerifyPaymentParams {
 
 export interface IAgreementPaymentService {
   getProviderName(): "razorpay" | "mock";
+  getKeyId?(): string | undefined;
   createOrder(
     receipt: string,
     amountPaise: number,

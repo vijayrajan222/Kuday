@@ -10,6 +10,10 @@ export class MockAgreementPaymentService implements IAgreementPaymentService {
     return "mock";
   }
 
+  getKeyId(): string | undefined {
+    return "mock_key_test";
+  }
+
   async createOrder(
     receipt: string,
     amountPaise: number

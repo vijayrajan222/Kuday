@@ -8,6 +8,7 @@ import type { ISocketNotificationService } from "@application/interfaces/service
 import { getAgreementFee } from "@domain/services/agreementFeeCalculator";
 import { NotFoundError, UnauthorizedError, ValidationError } from "@application/errors/AppError";
 import { enrichAgreement } from "./helpers/enrichAgreement";
+import { deductRoomVacancy } from "./helpers/occupancyHelper";
 
 export class CreateAgreementPaymentOrderUseCase implements ICreateAgreementPaymentOrderUseCase {
   constructor(
@@ -61,6 +62,8 @@ export class CreateAgreementPaymentOrderUseCase implements ICreateAgreementPayme
           status: "waived",
         },
       });
+
+      await deductRoomVacancy(this.roomRepository, (updated || agreement).roomId, this.socketService);
 
       const enriched = await enrichAgreement(updated || agreement, this.userRepository, this.roomRepository);
 
@@ -135,10 +138,12 @@ export class CreateAgreementPaymentOrderUseCase implements ICreateAgreementPayme
     const updated = await this.agreementRepository.findById(agreement.id);
     const enriched = await enrichAgreement(updated || agreement, this.userRepository, this.roomRepository);
 
+    keyId = keyId || this.paymentService.getKeyId?.();
+
     return {
       waived: false,
       orderId,
-      amount: fee.amount,
+      amount: fee.amountPaise,
       currency: "INR",
       provider: providerName,
       keyId,

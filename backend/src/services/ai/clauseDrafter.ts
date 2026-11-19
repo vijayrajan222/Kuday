@@ -57,8 +57,16 @@ export async function draftClause(
     };
   }
 
-  const preferredModel = process.env.GEMINI_MODEL || "gemini-3.8-flash";
-  const candidateModels = [preferredModel, "gemini-2.5-flash"];
+  const preferredModel = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
+  const candidateModels = Array.from(
+    new Set([
+      preferredModel,
+      "gemini-3.1-flash-lite",
+      "gemini-3.5-flash-lite",
+      "gemini-3.5-flash",
+      "gemini-2.5-flash-lite",
+    ])
+  );
 
   const safeTerms: BaseTermsSummary = {
     rent: baseTerms?.rent,
