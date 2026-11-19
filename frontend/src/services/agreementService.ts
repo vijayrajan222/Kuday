@@ -3,11 +3,10 @@ import { API_ENDPOINTS } from "@/constants/apiEndpoints";
 import type {
   Agreement,
   AgreementUnlockStatus,
-  CommonTerms,
   CreateAgreementPayload,
   DraftClauseResponse,
-  ProposeCustomClausePayload,
-  RespondCustomClausePayload,
+  SubmitProposalPayload,
+  AcceptProposalPayload,
   AgreementPaymentOrderResponse,
   VerifyAgreementPaymentPayload,
 } from "@/types/agreement.types";
@@ -41,18 +40,39 @@ export const agreementService = {
     return res.data.data;
   },
 
-  async proposeCommonTerms(id: string, terms: CommonTerms): Promise<Agreement> {
-    const res = await api.patch<{ success: boolean; data: Agreement }>(
-      API_ENDPOINTS.AGREEMENT.PROPOSE_TERMS(id),
-      { terms }
+  async acquireLock(id: string): Promise<Agreement> {
+    const res = await api.post<{ success: boolean; data: Agreement }>(
+      API_ENDPOINTS.AGREEMENT.LOCK(id)
     );
     return res.data.data;
   },
 
-  async respondCommonTerms(id: string, action: "accept" | "reject"): Promise<Agreement> {
-    const res = await api.patch<{ success: boolean; data: Agreement }>(
-      API_ENDPOINTS.AGREEMENT.RESPOND_TERMS(id),
-      { action }
+  async renewLockHeartbeat(id: string): Promise<Agreement> {
+    const res = await api.post<{ success: boolean; data: Agreement }>(
+      API_ENDPOINTS.AGREEMENT.HEARTBEAT(id)
+    );
+    return res.data.data;
+  },
+
+  async releaseLock(id: string): Promise<Agreement> {
+    const res = await api.post<{ success: boolean; data: Agreement }>(
+      API_ENDPOINTS.AGREEMENT.UNLOCK(id)
+    );
+    return res.data.data;
+  },
+
+  async submitProposal(id: string, payload: SubmitProposalPayload): Promise<Agreement> {
+    const res = await api.post<{ success: boolean; data: Agreement }>(
+      API_ENDPOINTS.AGREEMENT.SUBMIT(id),
+      payload
+    );
+    return res.data.data;
+  },
+
+  async acceptProposal(id: string, payload: AcceptProposalPayload): Promise<Agreement> {
+    const res = await api.post<{ success: boolean; data: Agreement }>(
+      API_ENDPOINTS.AGREEMENT.ACCEPT(id),
+      payload
     );
     return res.data.data;
   },
@@ -61,26 +81,6 @@ export const agreementService = {
     const res = await api.post<{ success: boolean; data: DraftClauseResponse }>(
       API_ENDPOINTS.AGREEMENT.DRAFT_CLAUSE(id),
       { userNeed }
-    );
-    return res.data.data;
-  },
-
-  async proposeClause(id: string, payload: ProposeCustomClausePayload): Promise<Agreement> {
-    const res = await api.post<{ success: boolean; data: Agreement }>(
-      API_ENDPOINTS.AGREEMENT.PROPOSE_CLAUSE(id),
-      payload
-    );
-    return res.data.data;
-  },
-
-  async respondClause(
-    id: string,
-    clauseId: string,
-    payload: RespondCustomClausePayload
-  ): Promise<Agreement> {
-    const res = await api.patch<{ success: boolean; data: Agreement }>(
-      API_ENDPOINTS.AGREEMENT.RESPOND_CLAUSE(id, clauseId),
-      payload
     );
     return res.data.data;
   },
@@ -99,13 +99,6 @@ export const agreementService = {
     const res = await api.post<{ success: boolean; data: Agreement }>(
       API_ENDPOINTS.AGREEMENT.VERIFY_PAYMENT(id),
       payload
-    );
-    return res.data.data;
-  },
-
-  async signAgreement(id: string): Promise<Agreement> {
-    const res = await api.post<{ success: boolean; data: Agreement }>(
-      API_ENDPOINTS.AGREEMENT.SIGN(id)
     );
     return res.data.data;
   },

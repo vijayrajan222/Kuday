@@ -2,8 +2,7 @@ export type AgreementStatus =
   | 'draft'
   | 'negotiating'
   | 'awaiting_payment'
-  | 'ready_to_sign'
-  | 'signed'
+  | 'completed'
   | 'cancelled';
 
 export type CustomClauseStatus =
@@ -33,7 +32,7 @@ export interface ProposedCommonTerms {
 }
 
 export interface CustomClause {
-  id: string;
+  id?: string;
   proposedBy: string;
   originalText: string;
   aiDraftText?: string;
@@ -54,14 +53,14 @@ export interface AgreementPayment {
   status: AgreementPaymentStatus;
 }
 
-export interface PartySignature {
-  signedAt?: string;
-  ip?: string;
+export interface EditLock {
+  userId?: string | null;
+  expiresAt?: string | null;
 }
 
-export interface AgreementSignatures {
-  host?: PartySignature;
-  seeker?: PartySignature;
+export interface AcceptanceTimestamps {
+  host?: string | null;
+  seeker?: string | null;
 }
 
 export interface AgreementUserSummary {
@@ -94,8 +93,13 @@ export interface Agreement {
   hostObligations: string[];
   seekerObligations: string[];
   customClauses: CustomClause[];
+  editLock: EditLock;
+  revision: number;
+  pendingWith?: string | null;
+  lastSubmittedBy?: string | null;
+  acceptedBy: string[];
+  acceptanceTimestamps: AcceptanceTimestamps;
   payment: AgreementPayment;
-  signatures: AgreementSignatures;
   version: number;
   lockedAt?: string;
   pdfUrl?: string;
@@ -109,8 +113,8 @@ export interface Agreement {
 export interface AgreementUnlockStatus {
   unlocked: boolean;
   reason?: string;
-  visitCompleted: boolean;
-  callCompleted: boolean;
+  visitCompleted?: boolean;
+  callCompleted?: boolean;
   activeAgreementId?: string;
 }
 
@@ -132,15 +136,14 @@ export interface DraftClauseResponse {
   disclaimer: string;
 }
 
-export interface ProposeCustomClausePayload {
-  originalText: string;
-  aiDraftText?: string;
-  finalText: string;
+export interface SubmitProposalPayload {
+  revision: number;
+  commonTerms?: CommonTerms;
+  customClauses?: CustomClause[];
 }
 
-export interface RespondCustomClausePayload {
-  action: 'accept' | 'reject' | 'counter';
-  counterText?: string;
+export interface AcceptProposalPayload {
+  revision: number;
 }
 
 export interface AgreementPaymentOrderResponse {
