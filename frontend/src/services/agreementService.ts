@@ -9,6 +9,7 @@ import type {
   AcceptProposalPayload,
   AgreementPaymentOrderResponse,
   VerifyAgreementPaymentPayload,
+  ActiveRoommateResponse,
 } from "@/types/agreement.types";
 
 export const agreementService = {
@@ -103,10 +104,30 @@ export const agreementService = {
     return res.data.data;
   },
 
+  async getActiveRoommate(): Promise<ActiveRoommateResponse | ActiveRoommateResponse[] | null> {
+    const res = await api.get<{
+      success: boolean;
+      data: ActiveRoommateResponse | ActiveRoommateResponse[] | null;
+    }>(API_ENDPOINTS.AGREEMENT.GET_ACTIVE_ROOMMATE);
+    return res.data.data;
+  },
+
   async getPdfBlob(id: string): Promise<Blob> {
     const res = await api.get(API_ENDPOINTS.AGREEMENT.GET_PDF(id), {
       responseType: "blob",
     });
     return res.data as Blob;
+  },
+
+  async terminateAgreement(
+    id: string,
+    status: "ended" | "cancelled",
+    reason?: string
+  ): Promise<Agreement> {
+    const res = await api.post<{ success: boolean; data: Agreement }>(
+      API_ENDPOINTS.AGREEMENT.TERMINATE(id),
+      { status, reason }
+    );
+    return res.data.data;
   },
 };

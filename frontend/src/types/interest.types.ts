@@ -1,4 +1,4 @@
-export type InterestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'unmatched';
+export type InterestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'unmatched' | 'room_filled';
 export type InterestTargetType = 'room' | 'seeker';
 
 export interface InterestUser {
@@ -16,6 +16,7 @@ export interface InterestRoomSummary {
   id: string;
   title?: string;
   capacity: number;
+  availableSlots?: number;
   isActive: boolean;
   isOccupied?: boolean;
 }

@@ -3,6 +3,7 @@ export type AgreementStatus =
   | 'negotiating'
   | 'awaiting_payment'
   | 'completed'
+  | 'ended'
   | 'cancelled';
 
 export type CustomClauseStatus =
@@ -80,6 +81,7 @@ export interface AgreementRoomSummary {
   monthlyRent: number;
   location: string;
   images: string[];
+  availableSlots?: number;
 }
 
 export interface Agreement {
@@ -88,6 +90,11 @@ export interface Agreement {
   seekerId: string;
   roomId: string;
   status: AgreementStatus;
+  startDate?: string;
+  endDate?: string;
+  activatedAt?: string;
+  slotRestored?: boolean;
+  terminatedAt?: string;
   commonTerms: CommonTerms;
   pendingCommonTerms?: ProposedCommonTerms;
   hostObligations: string[];
@@ -161,4 +168,40 @@ export interface VerifyAgreementPaymentPayload {
   orderId: string;
   paymentId: string;
   signature?: string;
+}
+
+export interface ActiveRoommatePartner {
+  id: string;
+  firstName: string;
+  lastName?: string;
+  email: string;
+  role: string;
+  occupation?: string;
+  selfieUrl?: string;
+  identityVerified: boolean;
+}
+
+export interface ActiveRoommateRoom {
+  id: string;
+  title?: string;
+  roomType: string;
+  monthlyRent: number;
+  location: string;
+  images: string[];
+}
+
+export interface ActiveRoommateResponse {
+  agreementId: string;
+  startDate?: string;
+  endDate?: string;
+  status: string;
+  commonTerms: {
+    rent: number;
+    deposit: number;
+    moveInDate: string;
+    durationMonths: number;
+    utilities: string;
+  };
+  partner: ActiveRoommatePartner;
+  room: ActiveRoommateRoom;
 }

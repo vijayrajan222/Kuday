@@ -3,12 +3,13 @@ import type { AgreementPaymentOrderResponseDto } from "@application/dto/agreemen
 import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
+import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
 import type { IAgreementPaymentService } from "@application/interfaces/services/IAgreementPaymentService";
 import type { ISocketNotificationService } from "@application/interfaces/services/ISocketNotificationService";
 import { getAgreementFee } from "@domain/services/agreementFeeCalculator";
 import { NotFoundError, UnauthorizedError, ValidationError } from "@application/errors/AppError";
 import { enrichAgreement } from "./helpers/enrichAgreement";
-import { deductRoomVacancy } from "./helpers/occupancyHelper";
+import { activateAgreement } from "./helpers/occupancyHelper";
 
 export class CreateAgreementPaymentOrderUseCase implements ICreateAgreementPaymentOrderUseCase {
   constructor(
@@ -16,7 +17,8 @@ export class CreateAgreementPaymentOrderUseCase implements ICreateAgreementPayme
     private readonly userRepository: IUserRepository,
     private readonly roomRepository: IRoomRepository,
     private readonly paymentService: IAgreementPaymentService,
-    private readonly socketService?: ISocketNotificationService
+    private readonly socketService?: ISocketNotificationService,
+    private readonly interestRepository?: IInterestRepository
   ) {}
 
   async execute(userId: string, agreementId: string): Promise<AgreementPaymentOrderResponseDto> {
@@ -47,23 +49,38 @@ export class CreateAgreementPaymentOrderUseCase implements ICreateAgreementPayme
       throw new NotFoundError("Host or Seeker profile could not be located.");
     }
 
+    const room = await this.roomRepository.findById(agreement.roomId);
+    if (!room || (room.availableSlots ?? 0) <= 0) {
+      throw new ValidationError("No available slots remaining for this room.");
+    }
+
     // Calculate agreement fee
     const fee = getAgreementFee(host, seeker);
 
     // If fee is waived (e.g. seeker has active subscription)
     if (fee.isWaived || !fee.required) {
-      const updated = await this.agreementRepository.update(agreement.id, {
-        status: "completed",
-        lockedAt: new Date().toISOString(),
-        payment: {
-          required: false,
-          payerId: seeker.id,
-          amount: 0,
-          status: "waived",
+      const { agreement: updated, slotReserved } = await activateAgreement(
+        {
+          agreementRepository: this.agreementRepository,
+          roomRepository: this.roomRepository,
+          userRepository: this.userRepository,
+          interestRepository: this.interestRepository,
+          socketService: this.socketService,
         },
-      });
+        agreement.id,
+        {
+          payment: {
+            required: false,
+            payerId: seeker.id,
+            amount: 0,
+            status: "waived",
+          },
+        }
+      );
 
-      await deductRoomVacancy(this.roomRepository, (updated || agreement).roomId, this.socketService);
+      if (!slotReserved) {
+        throw new ValidationError("No available slots remaining for this room.");
+      }
 
       const enriched = await enrichAgreement(updated || agreement, this.userRepository, this.roomRepository);
 

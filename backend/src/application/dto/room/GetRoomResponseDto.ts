@@ -27,6 +27,7 @@ export interface RoomWithHostDto {
         lng: number;
     } | undefined;
     capacity: number;
+    availableSlots: number;
     availabilityNotes: string;
     amenities: string[];
     images: string[];

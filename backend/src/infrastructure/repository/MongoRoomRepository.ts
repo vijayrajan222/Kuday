@@ -18,6 +18,7 @@ export class MongoRoomRepository implements IRoomRepository {
                     ? { lat: doc.coordinates.lat, lng: doc.coordinates.lng }
                     : undefined,
             capacity: doc.capacity,
+            availableSlots: doc.availableSlots ?? 0,
             availabilityNotes: doc.availabilityNotes,
             amenities: doc.amenities ?? [],
             images: doc.images ?? [],
@@ -35,6 +36,7 @@ export class MongoRoomRepository implements IRoomRepository {
             monthlyRent: roomData.monthlyRent,
             location: roomData.location,
             capacity: roomData.capacity,
+            availableSlots: roomData.availableSlots ?? roomData.capacity ?? 1,
             availabilityNotes: roomData.availabilityNotes,
             amenities: roomData.amenities,
             images: roomData.images,
@@ -58,8 +60,33 @@ export class MongoRoomRepository implements IRoomRepository {
         return doc ? this.mapToEntity(doc) : null;
     }
 
+    async decrementAvailableSlots(roomId: string): Promise<RoomEntity | null> {
+        const doc = await RoomModel.findOneAndUpdate(
+            { _id: roomId, availableSlots: { $gt: 0 } },
+            { $inc: { availableSlots: -1 } },
+            { new: true }
+        ).exec();
+        return doc ? this.mapToEntity(doc) : null;
+    }
+
+    async incrementAvailableSlots(roomId: string): Promise<RoomEntity | null> {
+        const doc = await RoomModel.findOneAndUpdate(
+            {
+                _id: roomId,
+                $expr: { $lt: ["$availableSlots", "$capacity"] },
+            },
+            { $inc: { availableSlots: 1 } },
+            { new: true }
+        ).exec();
+        return doc ? this.mapToEntity(doc) : null;
+    }
+
     async updateStatusByHostId(hostId: string, isActive: boolean): Promise<void> {
-        await RoomModel.updateMany({ hostId }, { $set: { isActive } }).exec();
+        if (isActive) {
+            await RoomModel.updateMany({ hostId, availableSlots: { $gt: 0 } }, { $set: { isActive: true } }).exec();
+        } else {
+            await RoomModel.updateMany({ hostId }, { $set: { isActive: false } }).exec();
+        }
     }
 
     async findByHostId(hostId: string): Promise<RoomEntity[]> {

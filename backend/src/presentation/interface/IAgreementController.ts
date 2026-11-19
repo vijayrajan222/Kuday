@@ -13,4 +13,6 @@ export interface IAgreementController {
     verifyPayment(req: Request, res: Response, next: NextFunction): Promise<void>;
     handleWebhook(req: Request, res: Response, next: NextFunction): Promise<void>;
     getPdf(req: Request, res: Response, next: NextFunction): Promise<void>;
+    terminate(req: Request, res: Response, next: NextFunction): Promise<void>;
+    getActiveRoommate(req: Request, res: Response, next: NextFunction): Promise<void>;
 }

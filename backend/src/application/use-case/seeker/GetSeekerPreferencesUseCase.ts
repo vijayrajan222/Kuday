@@ -35,7 +35,7 @@ export class GetSeekerPreferencesUseCase implements IGetSeekerPreferencesUseCase
         for (const pref of allPreferences) {
             const seekerUser = await this.userRepository.findById(pref.userId);
 
-            // Seeker must exist and be currently in 'seeker' role
+            // Seeker visibility depends on role === 'seeker' only
             if (!seekerUser || seekerUser.role !== 'seeker') {
                 continue;
             }

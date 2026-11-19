@@ -1,4 +1,4 @@
-export type InterestStatus = "pending" | "accepted" | "declined" | "cancelled" | "unmatched";
+export type InterestStatus = "pending" | "accepted" | "declined" | "cancelled" | "unmatched" | "room_filled";
 export type InterestTargetType = "room" | "seeker";
 
 export interface InterestEntity {

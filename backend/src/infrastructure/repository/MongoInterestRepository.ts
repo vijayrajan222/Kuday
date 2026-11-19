@@ -106,4 +106,42 @@ export class MongoInterestRepository implements IInterestRepository {
             { $set: { status } }
         ).exec();
     }
+
+    async closeOtherSeekerInterests(seekerId: string, keepHostId: string): Promise<void> {
+        // Cancel other pending interests sent or received by this seeker
+        await InterestModel.updateMany(
+            {
+                status: "pending",
+                $or: [{ senderId: seekerId }, { receiverId: seekerId }],
+                $nor: [
+                    { senderId: seekerId, receiverId: keepHostId },
+                    { senderId: keepHostId, receiverId: seekerId },
+                ],
+            },
+            { $set: { status: "cancelled", message: "Seeker finalized an agreement." } }
+        ).exec();
+
+        // Unmatch other connections between this seeker and other parties
+        await InterestModel.updateMany(
+            {
+                status: "accepted",
+                $or: [
+                    { senderId: seekerId, receiverId: { $ne: keepHostId } },
+                    { receiverId: seekerId, senderId: { $ne: keepHostId } },
+                ],
+            },
+            { $set: { status: "unmatched", message: "Connection closed: seeker finalized an agreement." } }
+        ).exec();
+    }
+
+    async markPendingRoomInterestsFilled(roomId: string): Promise<void> {
+        await InterestModel.updateMany(
+            {
+                targetId: roomId,
+                targetType: "room",
+                status: "pending",
+            },
+            { $set: { status: "room_filled", message: "Room filled" } }
+        ).exec();
+    }
 }

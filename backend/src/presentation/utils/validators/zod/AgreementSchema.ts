@@ -56,3 +56,8 @@ export const verifyAgreementPaymentSchema = z.object({
     paymentId: z.string().min(1, "paymentId is required"),
     signature: z.string().optional(),
 });
+
+export const terminateAgreementSchema = z.object({
+    status: z.enum(["ended", "cancelled"]),
+    reason: z.string().max(500).optional(),
+});

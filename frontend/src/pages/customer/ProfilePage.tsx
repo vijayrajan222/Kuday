@@ -381,6 +381,9 @@ export default function ProfilePage() {
       });
 
       toast.success("Room listing updated successfully!");
+      if (user?.role === "none") {
+        updateUser({ role: "host" });
+      }
       setIsEditRoomOpen(false);
       fetchProfileData();
     } catch (err) {

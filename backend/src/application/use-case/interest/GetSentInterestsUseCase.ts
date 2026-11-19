@@ -1,6 +1,7 @@
 import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
+import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
 import type { IGetSentInterestsUseCase } from "@application/interfaces/use-case/interest/IGetSentInterestsUseCase";
 import type { InterestDetailDto } from "@application/dto/interest/InterestDetailDto";
 
@@ -8,16 +9,31 @@ export class GetSentInterestsUseCase implements IGetSentInterestsUseCase {
     constructor(
         private readonly interestRepo: IInterestRepository,
         private readonly userRepo: IUserRepository,
-        private readonly roomRepo?: IRoomRepository
+        private readonly roomRepo?: IRoomRepository,
+        private readonly agreementRepo?: IAgreementRepository
     ) {}
 
     async execute(userId: string): Promise<InterestDetailDto[]> {
         const interests = await this.interestRepo.findBySenderId(userId);
 
+        let activeRoommatePartnerId: string | null = null;
+        if (this.agreementRepo) {
+            const userAgreements = await this.agreementRepo.findByUser(userId);
+            const active = userAgreements.find((a) => a.status === "completed");
+            if (active) {
+                activeRoommatePartnerId = active.hostId === userId ? active.seekerId : active.hostId;
+            }
+        }
+
         const results: InterestDetailDto[] = [];
         for (const interest of interests) {
             // Ignore cancelled or unmatched requests
             if (interest.status === "cancelled" || interest.status === "unmatched") {
+                continue;
+            }
+
+            // Exclude active roommate partner from Matched/Interests list
+            if (activeRoommatePartnerId && interest.receiverId === activeRoommatePartnerId) {
                 continue;
             }
 
@@ -47,11 +63,12 @@ export class GetSentInterestsUseCase implements IGetSentInterestsUseCase {
                     }
                 }
                 if (roomEntity) {
-                    const isOccupied = (roomEntity.capacity ?? 0) <= 0 || roomEntity.isActive === false;
+                    const isOccupied = (roomEntity.availableSlots ?? 0) <= 0 || roomEntity.isActive === false;
                     roomSummary = {
                         id: roomEntity.id,
                         title: roomEntity.title || roomEntity.roomType,
                         capacity: roomEntity.capacity ?? 0,
+                        availableSlots: roomEntity.availableSlots,
                         isActive: roomEntity.isActive ?? true,
                         isOccupied,
                     };

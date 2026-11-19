@@ -3,6 +3,7 @@ export type AgreementStatus =
     | 'negotiating'
     | 'awaiting_payment'
     | 'completed'
+    | 'ended'
     | 'cancelled';
 
 export type CustomClauseStatus =
@@ -81,6 +82,11 @@ export interface AgreementEntity {
     acceptedBy: string[];
     acceptanceTimestamps: AcceptanceTimestamps;
     payment: AgreementPayment;
+    startDate?: string | undefined;
+    endDate?: string | undefined;
+    activatedAt?: string | undefined;
+    slotRestored?: boolean | undefined;
+    terminatedAt?: string | undefined;
     version: number;
     lockedAt?: string | undefined;
     pdfUrl?: string | undefined;

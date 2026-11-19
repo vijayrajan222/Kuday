@@ -39,13 +39,44 @@ export class CreateRoomUseCase implements ICreateRoomUseCase {
         const existingRooms = await this.roomRepository.findByHostId(hostId);
         const existingRoom = existingRooms[0];
         if (existingRoom) {
-            const isNowActive =
-                roomDetails.capacity !== undefined
-                    ? Number(roomDetails.capacity) > 0
-                    : (existingRoom.capacity ?? 1) > 0;
+            const oldCapacity = Number(existingRoom.capacity) || 1;
+            const oldAvailableSlots =
+                existingRoom.availableSlots !== undefined
+                    ? Number(existingRoom.availableSlots)
+                    : oldCapacity;
+            const occupiedSlots = Math.max(0, oldCapacity - oldAvailableSlots);
+
+            let newCapacity = oldCapacity;
+            let newAvailableSlots = oldAvailableSlots;
+
+            if (roomDetails.capacity !== undefined) {
+                newCapacity = Number(roomDetails.capacity);
+                // Reject capacity lower than currently occupied slots (capacity - availableSlots)
+                if (newCapacity < occupiedSlots) {
+                    throw new Error(
+                        `Capacity cannot be lower than the currently occupied slots (${occupiedSlots}).`
+                    );
+                }
+                const delta = newCapacity - oldCapacity;
+                newAvailableSlots = Math.max(0, Math.min(newCapacity, oldAvailableSlots + delta));
+            } else if (roomDetails.availableSlots !== undefined) {
+                newAvailableSlots = Number(roomDetails.availableSlots);
+            }
+
+            const isNowActive = newAvailableSlots > 0;
+
+            // When availableSlots goes above 0 for a host with role "none", re-activate their host role so they get listed again
+            if (newAvailableSlots > 0) {
+                const hostUser = await this.userRepository.findById(hostId);
+                if (hostUser && hostUser.role === "none") {
+                    await this.userRepository.updateProfile(hostId, { role: "host" });
+                }
+            }
 
             const updatedRoom = await this.roomRepository.update(existingRoom.id, {
                 ...roomDetails,
+                capacity: newCapacity,
+                availableSlots: newAvailableSlots,
                 isActive: isNowActive,
                 images: finalImages,
             });
@@ -55,6 +86,7 @@ export class CreateRoomUseCase implements ICreateRoomUseCase {
         const newRoom = await this.roomRepository.create({
             hostId,
             ...roomDetails,
+            availableSlots: roomDetails.availableSlots ?? roomDetails.capacity ?? 1,
             images: finalImages,
         });
 

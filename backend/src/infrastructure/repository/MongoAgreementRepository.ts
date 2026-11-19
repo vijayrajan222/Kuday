@@ -102,6 +102,11 @@ export class MongoAgreementRepository implements IAgreementRepository {
                 paymentId: doc.payment?.paymentId || undefined,
                 status: (doc.payment?.status as AgreementPaymentStatus) || "pending",
             },
+            startDate: doc.startDate || undefined,
+            endDate: doc.endDate || undefined,
+            activatedAt: doc.activatedAt || undefined,
+            slotRestored: doc.slotRestored || false,
+            terminatedAt: doc.terminatedAt || undefined,
             version: doc.version || 1,
             lockedAt: doc.lockedAt ? new Date(doc.lockedAt).toISOString() : undefined,
             pdfUrl: doc.pdfUrl || undefined,
@@ -137,6 +142,12 @@ export class MongoAgreementRepository implements IAgreementRepository {
         }
         if (data.pdfUrl) {
             payload.pdfUrl = data.pdfUrl;
+        }
+        if (data.startDate) {
+            payload.startDate = data.startDate;
+        }
+        if (data.endDate) {
+            payload.endDate = data.endDate;
         }
 
         const doc = await AgreementModel.create(payload);
@@ -179,6 +190,43 @@ export class MongoAgreementRepository implements IAgreementRepository {
 
     async findByOrderId(orderId: string): Promise<AgreementEntity | null> {
         const doc = await AgreementModel.findOne({ "payment.orderId": orderId }).exec();
+        return doc ? this.mapToEntity(doc) : null;
+    }
+
+    async markCompletedAtomic(id: string, updates: Partial<AgreementEntity>): Promise<AgreementEntity | null> {
+        const doc = await AgreementModel.findOneAndUpdate(
+            {
+                _id: id,
+                status: { $ne: "completed" },
+            },
+            {
+                $set: {
+                    ...updates,
+                    status: "completed",
+                    activatedAt: new Date().toISOString(),
+                },
+            },
+            { new: true }
+        ).exec();
+        return doc ? this.mapToEntity(doc) : null;
+    }
+
+    async markTerminatedAtomic(id: string, targetStatus: "ended" | "cancelled"): Promise<AgreementEntity | null> {
+        const doc = await AgreementModel.findOneAndUpdate(
+            {
+                _id: id,
+                status: "completed",
+                slotRestored: { $ne: true },
+            },
+            {
+                $set: {
+                    status: targetStatus,
+                    slotRestored: true,
+                    terminatedAt: new Date().toISOString(),
+                },
+            },
+            { new: true }
+        ).exec();
         return doc ? this.mapToEntity(doc) : null;
     }
 }

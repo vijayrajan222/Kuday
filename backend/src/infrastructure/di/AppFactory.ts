@@ -121,6 +121,8 @@ import { CreateAgreementPaymentOrderUseCase } from "@application/use-case/agreem
 import { VerifyAgreementPaymentUseCase } from "@application/use-case/agreement/VerifyAgreementPaymentUseCase";
 import { HandleAgreementWebhookUseCase } from "@application/use-case/agreement/HandleAgreementWebhookUseCase";
 import { GetAgreementPdfUseCase } from "@application/use-case/agreement/GetAgreementPdfUseCase";
+import { TerminateAgreementUseCase } from "@application/use-case/agreement/TerminateAgreementUseCase";
+import { GetActiveRoommateUseCase } from "@application/use-case/agreement/GetActiveRoommateUseCase";
 import { MockAgreementPaymentService } from "@infrastructure/services/MockAgreementPaymentService";
 import { RazorpayAgreementPaymentService } from "@infrastructure/services/RazorpayAgreementPaymentService";
 import { PdfGeneratorService } from "@infrastructure/services/PdfGeneratorService";
@@ -229,8 +231,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
 
     const sendInterestUseCase = new SendInterestUseCase(interestrepo, userrepo, notificationrepo);
     const updateInterestStatusUseCase = new UpdateInterestStatusUseCase(interestrepo, userrepo, notificationrepo);
-    const getReceivedInterestsUseCase = new GetReceivedInterestsUseCase(interestrepo, userrepo, roomrepo);
-    const getSentInterestsUseCase = new GetSentInterestsUseCase(interestrepo, userrepo, roomrepo);
+    const getReceivedInterestsUseCase = new GetReceivedInterestsUseCase(interestrepo, userrepo, roomrepo, agreementrepo);
+    const getSentInterestsUseCase = new GetSentInterestsUseCase(interestrepo, userrepo, roomrepo, agreementrepo);
 
     const adminLoginUseCase = new AdminLoginUseCase(userrepo, hasher, jwtService);
     const getAdminStatsUseCase = new GetAdminStatsUseCase(userrepo, roomrepo, paymentrepo);
@@ -394,7 +396,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
         roomrepo,
         notificationrepo,
         sendMessageUseCase,
-        socketGateway
+        socketGateway,
+        interestrepo
     );
     const draftClauseUseCase = new DraftClauseUseCase(agreementrepo);
     const agreementPaymentService =
@@ -406,21 +409,26 @@ export function setupAppDependencies(app: Express): SocketGateway {
         userrepo,
         roomrepo,
         agreementPaymentService,
-        socketGateway
+        socketGateway,
+        interestrepo
     );
     const verifyAgreementPaymentUseCase = new VerifyAgreementPaymentUseCase(
         agreementrepo,
         userrepo,
         roomrepo,
         agreementPaymentService,
-        socketGateway
+        socketGateway,
+        interestrepo,
+        walletService
     );
     const handleAgreementWebhookUseCase = new HandleAgreementWebhookUseCase(
         agreementrepo,
         userrepo,
         roomrepo,
         agreementPaymentService,
-        socketGateway
+        socketGateway,
+        interestrepo,
+        walletService
     );
     const pdfGeneratorService = new PdfGeneratorService();
     const getAgreementPdfUseCase = new GetAgreementPdfUseCase(
@@ -428,6 +436,17 @@ export function setupAppDependencies(app: Express): SocketGateway {
         userrepo,
         roomrepo,
         pdfGeneratorService
+    );
+    const terminateAgreementUseCase = new TerminateAgreementUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo,
+        socketGateway
+    );
+    const getActiveRoommateUseCase = new GetActiveRoommateUseCase(
+        agreementrepo,
+        userrepo,
+        roomrepo
     );
     const agreementController = new AgreementController(
         createOrGetAgreementUseCase,
@@ -441,7 +460,9 @@ export function setupAppDependencies(app: Express): SocketGateway {
         createAgreementPaymentOrderUseCase,
         verifyAgreementPaymentUseCase,
         handleAgreementWebhookUseCase,
-        getAgreementPdfUseCase
+        getAgreementPdfUseCase,
+        terminateAgreementUseCase,
+        getActiveRoommateUseCase
     );
 
     const adminController = new AdminController(

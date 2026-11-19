@@ -4,11 +4,13 @@ import type { AgreementResponseDto } from "@application/dto/agreement/AgreementR
 import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
+import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
+import type { IWalletService } from "@application/interfaces/services/IWalletService";
 import type { IAgreementPaymentService } from "@application/interfaces/services/IAgreementPaymentService";
 import type { ISocketNotificationService } from "@application/interfaces/services/ISocketNotificationService";
-import { NotFoundError, UnauthorizedError, ValidationError } from "@application/errors/AppError";
+import { NotFoundError, UnauthorizedError, ValidationError, ConflictError } from "@application/errors/AppError";
 import { enrichAgreement } from "./helpers/enrichAgreement";
-import { deductRoomVacancy } from "./helpers/occupancyHelper";
+import { activateAgreement } from "./helpers/occupancyHelper";
 
 export class VerifyAgreementPaymentUseCase implements IVerifyAgreementPaymentUseCase {
   constructor(
@@ -16,7 +18,9 @@ export class VerifyAgreementPaymentUseCase implements IVerifyAgreementPaymentUse
     private readonly userRepository: IUserRepository,
     private readonly roomRepository: IRoomRepository,
     private readonly paymentService: IAgreementPaymentService,
-    private readonly socketService?: ISocketNotificationService
+    private readonly socketService?: ISocketNotificationService,
+    private readonly interestRepository?: IInterestRepository,
+    private readonly walletService?: IWalletService
   ) {}
 
   async execute(
@@ -49,26 +53,69 @@ export class VerifyAgreementPaymentUseCase implements IVerifyAgreementPaymentUse
       throw new ValidationError("Payment verification failed. Invalid transaction signature.");
     }
 
-    // Update payment record and transition to completed
-    const updated = await this.agreementRepository.update(agreement.id, {
-      status: "completed",
-      lockedAt: new Date().toISOString(),
-      payment: {
-        required: true,
-        payerId: agreement.payment?.payerId || agreement.seekerId,
-        amount: agreement.payment?.amount || 0,
-        provider: this.paymentService.getProviderName(),
-        orderId: dto.orderId,
-        paymentId: dto.paymentId,
-        status: "completed",
+    const { agreement: updated, slotReserved } = await activateAgreement(
+      {
+        agreementRepository: this.agreementRepository,
+        roomRepository: this.roomRepository,
+        userRepository: this.userRepository,
+        interestRepository: this.interestRepository,
+        socketService: this.socketService,
       },
-    });
+      agreement.id,
+      {
+        payment: {
+          required: true,
+          payerId: agreement.payment?.payerId || agreement.seekerId,
+          amount: agreement.payment?.amount || 0,
+          provider: this.paymentService.getProviderName(),
+          orderId: dto.orderId,
+          paymentId: dto.paymentId,
+          status: "completed",
+        },
+      }
+    );
 
-    if (!updated) {
-      throw new NotFoundError("Failed to update agreement payment status.");
+    if (!slotReserved) {
+      // Payment captured, but no room slot available: refund to Kuday wallet and cancel agreement
+      const payerId = agreement.payment?.payerId || agreement.seekerId;
+      const amountPaise = (agreement.payment?.amount ? agreement.payment.amount * 100 : 25000);
+
+      if (this.walletService) {
+        await this.walletService.credit({
+          userId: payerId,
+          amount: amountPaise,
+          reason: "refund",
+          referenceId: agreement.id,
+          description: "Refund for rental agreement: room occupied by another tenant",
+        });
+      }
+
+      await this.agreementRepository.update(agreement.id, {
+        status: "cancelled",
+        payment: {
+          ...agreement.payment,
+          required: true,
+          payerId,
+          amount: agreement.payment?.amount || 250,
+          provider: this.paymentService.getProviderName(),
+          orderId: dto.orderId,
+          paymentId: dto.paymentId,
+          status: "completed",
+        },
+        editLock: { userId: null, expiresAt: null },
+        pendingWith: null,
+      });
+
+      if (this.socketService) {
+        this.socketService.notifyUser(payerId, "agreement_updated", {
+          id: agreement.id,
+          status: "cancelled",
+          message: "Room occupied by another tenant. ₹250 refunded to your wallet.",
+        });
+      }
+
+      throw new ConflictError("This room was just occupied by another tenant. Your payment of ₹250 has been refunded to your Kuday wallet.");
     }
-
-    await deductRoomVacancy(this.roomRepository, updated.roomId, this.socketService);
 
     const enriched = await enrichAgreement(updated, this.userRepository, this.roomRepository);
 

@@ -33,6 +33,7 @@ export interface RoomPayload {
   location: string;
   coordinates?: RoomCoordinates;
   capacity: number;
+  availableSlots?: number;
   availabilityNotes: string;
   amenities: string[];
   images?: string[];
@@ -65,6 +66,7 @@ export interface RoomEntity {
   location: string;
   coordinates?: RoomCoordinates;
   capacity: number;
+  availableSlots?: number;
   availabilityNotes: string;
   amenities: string[];
   images: string[];

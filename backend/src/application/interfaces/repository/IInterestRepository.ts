@@ -18,4 +18,6 @@ export interface IInterestRepository {
         userB: string,
         status: InterestStatus
     ): Promise<void>;
+    closeOtherSeekerInterests(seekerId: string, keepHostId: string): Promise<void>;
+    markPendingRoomInterestsFilled(roomId: string): Promise<void>;
 }

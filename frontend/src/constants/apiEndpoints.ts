@@ -94,6 +94,7 @@ export const API_ENDPOINTS = {
   AGREEMENT: {
     CREATE: '/agreements',
     CHECK_UNLOCK: '/agreements/unlock-status',
+    GET_ACTIVE_ROOMMATE: '/agreements/roommate',
     GET_BY_ID: (id: string) => `/agreements/${id}`,
     LOCK: (id: string) => `/agreements/${id}/lock`,
     HEARTBEAT: (id: string) => `/agreements/${id}/heartbeat`,
@@ -109,5 +110,6 @@ export const API_ENDPOINTS = {
     VERIFY_PAYMENT: (id: string) => `/agreements/${id}/payment/verify`,
     SIGN: (id: string) => `/agreements/${id}/sign`,
     GET_PDF: (id: string) => `/agreements/${id}/pdf`,
+    TERMINATE: (id: string) => `/agreements/${id}/terminate`,
   },
 } as const;

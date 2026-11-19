@@ -16,7 +16,7 @@ export class GetRoomsUseCase implements IGetRoomsUseCase {
 
     async execute(seekerUserId?: string): Promise<RoomWithHostDto[]> {
         const allRooms = await this.roomRepository.findAll();
-        const activeRooms = allRooms.filter((r) => r.isActive !== false && (r.capacity ?? 1) > 0);
+        const activeRooms = allRooms.filter((r) => r.isActive !== false && r.availableSlots > 0);
 
         let seekerPreference = null;
         let seekerLifestyle = null;
@@ -77,6 +77,7 @@ export class GetRoomsUseCase implements IGetRoomsUseCase {
                 location: room.location,
                 coordinates: room.coordinates,
                 capacity: room.capacity,
+                availableSlots: room.availableSlots,
                 availabilityNotes: room.availabilityNotes,
                 amenities: room.amenities,
                 images: room.images,
@@ -128,6 +129,7 @@ export class GetRoomsUseCase implements IGetRoomsUseCase {
                 location: room.location,
                 coordinates: room.coordinates,
                 capacity: room.capacity,
+                availableSlots: room.availableSlots,
                 availabilityNotes: room.availabilityNotes,
                 amenities: room.amenities,
                 images: room.images,
@@ -196,6 +198,7 @@ export class GetRoomsUseCase implements IGetRoomsUseCase {
             location: room.location,
             coordinates: room.coordinates,
             capacity: room.capacity,
+            availableSlots: room.availableSlots,
             availabilityNotes: room.availabilityNotes,
             amenities: room.amenities,
             images: room.images,

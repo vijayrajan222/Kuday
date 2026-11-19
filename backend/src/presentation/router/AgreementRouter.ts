@@ -20,6 +20,9 @@ export function createAgreementRouter(
     // 1. Create or fetch active agreement for match (validates match only)
     router.post("/", agreementController.createOrGet as RequestHandler);
 
+    // Active roommate details (MUST precede /:id)
+    router.get("/roommate", agreementController.getActiveRoommate as RequestHandler);
+
     // 2. Get agreement by ID
     router.get("/:id", agreementController.getById as RequestHandler);
 
@@ -50,6 +53,9 @@ export function createAgreementRouter(
 
     // 9. Download final agreement PDF
     router.get("/:id/pdf", agreementController.getPdf as RequestHandler);
+
+    // 10. End / Cancel agreement
+    router.post("/:id/terminate", agreementController.terminate as RequestHandler);
 
     return router;
 }

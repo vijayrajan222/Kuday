@@ -48,6 +48,12 @@ export const RoomSchema = new mongoose.Schema(
             required: true,
             default: 1,
         },
+        availableSlots: {
+            type: Number,
+            required: true,
+            min: 0,
+            default: 1,
+        },
         availabilityNotes: {
             type: String,
             required: true,

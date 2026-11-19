@@ -16,13 +16,19 @@ import {
   ArrowRight,
   RotateCcw,
   MessageSquare,
+  Compass,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInterest } from '@/hooks/useInterest';
 import { ROUTES } from '@/constants/routes';
 import { deduplicateAmenities } from '@/utils/amenitiesHelper';
 import { onboardingService } from '@/services/onboardingService';
+import { agreementService } from '@/services/agreementService';
+import { toast } from '@/hooks/useToast';
+import { getErrorMessage } from '@/utils/errorHandler';
 import type { RoomEntity, SeekerPreferenceEntity } from '@/types/onboarding.types';
+import type { ActiveRoommateResponse } from '@/types/agreement.types';
+import { YourRoommateSection } from '@/components/agreement/YourRoommateSection';
 
 // Memoized modular subcomponents
 import { MetricCard } from '@/components/dashboard/MetricCard';
@@ -32,11 +38,44 @@ import { PotentialMatchCard } from '@/components/dashboard/PotentialMatchCard';
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const firstName = user?.firstName;
 
   const isOnboarded = Boolean(user?.isOnboarded);
   const role = (user?.role as 'host' | 'seeker' | 'none') || 'none';
+
+  // Roommate & role switching state
+  const [activeRoommate, setActiveRoommate] = useState<ActiveRoommateResponse | ActiveRoommateResponse[] | null>(null);
+  const [switchingRole, setSwitchingRole] = useState(false);
+
+  const loadActiveRoommate = useCallback(() => {
+    agreementService
+      .getActiveRoommate()
+      .then((data) => setActiveRoommate(data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadActiveRoommate();
+  }, [loadActiveRoommate]);
+
+  const handleSelectRole = async (targetRole: 'host' | 'seeker') => {
+    if (!user?.id || switchingRole) return;
+    try {
+      setSwitchingRole(true);
+      await onboardingService.updateRole(user.id, targetRole);
+      updateUser({ role: targetRole });
+      if (targetRole === 'seeker') {
+        toast.success('Switched to Room Seeker mode!', 'Your preference is now active and discoverable.');
+      } else {
+        toast.success('Switched to Room Host mode!', 'Rooms with open vacancies are now listed.');
+      }
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err) || 'Failed to switch role');
+    } finally {
+      setSwitchingRole(false);
+    }
+  };
 
   // Matches state
   const [rooms, setRooms] = useState<RoomEntity[]>([]);
@@ -276,6 +315,129 @@ export default function CustomerDashboard() {
     return list.slice(0, 2);
   }, [receivedInterests, sentInterests]);
 
+  if (role === 'none') {
+    return (
+      <div className="space-y-8">
+        {/* Header */}
+        <section className="space-y-1.5 border-b border-slate-200/80 pb-5">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Welcome{firstName ? `, ${firstName}` : ''}
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
+            Your rental agreement is active and finalized. You can re-select an active role below to search for new rooms or list a space, while managing your existing roommate agreement.
+          </p>
+        </section>
+
+        {/* 1. Role Selection Picker */}
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Choose Your Role</h2>
+            <p className="text-xs text-slate-500">
+              Select how you want to use Kudai right now.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Seeker Option */}
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+                  <Compass className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Seeker Again</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Re-enable your seeker profile and preferences. You will become discoverable to hosts and can browse and send interests for available rooms.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={switchingRole}
+                onClick={() => handleSelectRole('seeker')}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 text-xs font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <Compass className="h-4 w-4" />
+                {switchingRole ? 'Switching...' : 'Continue as Seeker'}
+              </button>
+            </div>
+
+            {/* Host Option */}
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                  <Building2 className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Switch to Host</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    List and manage available rooms. Rooms with open vacancies will be visible to seekers looking for accommodation.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={switchingRole}
+                onClick={() => handleSelectRole('host')}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-800 px-4 py-3 text-xs font-semibold shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <Building2 className="h-4 w-4" />
+                {switchingRole ? 'Switching...' : 'Continue as Host'}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* 2. Roommate Section */}
+        {activeRoommate && (
+          <YourRoommateSection
+            roommate={activeRoommate}
+            onAgreementEnded={loadActiveRoommate}
+          />
+        )}
+
+        {/* 3. Messages & Chat Shortcut */}
+        <section className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-600 border border-purple-100 shrink-0">
+                <MessageSquare className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Messages &amp; Chat</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Stay in touch with your roommate and communicate about shared expenses, house rules, or logistics.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const primaryPartner = Array.isArray(activeRoommate)
+                  ? activeRoommate[0]?.partner
+                  : activeRoommate?.partner;
+                if (primaryPartner) {
+                  navigate(ROUTES.MESSAGES, {
+                    state: {
+                      recipientId: primaryPartner.id,
+                      recipientName: [primaryPartner.firstName, primaryPartner.lastName].filter(Boolean).join(' '),
+                    },
+                  });
+                } else {
+                  navigate(ROUTES.MESSAGES);
+                }
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors cursor-pointer shadow-xs shrink-0"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              Open Chat
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* 1. Header Banner & Status */}
@@ -348,6 +510,14 @@ export default function CustomerDashboard() {
           </span>
         </div>
       </section>
+
+      {/* Active Roommate Section (if any) */}
+      {activeRoommate && (
+        <YourRoommateSection
+          roommate={activeRoommate}
+          onAgreementEnded={loadActiveRoommate}
+        />
+      )}
 
       {/* 2. Metric Cards (100% Real Dynamic Data) */}
       <section aria-label="Metrics" className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -880,12 +1050,14 @@ export default function CustomerDashboard() {
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               isConnected
                                 ? 'bg-emerald-100 text-emerald-800'
+                                : item.status === 'room_filled'
+                                ? 'bg-slate-200 text-slate-700'
                                 : item.status === 'declined'
                                 ? 'bg-slate-200 text-slate-700'
                                 : 'bg-amber-100 text-amber-800'
                             }`}
                           >
-                            {isConnected ? 'ACCEPTED' : item.status.toUpperCase()}
+                            {isConnected ? 'ACCEPTED' : item.status === 'room_filled' ? 'ROOM FILLED' : item.status.toUpperCase()}
                           </span>
                         </div>
 
@@ -965,12 +1137,14 @@ export default function CustomerDashboard() {
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               isConnected
                                 ? 'bg-emerald-100 text-emerald-800'
+                                : item.status === 'room_filled'
+                                ? 'bg-slate-200 text-slate-700'
                                 : item.status === 'declined'
                                 ? 'bg-rose-100 text-rose-800'
                                 : 'bg-amber-100 text-amber-800'
                             }`}
                           >
-                            {isConnected ? 'ACCEPTED' : item.status.toUpperCase()}
+                            {isConnected ? 'ACCEPTED' : item.status === 'room_filled' ? 'ROOM FILLED' : item.status.toUpperCase()}
                           </span>
                         </div>
                         <p className="text-[10px] text-slate-400">

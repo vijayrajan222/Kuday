@@ -27,7 +27,7 @@ export const InterestSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["pending", "accepted", "declined", "cancelled", "unmatched"],
+            enum: ["pending", "accepted", "declined", "cancelled", "unmatched", "room_filled"],
             default: "pending",
             index: true,
         },

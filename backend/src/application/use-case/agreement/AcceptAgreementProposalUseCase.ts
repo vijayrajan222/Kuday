@@ -2,15 +2,16 @@ import type { IAcceptAgreementProposalUseCase } from "@application/interfaces/us
 import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
+import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
 import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository";
 import type { ISendMessageUseCase } from "@application/interfaces/use-case/chat/ISendMessageUseCase";
 import type { ISocketNotificationService } from "@application/interfaces/services/ISocketNotificationService";
 import type { AgreementResponseDto } from "@application/dto/agreement/AgreementResponseDto";
-import type { AgreementPaymentStatus } from "@domain/entities/AgreementEntity";
+import type { AgreementEntity, AgreementPaymentStatus } from "@domain/entities/AgreementEntity";
 import { NotFoundError, UnauthorizedError, ConflictError, ValidationError } from "@application/errors/AppError";
 import { getAgreementFee } from "@domain/services/agreementFeeCalculator";
 import { enrichAgreement } from "./helpers/enrichAgreement";
-import { deductRoomVacancy } from "./helpers/occupancyHelper";
+import { activateAgreement } from "./helpers/occupancyHelper";
 
 export class AcceptAgreementProposalUseCase implements IAcceptAgreementProposalUseCase {
     constructor(
@@ -19,7 +20,8 @@ export class AcceptAgreementProposalUseCase implements IAcceptAgreementProposalU
         private readonly roomRepository: IRoomRepository,
         private readonly notificationRepository?: INotificationRepository,
         private readonly sendMessageUseCase?: ISendMessageUseCase,
-        private readonly socketService?: ISocketNotificationService
+        private readonly socketService?: ISocketNotificationService,
+        private readonly interestRepository?: IInterestRepository
     ) {}
 
     async execute(agreementId: string, userId: string, revision: number): Promise<AgreementResponseDto> {
@@ -92,28 +94,56 @@ export class AcceptAgreementProposalUseCase implements IAcceptAgreementProposalU
             lockedAt = undefined;
         }
 
-        const updated = await this.agreementRepository.update(agreementId, {
-            status: nextStatus,
-            acceptedBy,
-            acceptanceTimestamps,
-            payment: {
-                ...agreement.payment,
-                ...paymentData,
-            },
-            lockedAt,
-            pendingWith: null,
-            editLock: {
-                userId: null,
-                expiresAt: null,
-            },
-        });
+        let updated: AgreementEntity | null = null;
+
+        if (nextStatus === "completed") {
+            const activationResult = await activateAgreement(
+                {
+                    agreementRepository: this.agreementRepository,
+                    roomRepository: this.roomRepository,
+                    userRepository: this.userRepository,
+                    interestRepository: this.interestRepository,
+                    socketService: this.socketService,
+                },
+                agreementId,
+                {
+                    acceptedBy,
+                    acceptanceTimestamps,
+                    payment: {
+                        ...agreement.payment,
+                        ...paymentData,
+                    },
+                    pendingWith: null,
+                    editLock: {
+                        userId: null,
+                        expiresAt: null,
+                    },
+                }
+            );
+            if (!activationResult.slotReserved) {
+                throw new ValidationError("No available slots remaining for this room.");
+            }
+            updated = activationResult.agreement;
+        } else {
+            updated = await this.agreementRepository.update(agreementId, {
+                status: nextStatus,
+                acceptedBy,
+                acceptanceTimestamps,
+                payment: {
+                    ...agreement.payment,
+                    ...paymentData,
+                },
+                lockedAt,
+                pendingWith: null,
+                editLock: {
+                    userId: null,
+                    expiresAt: null,
+                },
+            });
+        }
 
         if (!updated) {
             throw new NotFoundError("Failed to accept agreement proposal.");
-        }
-
-        if (nextStatus === "completed") {
-            await deductRoomVacancy(this.roomRepository, updated.roomId, this.socketService);
         }
 
         const enriched = await enrichAgreement(updated, this.userRepository, this.roomRepository);

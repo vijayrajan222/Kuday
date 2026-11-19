@@ -28,6 +28,8 @@ import { toast } from '@/hooks/useToast';
 import { ROUTES } from '@/constants/routes';
 import type { InterestDetail } from '@/types/interest.types';
 import type { Visit, TimeSlot } from '@/types/visit.types';
+import type { ActiveRoommateResponse } from '@/types/agreement.types';
+import { YourRoommateSection } from '@/components/agreement/YourRoommateSection';
 import { ReportUserModal } from '@/components/common/ReportUserModal';
 
 export default function MatchedPage() {
@@ -46,6 +48,24 @@ export default function MatchedPage() {
 
   const [selectedMatch, setSelectedMatch] = useState<InterestDetail | null>(null);
   const [unmatchTarget, setUnmatchTarget] = useState<{ id: string; name: string } | null>(null);
+  const [activeRoommate, setActiveRoommate] = useState<ActiveRoommateResponse | ActiveRoommateResponse[] | null>(null);
+
+  const loadActiveRoommate = useCallback(() => {
+    agreementService
+      .getActiveRoommate()
+      .then((data) => setActiveRoommate(data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadActiveRoommate();
+  }, [loadActiveRoommate]);
+
+  const activeRoommatePartnerIds = useMemo(() => {
+    if (!activeRoommate) return new Set<string>();
+    const list = Array.isArray(activeRoommate) ? activeRoommate : [activeRoommate];
+    return new Set(list.map((r) => r.partner.id));
+  }, [activeRoommate]);
 
   // Visits state
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -262,13 +282,21 @@ export default function MatchedPage() {
 
   // 1. Pending Received Interests
   const pendingReceived = useMemo(() => {
-    return receivedInterests.filter((item) => item.status === 'pending');
-  }, [receivedInterests]);
+    return receivedInterests.filter((item) => {
+      if (item.status !== 'pending') return false;
+      if (activeRoommatePartnerIds.has(item.senderId)) return false;
+      return true;
+    });
+  }, [receivedInterests, activeRoommatePartnerIds]);
 
   // 2. Pending Sent Interests
   const pendingSent = useMemo(() => {
-    return sentInterests.filter((item) => item.status === 'pending');
-  }, [sentInterests]);
+    return sentInterests.filter((item) => {
+      if (item.status !== 'pending') return false;
+      if (activeRoommatePartnerIds.has(item.receiverId)) return false;
+      return true;
+    });
+  }, [sentInterests, activeRoommatePartnerIds]);
 
   // 3. Matched (Accepted Connections in either direction, deduplicated by the other user's ID)
   const mutualMatches = useMemo(() => {
@@ -282,6 +310,10 @@ export default function MatchedPage() {
 
     for (const item of acceptedList) {
       const otherUserId = item.senderId === user?.id ? item.receiverId : item.senderId;
+      // Exclude active roommate from Matched list
+      if (activeRoommatePartnerIds.has(otherUserId)) {
+        continue;
+      }
       if (!seenUserIds.has(otherUserId)) {
         seenUserIds.add(otherUserId);
         deduplicated.push(item);
@@ -289,7 +321,7 @@ export default function MatchedPage() {
     }
 
     return deduplicated;
-  }, [receivedInterests, sentInterests, user?.id]);
+  }, [receivedInterests, sentInterests, user?.id, activeRoommatePartnerIds]);
 
   return (
     <div className="space-y-10">
@@ -303,6 +335,14 @@ export default function MatchedPage() {
           the Kudai ecosystem.
         </p>
       </section>
+
+      {/* Dedicated Section: Your Roommate (Active Agreement) */}
+      {activeRoommate && (
+        <YourRoommateSection
+          roommate={activeRoommate}
+          onAgreementEnded={loadActiveRoommate}
+        />
+      )}
 
       {/* Section 1: Received Interests */}
       <section className="space-y-4">
@@ -323,7 +363,11 @@ export default function MatchedPage() {
               const occupation = sender?.occupation?.replace('_', ' ') || sender?.role || 'Seeker';
               const isRoomFilled = Boolean(
                 item.room?.isOccupied ||
-                (item.room && (item.room.capacity <= 0 || item.room.isActive === false))
+                (item.room && (
+                  (typeof item.room.availableSlots === 'number' && item.room.availableSlots <= 0) ||
+                  item.room.capacity <= 0 ||
+                  item.room.isActive === false
+                ))
               );
 
               return (
@@ -437,7 +481,11 @@ export default function MatchedPage() {
               const occupation = receiver?.occupation?.replace('_', ' ') || receiver?.role || 'Host';
               const isRoomFilled = Boolean(
                 item.room?.isOccupied ||
-                (item.room && (item.room.capacity <= 0 || item.room.isActive === false))
+                (item.room && (
+                  (typeof item.room.availableSlots === 'number' && item.room.availableSlots <= 0) ||
+                  item.room.capacity <= 0 ||
+                  item.room.isActive === false
+                ))
               );
 
               return (
@@ -538,7 +586,11 @@ export default function MatchedPage() {
               const activeVisit = visitsByConnection.get(item.id);
               const isRoomFilled = Boolean(
                 item.room?.isOccupied ||
-                (item.room && (item.room.capacity <= 0 || item.room.isActive === false))
+                (item.room && (
+                  (typeof item.room.availableSlots === 'number' && item.room.availableSlots <= 0) ||
+                  item.room.capacity <= 0 ||
+                  item.room.isActive === false
+                ))
               );
 
               return (

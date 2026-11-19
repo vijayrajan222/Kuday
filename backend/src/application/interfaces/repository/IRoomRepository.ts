@@ -3,6 +3,8 @@ import type { RoomEntity } from "@domain/entities/RoomEntity";
 export interface IRoomRepository {
     create(roomData: Omit<RoomEntity, "id">): Promise<RoomEntity>;
     update(id: string, roomData: Partial<RoomEntity>): Promise<RoomEntity | null>;
+    decrementAvailableSlots(roomId: string): Promise<RoomEntity | null>;
+    incrementAvailableSlots(roomId: string): Promise<RoomEntity | null>;
     updateStatusByHostId(hostId: string, isActive: boolean): Promise<void>;
     findByHostId(hostId: string): Promise<RoomEntity[]>;
     findAll(): Promise<RoomEntity[]>;

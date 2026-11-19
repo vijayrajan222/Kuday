@@ -26,6 +26,7 @@ export interface AgreementRoomSummary {
     monthlyRent: number;
     location: string;
     images: string[];
+    availableSlots?: number | undefined;
 }
 
 export interface AgreementResponseDto {
@@ -34,6 +35,11 @@ export interface AgreementResponseDto {
     seekerId: string;
     roomId: string;
     status: AgreementStatus;
+    startDate?: string | undefined;
+    endDate?: string | undefined;
+    activatedAt?: string | undefined;
+    slotRestored?: boolean | undefined;
+    terminatedAt?: string | undefined;
     commonTerms: CommonTerms;
     pendingCommonTerms?: ProposedCommonTerms | undefined;
     hostObligations: string[];

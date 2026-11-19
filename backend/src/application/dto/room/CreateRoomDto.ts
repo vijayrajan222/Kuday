@@ -9,6 +9,7 @@ export interface CreateRoomDto {
         lng: number;
     };
     capacity: number;
+    availableSlots?: number;
     availabilityNotes: string;
     amenities: string[];
     imagesBase64?: string[]; // Raw base64 images to be uploaded to Cloudinary

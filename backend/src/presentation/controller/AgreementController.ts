@@ -13,12 +13,15 @@ import type { ICreateAgreementPaymentOrderUseCase } from "@application/interface
 import type { IVerifyAgreementPaymentUseCase } from "@application/interfaces/use-case/agreement/IVerifyAgreementPaymentUseCase";
 import type { IHandleAgreementWebhookUseCase } from "@application/interfaces/use-case/agreement/IHandleAgreementWebhookUseCase";
 import type { IGetAgreementPdfUseCase } from "@application/interfaces/use-case/agreement/IGetAgreementPdfUseCase";
+import type { ITerminateAgreementUseCase } from "@application/interfaces/use-case/agreement/ITerminateAgreementUseCase";
+import type { IGetActiveRoommateUseCase } from "@application/interfaces/use-case/agreement/IGetActiveRoommateUseCase";
 import {
     createAgreementSchema,
     submitAgreementProposalSchema,
     acceptAgreementProposalSchema,
     draftClauseSchema,
     verifyAgreementPaymentSchema,
+    terminateAgreementSchema,
 } from "@presentation/utils/validators/zod/AgreementSchema";
 import { ApiResponse } from "@presentation/utils/ApiResponse";
 import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
@@ -37,7 +40,9 @@ export class AgreementController implements IAgreementController {
         private readonly createAgreementPaymentOrderUseCase: ICreateAgreementPaymentOrderUseCase,
         private readonly verifyAgreementPaymentUseCase: IVerifyAgreementPaymentUseCase,
         private readonly handleAgreementWebhookUseCase: IHandleAgreementWebhookUseCase,
-        private readonly getAgreementPdfUseCase: IGetAgreementPdfUseCase
+        private readonly getAgreementPdfUseCase: IGetAgreementPdfUseCase,
+        private readonly terminateAgreementUseCase: ITerminateAgreementUseCase,
+        private readonly getActiveRoommateUseCase: IGetActiveRoommateUseCase
     ) {}
 
     createOrGet = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -256,6 +261,39 @@ export class AgreementController implements IAgreementController {
             res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
             res.setHeader("Content-Length", buffer.length);
             res.send(buffer);
+        } catch (err) {
+            next(err);
+        }
+    };
+
+    terminate = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const userId = req.user?.id;
+            if (!userId) throw new UnauthorizedError("Authentication required.");
+
+            const agreementId = req.params.id as string;
+            const validated = terminateAgreementSchema.parse(req.body);
+
+            const agreement = await this.terminateAgreementUseCase.execute(agreementId, userId, validated);
+
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(agreement, `Agreement ${validated.status} successfully`)
+            );
+        } catch (err) {
+            next(err);
+        }
+    };
+
+    getActiveRoommate = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const userId = req.user?.id;
+            if (!userId) throw new UnauthorizedError("Authentication required.");
+
+            const roommate = await this.getActiveRoommateUseCase.execute(userId);
+
+            res.status(HttpStatusCodes.OK).json(
+                ApiResponse.success(roommate, "Active roommate fetched successfully")
+            );
         } catch (err) {
             next(err);
         }

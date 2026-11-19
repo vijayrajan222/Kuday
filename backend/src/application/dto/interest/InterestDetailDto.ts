@@ -35,6 +35,7 @@ export interface InterestDetailDto {
         id: string;
         title?: string | undefined;
         capacity: number;
+        availableSlots?: number | undefined;
         isActive: boolean;
         isOccupied?: boolean | undefined;
     } | undefined;
