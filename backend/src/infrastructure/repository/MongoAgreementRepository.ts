@@ -164,7 +164,7 @@ export class MongoAgreementRepository implements IAgreementRepository {
             hostId,
             seekerId,
             roomId,
-            status: { $ne: "cancelled" },
+            status: { $nin: ["cancelled", "ended"] },
         }).exec();
         return doc ? this.mapToEntity(doc) : null;
     }

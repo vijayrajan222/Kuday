@@ -37,7 +37,10 @@ export class GetSentInterestsUseCase implements IGetSentInterestsUseCase {
                 continue;
             }
 
-            const receiver = await this.userRepo.findById(interest.receiverId);
+            const [sender, receiver] = await Promise.all([
+                this.userRepo.findById(interest.senderId),
+                this.userRepo.findById(interest.receiverId),
+            ]);
 
             // Check if there is an accepted connection with this receiver in either direction
             const mutual = await this.interestRepo.findBetweenUsers(userId, interest.receiverId);
@@ -56,8 +59,12 @@ export class GetSentInterestsUseCase implements IGetSentInterestsUseCase {
                     roomEntity = await this.roomRepo.findById(interest.targetId);
                 }
                 if (!roomEntity) {
-                    const hostId = receiver?.role === "host" ? receiver.id : userId;
-                    const hostRooms = await this.roomRepo.findByHostId(hostId);
+                    const primaryHostId = receiver?.role === "host" ? receiver.id : userId;
+                    const secondaryHostId = primaryHostId === receiver?.id ? userId : (receiver?.id || "");
+                    let hostRooms = await this.roomRepo.findByHostId(primaryHostId);
+                    if (hostRooms.length === 0 && secondaryHostId) {
+                        hostRooms = await this.roomRepo.findByHostId(secondaryHostId);
+                    }
                     if (hostRooms.length > 0) {
                         roomEntity = hostRooms[0];
                     }
@@ -86,6 +93,18 @@ export class GetSentInterestsUseCase implements IGetSentInterestsUseCase {
                 createdAt: interest.createdAt,
                 updatedAt: interest.updatedAt,
                 room: roomSummary,
+                sender: sender
+                    ? {
+                          id: sender.id,
+                          firstName: sender.firstName,
+                          lastName: sender.lastName,
+                          email: sender.email,
+                          selfieUrl: sender.selfieUrl,
+                          role: sender.role,
+                          occupation: sender.occupation,
+                          identityVerified: Boolean(sender.identityVerified),
+                      }
+                    : undefined,
                 receiver: receiver
                     ? {
                           id: receiver.id,

@@ -37,7 +37,10 @@ export class GetReceivedInterestsUseCase implements IGetReceivedInterestsUseCase
                 continue;
             }
 
-            const sender = await this.userRepo.findById(interest.senderId);
+            const [sender, receiver] = await Promise.all([
+                this.userRepo.findById(interest.senderId),
+                this.userRepo.findById(interest.receiverId),
+            ]);
 
             // Check if there is an accepted connection with this sender in either direction
             const mutual = await this.interestRepo.findBetweenUsers(userId, interest.senderId);
@@ -56,8 +59,12 @@ export class GetReceivedInterestsUseCase implements IGetReceivedInterestsUseCase
                     roomEntity = await this.roomRepo.findById(interest.targetId);
                 }
                 if (!roomEntity) {
-                    const hostId = sender?.role === "host" ? sender.id : userId;
-                    const hostRooms = await this.roomRepo.findByHostId(hostId);
+                    const primaryHostId = sender?.role === "host" ? sender.id : userId;
+                    const secondaryHostId = primaryHostId === sender?.id ? userId : (sender?.id || "");
+                    let hostRooms = await this.roomRepo.findByHostId(primaryHostId);
+                    if (hostRooms.length === 0 && secondaryHostId) {
+                        hostRooms = await this.roomRepo.findByHostId(secondaryHostId);
+                    }
                     if (hostRooms.length > 0) {
                         roomEntity = hostRooms[0];
                     }
@@ -96,6 +103,18 @@ export class GetReceivedInterestsUseCase implements IGetReceivedInterestsUseCase
                           role: sender.role,
                           occupation: sender.occupation,
                           identityVerified: Boolean(sender.identityVerified),
+                      }
+                    : undefined,
+                receiver: receiver
+                    ? {
+                          id: receiver.id,
+                          firstName: receiver.firstName,
+                          lastName: receiver.lastName,
+                          email: receiver.email,
+                          selfieUrl: receiver.selfieUrl,
+                          role: receiver.role,
+                          occupation: receiver.occupation,
+                          identityVerified: Boolean(receiver.identityVerified),
                       }
                     : undefined,
             });

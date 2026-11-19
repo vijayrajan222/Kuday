@@ -61,15 +61,45 @@ export class CreateOrGetAgreementUseCase implements ICreateOrGetAgreementUseCase
     }
 
     async execute(dto: CreateAgreementRequestDto, callerUserId: string): Promise<AgreementResponseDto> {
-        const { hostId, seekerId, roomId } = dto;
+        let { hostId, seekerId, roomId } = dto;
 
         // 1. Authorization check: caller must be host or seeker
         if (callerUserId !== hostId && callerUserId !== seekerId) {
             throw new UnauthorizedError("You are not authorized to create or access an agreement for this match.");
         }
 
+        // Auto-resolve roomId if not provided or empty
+        if (!roomId) {
+            const hostRooms = await this.roomRepository.findByHostId(hostId);
+            if (hostRooms.length > 0 && hostRooms[0]) {
+                roomId = hostRooms[0].id;
+            } else {
+                const seekerRooms = await this.roomRepository.findByHostId(seekerId);
+                if (seekerRooms.length > 0 && seekerRooms[0]) {
+                    roomId = seekerRooms[0].id;
+                    // Invert host and seeker
+                    const temp = hostId;
+                    hostId = seekerId;
+                    seekerId = temp;
+                }
+            }
+        }
+
+        // If roomId is provided, verify whether room.hostId matches hostId; normalize if inverted
+        let room = roomId ? await this.roomRepository.findById(roomId) : null;
+        if (room && room.hostId) {
+            if (hostId !== room.hostId && seekerId === room.hostId) {
+                hostId = room.hostId;
+                seekerId = dto.hostId;
+            }
+        }
+
         // 2. Return existing active agreement if found
-        const existing = await this.agreementRepository.findActive(hostId, seekerId, roomId);
+        let existing = roomId ? await this.agreementRepository.findActive(hostId, seekerId, roomId) : null;
+        if (!existing) {
+            const userAgreements = await this.agreementRepository.findByUser(seekerId);
+            existing = userAgreements.find((a) => a.hostId === hostId && a.status !== "cancelled" && a.status !== "ended") || null;
+        }
         if (existing) {
             return this.enrich(existing);
         }
@@ -89,8 +119,13 @@ export class CreateOrGetAgreementUseCase implements ICreateOrGetAgreementUseCase
             throw new ValidationError("An active match connection between host and seeker is required to proceed with an agreement.");
         }
 
-        // 4. Fetch room to prefill terms
-        const room = await this.roomRepository.findById(roomId);
+        // 4. Fetch room to prefill terms (if not already fetched)
+        if (!room && roomId) {
+            room = await this.roomRepository.findById(roomId);
+        }
+        if (!room) {
+            throw new ValidationError("Could not locate a room listing for this match. Please ensure a room is listed.");
+        }
         const monthlyRent = room?.monthlyRent || 10000;
         const deposit = monthlyRent * 2;
 
