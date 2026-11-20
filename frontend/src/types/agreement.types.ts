@@ -192,6 +192,9 @@ export interface ActiveRoommateRoom {
 
 export interface ActiveRoommateResponse {
   agreementId: string;
+  hostId?: string;
+  seekerId?: string;
+  userRole?: 'host' | 'seeker';
   startDate?: string;
   endDate?: string;
   status: string;

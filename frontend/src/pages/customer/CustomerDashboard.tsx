@@ -17,6 +17,7 @@ import {
   RotateCcw,
   MessageSquare,
   Compass,
+  AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInterest } from '@/hooks/useInterest';
@@ -65,8 +66,25 @@ export default function CustomerDashboard() {
     return new Set(list.map((r) => r.partner.id));
   }, [activeRoommate]);
 
+  const isSeekerInActiveAgreement = useMemo(() => {
+    if (!activeRoommate) return false;
+    if (Array.isArray(activeRoommate)) {
+      return activeRoommate.some(
+        (r) => r.userRole === 'seeker' || (user?.id ? r.seekerId === user.id : false)
+      );
+    }
+    return (
+      activeRoommate.userRole === 'seeker' ||
+      (user?.id ? activeRoommate.seekerId === user.id : true)
+    );
+  }, [activeRoommate, user?.id]);
+
   const handleSelectRole = async (targetRole: 'host' | 'seeker') => {
     if (!user?.id || switchingRole) return;
+    if (targetRole === 'seeker' && isSeekerInActiveAgreement) {
+      toast.error('You can look for a new room after your current agreement ends');
+      return;
+    }
     try {
       setSwitchingRole(true);
       await onboardingService.updateRole(user.id, targetRole);
@@ -350,9 +368,17 @@ export default function CustomerDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Seeker Option */}
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+            <div className={`rounded-2xl border p-6 transition-all flex flex-col justify-between space-y-4 ${
+              isSeekerInActiveAgreement
+                ? 'border-slate-200 bg-slate-50/70'
+                : 'border-slate-200/90 bg-white shadow-xs hover:shadow-md'
+            }`}>
               <div className="space-y-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-xl border ${
+                  isSeekerInActiveAgreement
+                    ? 'bg-slate-100 text-slate-400 border-slate-200'
+                    : 'bg-blue-50 text-blue-600 border-blue-100'
+                }`}>
                   <Compass className="h-6 w-6" />
                 </div>
                 <div>
@@ -361,12 +387,20 @@ export default function CustomerDashboard() {
                     Re-enable your seeker profile and preferences. You will become discoverable to hosts and can browse and send interests for available rooms.
                   </p>
                 </div>
+
+                {isSeekerInActiveAgreement && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-[11px] text-amber-800 font-medium flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <span>You can look for a new room after your current agreement ends</span>
+                  </div>
+                )}
               </div>
               <button
                 type="button"
-                disabled={switchingRole}
+                disabled={switchingRole || isSeekerInActiveAgreement}
                 onClick={() => handleSelectRole('seeker')}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 text-xs font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                title={isSeekerInActiveAgreement ? 'You can look for a new room after your current agreement ends' : undefined}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 text-xs font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Compass className="h-4 w-4" />
                 {switchingRole ? 'Switching...' : 'Continue as Seeker'}
