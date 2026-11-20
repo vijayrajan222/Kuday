@@ -76,12 +76,17 @@ export async function activateAgreement(
   deps: AgreementActivationDeps,
   agreementId: string,
   updates: Partial<AgreementEntity>
-): Promise<{ agreement: AgreementEntity; alreadyActivated: boolean; slotReserved: boolean }> {
+): Promise<{ agreement: AgreementEntity; alreadyActivated: boolean; slotReserved: boolean; inactive?: boolean }> {
   const { agreementRepository, roomRepository, userRepository, interestRepository, socketService } = deps;
 
   const current = await agreementRepository.findById(agreementId);
   if (!current) {
     throw new NotFoundError("Agreement not found.");
+  }
+
+  // If already cancelled or ended, ignore immediately WITHOUT touching room slots
+  if (current.status === "cancelled" || current.status === "ended") {
+    return { agreement: current, alreadyActivated: false, slotReserved: false, inactive: true };
   }
 
   // Idempotency: If already completed or activated, return immediately without re-deducting

@@ -20,6 +20,9 @@ export interface ActiveRoommateRoomDto {
 
 export interface ActiveRoommateResponseDto {
     agreementId: string;
+    hostId?: string | undefined;
+    seekerId?: string | undefined;
+    userRole?: "host" | "seeker" | undefined;
     startDate?: string | undefined;
     endDate?: string | undefined;
     status: string;

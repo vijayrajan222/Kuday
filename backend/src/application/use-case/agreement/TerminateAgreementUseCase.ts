@@ -46,10 +46,23 @@ export class TerminateAgreementUseCase implements ITerminateAgreementUseCase {
 
             if (updated) {
                 // 1. Add 1 back to availableSlots (never above capacity via atomic $expr)
-                const updatedRoom = await this.roomRepository.incrementAvailableSlots(agreement.roomId);
+                let updatedRoom = await this.roomRepository.incrementAvailableSlots(agreement.roomId);
+                if (!updatedRoom) {
+                    updatedRoom = await this.roomRepository.findById(agreement.roomId);
+                }
 
-                // 2. Set seeker's role to "none"
-                await this.userRepository.updateProfile(agreement.seekerId, { role: "none" });
+                // 2. If the room's host currently has role "none" (and the room now has availableSlots > 0),
+                // set the host's role back to "host" and reactivate that room.
+                // Don't change the host's role if it is anything else.
+                // Do NOT change the seeker's role.
+                const hostUser = await this.userRepository.findById(agreement.hostId);
+                if (hostUser?.role === "none" && updatedRoom && (updatedRoom.availableSlots ?? 0) > 0) {
+                    await this.userRepository.updateProfile(agreement.hostId, { role: "host" });
+                    const reactivated = await this.roomRepository.update(agreement.roomId, { isActive: true });
+                    if (reactivated) {
+                        updatedRoom = reactivated;
+                    }
+                }
 
                 const enriched = await enrichAgreement(updated, this.userRepository, this.roomRepository);
 

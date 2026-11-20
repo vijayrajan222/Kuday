@@ -2,21 +2,36 @@ import type { IUpdateRoleUseCase } from "@application/interfaces/use-case/user/I
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
 import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository";
+import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
 import type { UpdateRoleDto } from "@application/dto/user/UpdateRoleDto";
 import type { UserEntity } from "@domain/entities/UserEntity";
+import { NotFoundError, ValidationError } from "@application/errors/AppError";
 
 export class UpdateRoleUseCase implements IUpdateRoleUseCase {
     constructor(
         private userRepository: IUserRepository,
         private roomRepository?: IRoomRepository,
-        private seekerPreferenceRepository?: ISeekerPreferenceRepository
+        private seekerPreferenceRepository?: ISeekerPreferenceRepository,
+        private agreementRepository?: IAgreementRepository
     ) {}
 
     async execute(dto: UpdateRoleDto): Promise<UserEntity> {
         const { userId, role } = dto;
+
+        // If the user has a 'completed' agreement as the seeker, reject a change to role "seeker"
+        if (role === "seeker" && this.agreementRepository) {
+            const userAgreements = await this.agreementRepository.findByUser(userId);
+            const hasCompletedAgreement = userAgreements.some(
+                (a) => a.status === "completed" && a.seekerId === userId
+            );
+            if (hasCompletedAgreement) {
+                throw new ValidationError("You can look for a new room after your current agreement ends");
+            }
+        }
+
         const updatedUser = await this.userRepository.updateProfile(userId, { role });
         if (!updatedUser) {
-            throw new Error("User not found");
+            throw new NotFoundError("User not found");
         }
 
         // Toggle active listing status for host and seeker posts

@@ -33,7 +33,7 @@ export class GetActiveRoommateUseCase implements IGetActiveRoommateUseCase {
                     this.roomRepository.findById(ag.roomId),
                 ]);
                 if (partnerUser && room) {
-                    results.push(this.mapToDto(ag, partnerUser, room));
+                    results.push(this.mapToDto(ag, partnerUser, room, "host"));
                 }
             }
             return results;
@@ -54,16 +54,20 @@ export class GetActiveRoommateUseCase implements IGetActiveRoommateUseCase {
             return null;
         }
 
-        return this.mapToDto(active, partnerUser, room);
+        return this.mapToDto(active, partnerUser, room, "seeker");
     }
 
     private mapToDto(
         agreement: AgreementEntity,
         partnerUser: UserEntity,
-        room: RoomEntity
+        room: RoomEntity,
+        userRole: "host" | "seeker"
     ): ActiveRoommateResponseDto {
         return {
             agreementId: agreement.id,
+            hostId: agreement.hostId,
+            seekerId: agreement.seekerId,
+            userRole,
             startDate: agreement.startDate,
             endDate: agreement.endDate,
             status: agreement.status,

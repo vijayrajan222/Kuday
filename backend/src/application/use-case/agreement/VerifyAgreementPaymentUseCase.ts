@@ -53,7 +53,7 @@ export class VerifyAgreementPaymentUseCase implements IVerifyAgreementPaymentUse
       throw new ValidationError("Payment verification failed. Invalid transaction signature.");
     }
 
-    const { agreement: updated, slotReserved } = await activateAgreement(
+    const { agreement: updated, slotReserved, inactive } = await activateAgreement(
       {
         agreementRepository: this.agreementRepository,
         roomRepository: this.roomRepository,
@@ -74,6 +74,11 @@ export class VerifyAgreementPaymentUseCase implements IVerifyAgreementPaymentUse
         },
       }
     );
+
+    if (inactive) {
+      // Inactive (cancelled/ended): do nothing, no refund, no status change
+      return enrichAgreement(updated, this.userRepository, this.roomRepository);
+    }
 
     if (!slotReserved) {
       // Payment captured, but no room slot available: refund to Kuday wallet and cancel agreement

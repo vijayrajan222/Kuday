@@ -205,7 +205,7 @@ export function setupAppDependencies(app: Express): SocketGateway {
     const refreshTokenUseCase = new RefreshTokenUseCase(userrepo, jwtService);
 
     const updateProfileUseCase = new UpdateProfileUseCase(userrepo, cloudinaryService);
-    const updateRoleUseCase = new UpdateRoleUseCase(userrepo, roomrepo, seekerrepo);
+    const updateRoleUseCase = new UpdateRoleUseCase(userrepo, roomrepo, seekerrepo, agreementrepo);
     const uploadIdentityUseCase = new UploadIdentityUseCase(userrepo, cloudinaryService, notificationrepo);
     const getUserProfileUseCase = new GetUserProfileUseCase(userrepo);
     const getUserPublicProfileUseCase = new GetUserPublicProfileUseCase(

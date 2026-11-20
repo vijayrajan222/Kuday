@@ -109,7 +109,7 @@ export class HandleAgreementWebhookUseCase implements IHandleAgreementWebhookUse
     }
 
     try {
-      const { agreement: updated, slotReserved } = await activateAgreement(
+      const { agreement: updated, slotReserved, inactive } = await activateAgreement(
         {
           agreementRepository: this.agreementRepository,
           roomRepository: this.roomRepository,
@@ -130,6 +130,11 @@ export class HandleAgreementWebhookUseCase implements IHandleAgreementWebhookUse
           },
         }
       );
+
+      if (inactive) {
+        // Inactive (cancelled/ended): do nothing, no refund, no status change
+        return { handled: true, message: "Agreement is already inactive (cancelled/ended)." };
+      }
 
       if (!slotReserved) {
         // Payment captured via webhook, but no room slot was available: refund to wallet and cancel
