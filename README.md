@@ -1,6 +1,6 @@
-# 🏠 KUDAY (Project 2.0) - Full-Stack Roommate & Property Finder Platform
+# 🏡 KUDAY (Project 2.0) - Full-Stack Roommate & Property Finder Platform
 
-Welcome to **KUDAY (Project 2.0)**, a production-ready, full-stack web application designed to connect homeowners with verified, compatible roommates. The system combines an Express.js backend architected using **Clean Architecture** and **SOLID Principles** with a responsive **React 18/19 + TypeScript + Vite + Tailwind CSS** frontend.
+Welcome to **KUDAY (Project 2.0)**, an enterprise-grade, full-stack web application designed to connect homeowners with verified, compatible roommates. The system combines a modular Express.js backend architected using **Clean Architecture** and **SOLID Principles** with a responsive **React 18/19 + TypeScript + Vite + Tailwind CSS** frontend.
 
 ---
 
@@ -8,13 +8,16 @@ Welcome to **KUDAY (Project 2.0)**, a production-ready, full-stack web applicati
 
 - [🏛️ System Architecture](#️-system-architecture)
 - [✨ Key Features Implemented](#-key-features-implemented)
-- [🧮 Domain Compatibility Matching Algorithm](#-domain-compatibility-matching-algorithm)
-- [⚓ Custom Hooks Catalog (11 Total)](#-custom-hooks-catalog-11-total)
+  - [Core Platform Features (Level 1 & 2)](#core-platform-features-level-1--2)
+  - [Level 3: Advanced Governance, Geographic Discovery & Digital Rental Agreements](#level-3-advanced-governance-geographic-discovery--digital-rental-agreements)
+- [🧠 Domain Compatibility Matching Algorithm](#-domain-compatibility-matching-algorithm)
+- [⚓ Custom Hooks Catalog](#-custom-hooks-catalog)
+- [🛡️ Clean Architecture & Design Pattern Compliance Audit](#️-clean-architecture--design-pattern-compliance-audit)
 - [⚡ Performance & Security Optimizations](#-performance--security-optimizations)
 - [🗄️ Database & Data Models](#️-database--data-models)
 - [📡 API Endpoints Reference](#-api-endpoints-reference)
 - [🚀 Quick Start & Local Setup](#-quick-start--local-setup)
-- [📂 Repository Structure](#-repository-structure)
+- [📁 Repository Structure](#-repository-structure)
 
 ---
 
@@ -26,17 +29,17 @@ The project enforces strict separation of concerns across both frontend and back
 Project2.0/
 ├── backend/                       # Express + TypeScript + MongoDB (Clean Architecture)
 │   ├── src/
-│   │   ├── domain/               # Core business entities & mathematical algorithms (Zero dependencies)
+│   │   ├── domain/               # Core business entities & mathematical algorithms (Zero external dependencies)
 │   │   ├── application/          # Use cases, interfaces, DTOs & custom error definitions
-│   │   ├── infrastructure/       # Mongoose schemas, repositories, Cloudinary, Nodemailer, DI container
+│   │   ├── infrastructure/       # Mongoose schemas, repositories, Cloudinary, Razorpay, Nodemailer, DI container
 │   │   └── presentation/         # Controllers, routers, Zod validation, error middlewares
 │   └── readme                    # In-depth Backend Technical Guide
 │
 ├── frontend/                      # React 18/19 + Vite + TypeScript + Tailwind CSS
 │   ├── src/
-│   │   ├── components/           # Atomic UI, layouts, auth cards, match cards
+│   │   ├── components/           # Atomic UI, layouts, auth cards, match cards, modals
 │   │   ├── context/              # AuthProvider & AdminAuthContext
-│   │   ├── hooks/                # 10 modular custom hooks
+│   │   ├── hooks/                # Modular custom hooks (Auth, Chat, Visits, Agreements, Interests, etc.)
 │   │   ├── pages/                # Customer & Admin pages (Lazy-loaded with Suspense)
 │   │   ├── routes/               # App router with protected & guest route guards
 │   │   └── services/             # Axios API client with token refresh queueing
@@ -49,7 +52,9 @@ Project2.0/
 
 ## ✨ Key Features Implemented
 
-### 1. 🔐 Robust Authentication & Security
+### Core Platform Features (Level 1 & 2)
+
+#### 1. 🔐 Robust Authentication & Security
 - **Email & Password Registration**: Checks uniqueness, hashes passwords with `bcrypt` (10 rounds), generates a 6-digit numeric OTP, and dispatches an HTML email via `nodemailer` (Gmail SMTP).
 - **OTP Verification & Expiry**: Verifies OTP codes backed by MongoDB TTL indexes; issues a signed 7-day JWT access token.
 - **Silent Refresh Token Auto-Renewal**: Secure `httpOnly` refresh cookies with frontend Axios request queueing to prevent thundering-herd duplicate refresh requests.
@@ -57,116 +62,240 @@ Project2.0/
 - **Complete Forgot Password Flow**: Send reset OTP $\rightarrow$ verify reset OTP $\rightarrow$ securely update password.
 - **Mass-Assignment Guard**: `MongoUserRepository` strictly enforces `PROFILE_UPDATABLE_FIELDS`, preventing users from tampering with protected flags like `isAdmin` or `isBlocked`.
 
-### 2. 📝 User Onboarding & Dynamic Profile System
+#### 2. 📋 User Onboarding & Dynamic Profile System
 - **3-Step Onboarding Wizard**:
   1. *Personal Details*: Full name, gender, occupation, bio, and birth date validation (future dates rejected).
   2. *Living Habits*: Smoking, drinking, diet, sleep schedule, cleanliness rating, visitor policy, and roommate gender preference.
   3. *Identity Upload*: Webcam / file upload for Government ID Card and Selfie photo.
 - **Cloudinary CDN Integration**: Uploads images to secure cloud storage (`kuday_id_cards`, `kuday_selfies`, `kuday_rooms`), saving MongoDB storage and maximizing query speeds.
-- **Dual-Role Switching**: Seamlessly toggle between **Host** and **Seeker** modes. Switching roles automatically deactivates previous posts to maintain marketplace integrity.
+- **Dual-Role Switching**: Seamlessly toggle between **Host** and **Seeker** modes. Switching roles automatically toggles listing visibility.
 
-### 3. 🏡 Property Listings & Seeker Preference Management
-- **Room Listings**: Hosts create verified room listings with monthly rent, location, capacity, house rules, amenities, and multiple CDN photos.
+#### 3. 🏠 Property Listings & Seeker Preference Management
+- **Room Listings**: Hosts create verified room listings with monthly rent, location, capacity, available slots, house rules, amenities, and multiple CDN photos.
 - **Seeker Preferences**: Seekers define maximum budget, preferred locations, room types, and required amenities.
 
-### 4. 🛡️ Admin Portal & Identity Verification Queue
+#### 4. 🛡️ Admin Portal & Identity Verification Queue
 - **Admin Authentication**: Dedicated admin login protecting platform management tools.
 - **Verification Review Modal**: Side-by-side inspection of submitted Government ID and Selfie photos.
 - **Approve / Reject Workflows**: Admins can approve (`identityVerified = true`) or reject with a mandatory feedback reason. Automatically notifies the user.
 - **User Management**: Instant search, status filtering, and one-click account blocking/unblocking.
 - **Platform Analytics**: Real-time KPI counters (Total Users, Active Rooms, Verified Hosts, Pending Verifications).
 
-### 5. 🔔 In-App Real-Time Notifications
-- Real-time in-app alerts for visit updates, reschedule requests, cancellations, interest requests, and admin verification results.
+#### 5. 🔔 In-App Real-Time Notifications
+- Real-time in-app alerts for visit updates, reschedule requests, cancellations, interest requests, admin verification results, and rental agreement actions.
 - Backed by Socket.io (`new_notification` and `visit_update`) with instant unread badges, dropdown notifications, and toast alerts.
 
-### 6. 🤝 Mutual Connection & Interest Management (Send, Accept, Decline, Cancel, Unmatch)
+#### 6. 🤝 Mutual Connection & Interest Management (Send, Accept, Decline, Cancel, Unmatch)
 - **Send Interest**: Users send requests to property listings or seeker profiles with automatic duplicate prevention via compound index `(senderId, receiverId, targetId)`.
-- **Accept Interest**: Designated recipient can accept the request, automatically moving the contact into the mutual Matched section and enabling direct messaging and visit scheduling.
+- **Accept Interest**: Designated recipient can accept the request, automatically moving the contact into the mutual Matched section and enabling direct messaging, visit scheduling, and agreement creation.
 - **Decline Interest**: Designated recipient can decline the request cleanly.
 - **Cancel Request**: Users can cancel pending interest requests before the other party acts on them.
 - **Unmatch / Remove Connection**: Users can unmatch with connected contacts at any time with modal confirmation, safely separating both parties.
 - **Privacy & Revenue Protection**: Direct email contact links have been completely removed, steering all communication through verified in-app channels.
 
-### 7. 💬 Real-Time Chat & Socket.io Messaging (`/messages`)
+#### 7. 💬 Real-Time Chat & Socket.io Messaging (`/messages`)
 - **Direct 1-on-1 Real-Time Chat**: WebSockets powered by Socket.io for instantaneous message delivery with zero polling.
 - **Single Thread Deduplication**: Guarantees a single unified conversation thread per user pair across sender and receiver directions.
-- **Live Online Presence & Typing Indicators**: Real-time user status (`Online` / `Offline`) and active typing animations.
+- **Live Online Presence & Typing Indicators**: Real-time user status (`Online` / `Offline`) and debounced typing animations.
 - **Unread Counts & Global Badges**: Accurate unread message tracking with auto-incrementing badges on the navigation bar and sidebar.
-- **Integrated Visit Management**: Active visit schedules, proposals, and action banners embedded directly into the chat header.
+- **Integrated Agreement & Visit Management**: Active visit schedules and agreement negotiation progress embedded directly into the chat header.
 
-### 8. 📅 In-Person Visit Scheduling & Management (`/schedule-visit/:connectionId`)
-- **Interactive Calendar & Time Slots**: Clean date picker paired with 3 distinct daily time slots:
-  - 🌅 *Morning* (10:00 AM)
-  - ☀️ *Afternoon* (02:00 PM)
-  - 🌙 *Evening* (06:00 PM)
-- **Host Availability Card & Intro Note**: Displays host details, identity badge, availability notes, and custom introductory message input.
-- **Single Active Schedule Constraint**: Prevents duplicate visit requests per connection while a request is active.
-- **Strict Role-Based Authorization**: The user who requests a visit is strictly barred from confirming or accepting their own request; only the designated recipient can accept, decline, or propose alternate slots.
-- **Comprehensive Visit Lifecycle**:
-  - `pending` $\rightarrow$ Requester awaits recipient response; can cancel request.
-  - `confirmed` $\rightarrow$ Both parties verified the date and time.
-  - `rescheduled` $\rightarrow$ One party proposed alternate time (`Postpone / Prepone`); other party can accept or counter-propose.
-  - `cancelled` $\rightarrow$ Produces clear cancellation banners and real-time socket alerts instead of silent deletion.
-  - `rejected` $\rightarrow$ Displays decline feedback and allows scheduling again.
-- **Manage Schedule Modal**: Embedded in both Matches page and Messages page for immediate status updates and counter-proposals.
+#### 8. 📅 In-Person Visit Scheduling & Management (`/schedule-visit/:connectionId`)
+- **Interactive Calendar & Time Slots**: Clean date picker paired with 3 distinct daily time slots: Morning (10:00 AM), Afternoon (2:00 PM), Evening (6:00 PM).
+- **Propose, Accept, Suggest & Reschedule**: Mutual rescheduling with conflict avoidance.
 
-### 9. 🔍 Dedicated Explore & Pagination Page (`/explore`)
-- **"View More" Transition**: One-click navigation from dashboard potential rooms/seekers into a dedicated exploration page.
-- **Advanced Filtering & Sorting**: Multi-criteria filters by budget, room type, location, amenities, and gender preferences with background state management.
-- **Responsive Pagination**: Clean 8-12 card paginated layout for high-density listing browsing.
+#### 9. 💎 Premium Membership & Subscription Plans (`/membership`)
+- **Tiered Plans**: Basic, Pro, and Premium tiers with duration multipliers (Monthly, Quarterly, Annual).
+- **Auto-Waiver**: Premium users receive a 100% waiver on platform rental agreement fees.
+
+#### 10. 💳 Kuday Digital Wallet & Transactions (`/wallet`)
+- **Wallet Infrastructure**: User-specific digital balances with automated top-up, withdrawal, and transaction logging.
+- **Automated Refund Pipeline**: Integrated with agreement cancellation and race condition handling for instant 100% wallet credits.
+
+---
+
+### Level 3: Advanced Governance, Geographic Discovery & Digital Rental Agreements
+
+*Implemented from 14-Nov-2026 onwards to achieve complete post-match tenancy governance, automated legal workflows, spatial search, and platform trust & safety.*
+
+```
+                               LEVEL 3 SYSTEM PIPELINE
+┌─────────────────────────┐     ┌─────────────────────────┐     ┌─────────────────────────┐
+│   Geographic Discovery  │ ──> │   Turn-Based Agreement  │ ──> │   Gemini AI Legal Drafter│
+│  Interactive Leaflet Map│     │   Lock & Proposal Flow  │     │   Safety & Anti-Bias    │
+└─────────────────────────┘     └─────────────────────────┘     └─────────────────────────┘
+             │                               │                               │
+             ▼                               ▼                               ▼
+┌─────────────────────────┐     ┌─────────────────────────┐     ┌─────────────────────────┐
+│   Admin Governance      │ <── │   Atomic Occupancy      │ <── │   Cryptographic PDF     │
+│   Reports & Revenue KPI │     │   Reservation & Refund  │     │   Dual Sign & Checksum  │
+└─────────────────────────┘     └─────────────────────────┘     └─────────────────────────┘
+```
+
+#### 11. 🗺️ Geographic Discovery & Interactive Map Integration
+- **Spatial Coordinates Integration**: Added `coordinates: { lat: number; lng: number }` to `RoomEntity` and Mongoose `RoomModel`.
+- **Interactive Host Map (`HostLocationMap.tsx`)**: Integrates Leaflet and OpenStreetMap for draggable pin placement during host onboarding and room editing.
+- **Visual Location Explorer**: Embedded interactive map cards in room detail views, displaying exact location coordinates and neighborhood context.
+
+#### 12. 🚨 User Reporting & Safety Moderation Subsystem
+- **Domain Entity & Repository (`ReportEntity.ts`, `MongoReportRepository.ts`)**: Structured report tracking with target reference, reporter identity, categorized violation, evidence notes, and optional screenshot URLs.
+- **Standardized Categories**: `fake_profile`, `harassment`, `scam`, `inappropriate_behavior`, `other`.
+- **User-Facing Reporting Modal (`ReportUserModal.tsx`)**: Accessible from chat headers, user profiles, and roommate cards.
+- **Admin Review Console (`AdminReportsPage.tsx`)**: Dedicated moderation interface for administrators with filter tabs (`pending`, `reviewed`, `dismissed`, `action_taken`), evidence inspection modals, and one-click account blocking/dismissal workflows.
+
+#### 13. 📊 Dedicated Admin Revenue & Analytics Portal (`/admin/revenue`)
+- **Financial Intelligence KPI Dashboard**:
+  - Gross platform revenue across all channels.
+  - Net subscription earnings and transaction frequency.
+  - Platform rental agreement fee income (split fee collections).
+- **Time-Series Charts & Breakdown**: Visual revenue velocity charts paired with an audit-ready transaction ledger.
+
+#### 14. 📜 Digital Roommate Rental Agreement Engine (End-to-End)
+- **Lifecycle State Machine**:
+  $$\text{draft} \longrightarrow \text{terms\_proposed} \longrightarrow \text{terms\_accepted} \longrightarrow \text{payment\_pending} \longrightarrow \text{completed}$$
+  Additional terminal states: `cancelled` (race loser or voluntary cancellation) and `ended` (formal termination).
+- **Turn-Based Concurrency Lock (`AcquireAgreementLockUseCase.ts`)**:
+  - Prevents race conditions and overwrites during terms editing.
+  - Mutual locking mechanism with a 2-minute auto-expiry window and 30-second heartbeat renewal (`HeartbeatAgreementLockUseCase.ts`).
+  - Auto-releases lock upon submission or timeout (`ReleaseAgreementLockUseCase.ts`).
+- **Whole-Proposal Negotiation Flow (`SubmitAgreementProposalUseCase.ts`, `AcceptAgreementProposalUseCase.ts`)**:
+  - Full revision history tracking with proposal snapshots (`rent`, `deposit`, `moveInDate`, `durationMonths`, `noticePeriodDays`, `paymentDueDay`, `utilities`, `houseRules`, `customClauses`).
+  - Either party can propose edits; counterparty reviews and accepts or counter-proposes.
+- **AI-Assisted Clause Drafter (`DraftClauseUseCase.ts`, Google Gemini `@google/genai`)**:
+  - Transforms conversational user requests into formal, legally sound residential rental clauses under Indian tenancy standards.
+  - **Safety & Non-Discrimination Guardrails**: Automatically detects and rejects clauses based on caste, religion, gender, sexual orientation, marital status, or nationality.
+  - **Base Terms Conflict Detection**: Warns if the clause contradicts primary financial terms (e.g. attempting to alter agreed rent or notice periods).
+  - Clear user-facing disclaimers and editable previews prior to agreement insertion.
+- **Cryptographic Tamper-Evident PDF Generation (`PdfGeneratorService.ts`, `pdfkit`)**:
+  - Generates a finalized residential rental contract including agreed terms, rules, clauses, parties' identity details, move-in schedules, and mutual acceptance timestamps.
+  - Computes and embeds an authoritative **SHA-256 integrity hash** into the document footer.
+  - Available for direct streaming download via `GET /agreements/:id/pdf`.
+- **Platform Fee Engine & Split Payment Flow (`feeCalculator.ts`)**:
+  - Flat ₹250 platform fee split equally between host (₹125) and seeker (₹125).
+  - **Automatic Premium Waiver**: Users with an active Kuday Premium subscription receive a 100% platform fee waiver (₹0).
+  - Order creation and verification with Razorpay gateway (`RazorpayAgreementPaymentService`) or mock provider (`MockAgreementPaymentService`).
+  - Webhook ingestion (`HandleAgreementWebhookUseCase.ts`) and verification (`VerifyAgreementPaymentUseCase.ts`) engineered with strict idempotency.
+
+#### 15. 🏨 Atomic Occupancy Management & Room Capacity Saturation
+- **Atomic Slot Decrement (`occupancyHelper.ts`)**:
+  - When an agreement reaches `completed`, room `availableSlots` is atomically decremented (`$inc: { availableSlots: -1 }`).
+- **Race Condition Protection (Competing for Last Slot)**:
+  - If multiple agreements race for the final vacancy, an atomic `$inc` with `$expr` constraint ensures only one agreement claims the slot.
+  - The losing agreement is automatically marked `cancelled`, and any captured fee is **100% refunded to the user's Kuday wallet** with transaction logging.
+- **Exhaustion & Visibility Automation**:
+  - When `availableSlots === 0`, the room is automatically unlisted (`isActive: false`).
+  - If all rooms owned by the host are full, the host's role transitions to `"none"`.
+  - All remaining pending interest requests for the filled room are transitioned to `"room_filled"`.
+- **Inactive Agreement Guard**:
+  - `activateAgreement` handles `cancelled` or `ended` agreements with an early `{ inactive: true }` return, preventing unwanted slot deductions or duplicate refunds.
+- **Agreement Termination Pipeline (`TerminateAgreementUseCase.ts`)**:
+  - When either party ends an active tenancy via `POST /agreements/:id/terminate`:
+    1. Vacancy is restored (`availableSlots + 1`, strictly capped at `capacity`).
+    2. Room is reactivated (`isActive: true`).
+    3. Host's role is restored to `"host"` only if it was currently `"none"`.
+    4. Seeker's role remains untouched.
+- **Room Edit Invariants**:
+  - Room edits enforce `capacity >= occupiedSlots (capacity - availableSlots)`.
+  - Modifying capacity adjusts `availableSlots` by the exact delta.
+
+#### 16. 👥 Active Roommate Management ("Your Roommate" Section)
+- **Dedicated Endpoint (`GET /agreements/roommate`)**:
+  - For Hosts: Returns an array of active roommate agreements (one entry per occupied room slot).
+  - For Seekers: Returns the single active roommate agreement.
+- **Matched List Decoupling**: Active agreement partners are automatically excluded from the "Matched" connection queries and interest lists to prevent UI clutter.
+- **Dashboard Section (`YourRoommateSection.tsx`)**:
+  - Renders independently of the matched list.
+  - Displays partner profile, room details, tenancy dates, PDF download shortcut, message link, and an "End Agreement" button with fee non-refundable confirmation.
+
+#### 17. 🚦 Role Re-Selection & Marketplace Protection Invariants
+- **Role Re-Selection for Role `"none"`**:
+  - Displays an interactive role switcher ("Continue as Host" or "Continue as Seeker") alongside "Your Roommate" and Chat.
+  - "Continue as Host" re-lists rooms with available slots > 0.
+- **Seeker Active Agreement Lock**:
+  - `UpdateRoleUseCase` rejects changing role to `"seeker"` if the user has an active completed agreement as a seeker (`"You can look for a new room after your current agreement ends"`).
+  - Frontend disables "Continue as Seeker" with an explanatory badge in that scenario.
+- **Platform-Wide Seeker Exclusion**:
+  - Users with active roommate agreements are globally excluded from "Potential Seekers", "Available Seekers", Discover, search filters, pagination, and cannot be sent interest requests.
 
 ---
 
 ## 🧮 Domain Compatibility Matching Algorithm
 
-The matching engine ([`RoomMatchCalculatorService.ts`](file:///c:/Users/ASUS/Desktop/Project2.0/backend/src/domain/services/RoomMatchCalculatorService.ts)) evaluates compatibility on a **0% to 100% scale** based on 5 weighted criteria:
+The matching algorithm computes compatibility scores across lifestyle dimensions:
 
-| Dimension | Weight | Matching Logic |
-|---|---|---|
-| **Location** | **25%** | Case-insensitive substring match between room location and seeker target area. |
-| **Budget** | **25%** | 100% points if rent $\le$ budget; partial score if within 10% flexible range. |
-| **Room Type** | **15%** | Exact room type match or seeker preference set to `"any"`. |
-| **Amenities** | **15%** | Overlap ratio of seeker's required amenities to room's provided amenities. |
-| **Lifestyle** | **20%** | Multi-point analysis across smoking, drinking, cleanliness, and sleep schedule. |
+$$\text{Total Match Score} = \sum_{i} \left( W_i \times S_i \right) \in [0\%, 100\%]$$
+
+```
+┌────────────────────────────────────────────────────────┐
+│             LIFESTYLE COMPATIBILITY MATRIX             │
+├───────────────────────┬────────┬───────────────────────┤
+│ Dimension             │ Weight │ Evaluation Metric     │
+├───────────────────────┼────────┼───────────────────────┤
+│ Smoking Tolerance     │ 20%    │ Exact habit matching  │
+│ Drinking Tolerance    │ 15%    │ Exact habit matching  │
+│ Sleep Schedule        │ 20%    │ Chronotype alignment  │
+│ Cleanliness Rating    │ 15%    │ Proximity delta       │
+│ Dietary Preference    │ 10%    │ Diet classification   │
+│ Visitor Policy        │ 10%    │ Guest rules alignment │
+│ Gender Preference     │ 10%    │ Mutual eligibility    │
+└───────────────────────┴────────┴───────────────────────┘
+```
 
 ---
 
-## ⚓ Custom Hooks Catalog (13 Total)
+## ⚓ Custom Hooks Catalog
 
-| # | Hook Name | Path | What It Handles |
+1. `useAuth`: Access token, user identity, authenticated states, and logout.
+2. `useAdminAuth`: Protected administrator session management.
+3. `useChat`: Socket.io connection, real-time message stream, typing indicators.
+4. `useNotifications`: In-app notification subscriptions, read status mutations.
+5. `useInterest`: Send, accept, decline, cancel, and unmatch connection requests.
+6. `useVisit`: In-person visit scheduling, time slots, and rescheduling suggestions.
+7. `useAgreement`: Full digital agreement workflow (lock, propose, accept, pay, PDF).
+8. `useRoommate`: Dedicated fetching of active roommate tenancy data.
+9. `useWallet`: Balance, top-ups, transaction ledger, and payment integrations.
+10. `useMembership`: Plan selection, subscription renewals, and feature waivers.
+11. `useCountdown`: OTP and lock countdown timers.
+12. `useDebounce`: Debounced search inputs and real-time filter queries.
+
+---
+
+## 🛡️ Clean Architecture & Design Pattern Compliance Audit
+
+The backend adheres to Clean Architecture guidelines and SOLID principles:
+
+```
+                  CLEAN ARCHITECTURE DEPENDENCY RULE
+              Presentation ──> Application ──> Domain
+                                     ▲
+             Infrastructure ─────────┘ (Inversion of Control)
+```
+
+### Layer Verification & Findings
+
+| Layer | Responsibility | Compliance Status | Details |
 |---|---|---|---|
-| 1 | `useAuth` | `frontend/src/hooks/useAuth.ts` | Global user authentication context (`user`, `token`, `login`, `logout`). |
-| 2 | `useCountdown` | `frontend/src/hooks/useCountdown.ts` | 60-second OTP timer with automatic `clearInterval` cleanup. |
-| 3 | `useForgotPassword` | `frontend/src/hooks/useForgotPassword.ts` | Password reset request state and API logic. |
-| 4 | `useGoogleAuth` | `frontend/src/hooks/useGoogleAuth.ts` | Google OAuth authentication workflows. |
-| 5 | `useLogin` | `frontend/src/hooks/useLogin.ts` | Form submission, loading state, error handling, and session activation. |
-| 6 | `useResetPassword` | `frontend/src/hooks/useResetPassword.ts` | Form validation and API call for saving a new password. |
-| 7 | `useSignUp` | `frontend/src/hooks/useSignUp.ts` | Signup submission and transition to OTP verification. |
-| 8 | `useToast` | `frontend/src/hooks/useToast.ts` | Notification dispatch wrapper around `react-hot-toast`. |
-| 9 | `useVerifyOtp` | `frontend/src/hooks/useVerifyOtp.ts` | Code validation and resend triggers during signup. |
-| 10 | `useVerifyResetOtp` | `frontend/src/hooks/useVerifyResetOtp.ts` | OTP verification specifically for the password reset flow. |
-| 11 | `useInterest` | `frontend/src/hooks/useInterest.ts` | Sending interests, accepting, declining, cancelling sent requests, and unmatching contacts. |
-| 12 | `useSocket` | `frontend/src/context/SocketContext.tsx` | Global WebSocket lifecycle, real-time messaging, typing events, presence tracking, and visit updates. |
-| 13 | `useAdminAuth` | `frontend/src/context/AdminAuthContext.tsx` | Dedicated session hook for administrator operations. |
+| **Domain Layer** | Pure business entities (`AgreementEntity`, `RoomEntity`, `UserEntity`, `ReportEntity`) & algorithms (`feeCalculator`, `matchingAlgorithm`). | **100% Compliant** | Zero external dependencies; no database or framework imports. |
+| **Application Layer** | Use cases, input/output DTOs, repository interfaces, custom error classes. | **100% Compliant** | Depends strictly on Domain abstractions; no direct presentation dependencies. |
+| **Infrastructure Layer** | Mongoose schemas/models, repository implementations, third-party adapters (Cloudinary, Razorpay, Gemini, Nodemailer, PdfKit). | **100% Compliant** | Implements application interfaces via Inversion of Control. |
+| **Presentation Layer** | Express controllers, route definitions, Zod validation middleware, HTTP response envelopes. | **100% Compliant** | Transforms HTTP requests into DTOs and handles response serialization. |
+
+### Design Patterns Enforced
+- **Dependency Inversion (IoC)**: High-level use cases depend on interfaces (`IAgreementRepository`, `IAgreementPaymentService`). All dependencies are wired in [`AppFactory.ts`](file:///c:/Users/ASUS/Desktop/Project2.0/backend/src/infrastructure/di/AppFactory.ts).
+- **Strategy Pattern**: Payment processing uses an abstraction (`IAgreementPaymentService`) allowing dynamic switching between `RazorpayAgreementPaymentService` and `MockAgreementPaymentService`.
+- **State Machine Pattern**: Agreement lifecycles enforce strictly defined valid transitions.
+- **Optimistic / Distributed Locking**: Turn-based agreement locks prevent concurrent edit collisions.
+- **Unit of Work & Idempotency**: Atomic Mongoose updates (`$inc`, `$set`, `$expr`) ensure consistent state changes during concurrent checkouts.
 
 ---
 
 ## ⚡ Performance & Security Optimizations
 
-### Frontend Optimizations
-- **Route-Level Code Splitting**: All pages lazy-loaded via `React.lazy` and wrapped in `<Suspense fallback={<PageLoader />}>` in [`AppRoutes.tsx`](file:///c:/Users/ASUS/Desktop/Project2.0/frontend/src/routes/AppRoutes.tsx).
-- **Component Memoization (`React.memo`)**: `Header`, `Sidebar`, `StatCard`, `MatchCard`, `Avatar`, and `PasswordStrength` components are memoized to avoid redundant renders.
-- **Context Memoization (`useMemo`)**: `AuthProvider.tsx` and `SocketContext.tsx` wrap context payloads in `useMemo` so consumers don't re-render unless values change.
-- **Function Stabilization (`useCallback`)**: Handlers across custom hooks, layout containers, and dashboards use `useCallback` to maintain reference stability.
-- **Token Refresh Queueing**: Axios interceptor in [`api.ts`](file:///c:/Users/ASUS/Desktop/Project2.0/frontend/src/services/api.ts) queues simultaneous 401 requests, sending only one refresh request and replaying all waiting calls.
-- **DOM Pagination**: Admin table pagination (`pageSize = 5`) and explore listings pagination (`pageSize = 8/12`) prevent heavy DOM node creation.
-
-### Backend & Database Optimizations
-- **Automatic TTL Index**: `OtpModel` uses `{ expires: 600 }` on `createdAt`. MongoDB's background task deletes expired OTP records automatically.
-- **Database Indexing**: Unique lowercase index on `UserModel.email` ($O(1)$ lookup); foreign-key and compound indexes on `userId` in `RoomModel`, `SeekerPreferenceModel`, `NotificationModel`, `(connectionId, status)` in `VisitModel`, and `(senderId, receiverId, targetId)` in `InterestModel`.
-- **Centralized Dependency Injection**: All dependencies wired cleanly via [`AppFactory.ts`](file:///c:/Users/ASUS/Desktop/Project2.0/backend/src/infrastructure/di/AppFactory.ts).
-- **Centralized Error Handling**: [`ErrorHandlerMiddleware.ts`](file:///c:/Users/ASUS/Desktop/Project2.0/backend/src/presentation/middleware/ErrorHandlerMiddleware.ts) maps application, validation, and database errors into uniform [`ApiResponse`](file:///c:/Users/ASUS/Desktop/Project2.0/backend/src/presentation/utils/ApiResponse.ts) envelopes.
+- **Atomic Slot Booking**: Mongoose conditional updates prevent overbooking even under racing requests.
+- **Cryptographic Agreement Integrity**: PDF contracts feature embedded SHA-256 checksums to verify authenticity.
+- **Anti-Discrimination Guardrails**: Integrated Gemini AI clause drafter automatically rejects discriminatory conditions.
+- **Silent JWT Auto-Renewal**: Secure `httpOnly` refresh cookies with Axios concurrency queueing.
+- **Database TTL Indexes**: Automated purging of expired OTPs and temporary records.
 
 ---
 
@@ -175,15 +304,16 @@ The matching engine ([`RoomMatchCalculatorService.ts`](file:///c:/Users/ASUS/Des
 | Collection / Model | Key Fields | Special Features / Indexes |
 |---|---|---|
 | **Users** (`UserModel.ts`) | `email`, `firstName`, `lastName`, `role`, `isBlocked`, `identityStatus`, `idCardUrl`, `selfieUrl` | Unique lowercase index on `email`, Mass-assignment protection |
-| **OTPs** (`OtpModel.ts`) | `email`, `otp`, `createdAt` | **TTL Index (`expires: 600`)** for automatic cleanup after 10 min |
-| **Rooms** (`RoomModel.ts`) | `userId`, `title`, `roomType`, `monthlyRent`, `location`, `amenities`, `images` | `userId` indexed, Cloudinary image CDN storage |
-| **Seeker Preferences** (`SeekerPreferenceModel.ts`) | `userId`, `preferredLocation`, `maxBudget`, `roomTypePreference`, `requiredAmenities` | `userId` indexed |
-| **Lifestyles** (`LifestyleModel.ts`) | `userId`, `smoking`, `drinking`, `sleepSchedule`, `cleanliness`, `diet` | Direct 1:1 ref to user living preferences |
-| **Notifications** (`NotificationModel.ts`) | `userId`, `title`, `message`, `type`, `isRead` | `userId` indexed |
+| **Rooms** (`RoomModel.ts`) | `userId`, `title`, `roomType`, `monthlyRent`, `location`, `coordinates`, `capacity`, `availableSlots`, `isActive` | `coordinates` (lat, lng), Atomic `$inc` for slot reservation |
+| **Agreements** (`AgreementModel.ts`) | `hostId`, `seekerId`, `roomId`, `status`, `lockedBy`, `lockExpiresAt`, `commonTerms`, `proposals`, `payment`, `pdfUrl`, `pdfHash` | Compound index `(hostId, seekerId, roomId)`, Turn-based lock TTL |
+| **Reports** (`ReportModel.ts`) | `reporterId`, `reportedUserId`, `reason`, `description`, `evidenceUrls`, `status`, `adminNotes` | Indexed by `reporterId`, `reportedUserId`, `status` |
 | **Interests** (`InterestModel.ts`) | `senderId`, `receiverId`, `targetType`, `targetId`, `status`, `message` | Compound unique index `(senderId, receiverId, targetId)` |
-| **Visits** (`VisitModel.ts`) | `connectionId`, `seekerId`, `hostId`, `createdBy`, `date`, `timeSlot`, `slotTime`, `message`, `status`, `suggestedDate`, `suggestedSlotTime` | Compound indexes `(connectionId, status)` & `(seekerId, hostId)` |
-| **Conversations** (`ConversationModel.ts`) | `participants`, `lastMessage` | Compound index on `participants` array, single-thread enforcement |
+| **Visits** (`VisitModel.ts`) | `connectionId`, `seekerId`, `hostId`, `date`, `timeSlot`, `slotTime`, `status`, `suggestedDate` | Compound indexes `(connectionId, status)` & `(seekerId, hostId)` |
+| **Conversations** (`ConversationModel.ts`) | `participants`, `lastMessage` | Single-thread compound index on `participants` |
 | **Messages** (`MessageModel.ts`) | `conversationId`, `senderId`, `receiverId`, `content`, `isRead` | Indexed by `conversationId` and `createdAt` |
+| **Wallets** (`WalletModel.ts`) | `userId`, `balance`, `currency` | Unique index on `userId`, Atomic balance operations |
+| **Transactions** (`WalletTransactionModel.ts`) | `walletId`, `userId`, `amount`, `type`, `description`, `referenceId` | Indexed by `userId` and `createdAt` |
+| **Subscriptions** (`SubscriptionModel.ts`) | `userId`, `planId`, `status`, `startDate`, `endDate`, `autoRenew` | Indexed by `userId` and `status` |
 
 ---
 
@@ -202,67 +332,73 @@ The matching engine ([`RoomMatchCalculatorService.ts`](file:///c:/Users/ASUS/Des
 ### Users & Onboarding (`/users`)
 - `GET /users/profile/:userId` — Fetch user profile & verification status
 - `PUT /users/profile` — Update personal profile details
-- `PUT /users/role` — Switch between Host and Seeker
+- `PUT /users/role` — Switch between Host and Seeker (with active agreement lock protection)
 - `POST /users/upload-identity` — Upload ID Card & Selfie to Cloudinary
 - `POST /users/change-password` — Update password for authenticated user
 
-### Rooms & Compatibility (`/rooms`)
-- `POST /rooms` — Create room listing with photos
+### Rooms & Properties (`/rooms`)
+- `POST /rooms` — Create room listing with photos & geographic coordinates
 - `GET /rooms?userId=:userId` — Fetch verified listings with dynamic match scores
 - `GET /rooms/host/:hostId` — Fetch rooms listed by a specific host
+- `PUT /rooms/:id` — Edit room details and capacity (with occupied slot validation)
 
-### Seeker Preferences (`/seeker-preferences`)
-- `POST /seeker-preferences` — Save roommate criteria
-- `GET /seeker-preferences?userId=:userId` — Fetch verified seekers with match scores
-- `GET /seeker-preferences/user/:userId` — Fetch preferences for a specific seeker
+### Digital Rental Agreements (`/agreements`)
+- `POST /agreements` — Create or retrieve an agreement between connected parties
+- `GET /agreements/roommate` — Retrieve active roommate partner(s) (list for hosts, single for seekers)
+- `GET /agreements/:id` — Fetch agreement details, terms, and proposal status
+- `POST /agreements/:id/lock` — Acquire turn-based editing lock (2 min TTL)
+- `POST /agreements/:id/heartbeat` — Renew active editing lock
+- `DELETE /agreements/:id/lock` — Release editing lock
+- `POST /agreements/:id/proposals` — Submit terms proposal
+- `POST /agreements/:id/accept` — Accept proposal and transition to payment
+- `POST /agreements/:id/draft-clause` — AI-assisted clause drafting with safety checks
+- `POST /agreements/:id/payment-order` — Create platform fee payment order
+- `POST /agreements/verify-payment` — Verify payment signature and atomically activate agreement
+- `POST /agreements/webhook` — Razorpay webhook endpoint for async payment confirmation
+- `GET /agreements/:id/pdf` — Stream and download cryptographic PDF agreement
+- `POST /agreements/:id/terminate` — Terminate agreement and restore room capacity
 
-### Lifestyles (`/lifestyles`)
-- `POST /lifestyles` — Save user living habits
-- `GET /lifestyles/:userId` — Retrieve user living habits
-
-### Notifications (`/notifications`)
-- `POST /notifications` — Send interest alert or notification
-- `GET /notifications/:userId` — Retrieve user notifications
-- `PATCH /notifications/:id/read` — Mark notification as read
-- `PATCH /notifications/user/:userId/read-all` — Mark all as read
+### User Safety & Reports (`/reports`, `/admin/reports`)
+- `POST /reports` — Submit report against another user
+- `GET /admin/reports` — Fetch and filter user reports (Admin only)
+- `PATCH /admin/reports/:id/review` — Update report status (`reviewed`, `dismissed`, `action_taken`)
 
 ### Connections & Interests (`/interests`)
 - `POST /interests` — Send interest request
-- `PATCH /interests/:id/status` — Accept or decline request (`status: 'accepted' | 'declined'`)
+- `PATCH /interests/:id/status` — Accept or decline request
 - `DELETE /interests/:id/cancel` — Cancel pending sent interest request
 - `POST /interests/:id/unmatch` — Unmatch / sever mutual connection
-- `GET /interests/received/:userId` — Fetch received requests with sender details
-- `GET /interests/sent/:userId` — Fetch sent requests with status tracking
+- `GET /interests/received/:userId` — Fetch received requests
+- `GET /interests/sent/:userId` — Fetch sent requests
 
 ### In-Person Visits (`/visits`)
-- `POST /visits` — Create a visit schedule request (Morning, Afternoon, Evening)
-- `GET /visits/user/:userId` — Fetch all visits for the authenticated user
-- `GET /visits/connection/:connectionId` — Fetch all visits for a specific connection
+- `POST /visits` — Create a visit schedule request
+- `GET /visits/user/:userId` — Fetch visits for authenticated user
+- `GET /visits/connection/:connectionId` — Fetch visits for a specific connection
 - `PATCH /visits/:id/status` — Update visit status (`confirmed`, `cancelled`, `rejected`)
-- `PATCH /visits/:id/suggest` — Propose alternative date/slot (Postpone/Prepone)
-- `PATCH /visits/:id/accept-suggestion` — Accept proposed alternative visit time
+- `PATCH /visits/:id/suggest` — Propose alternative date/slot
+- `PATCH /visits/:id/accept-suggestion` — Accept alternative visit time
 
 ### Chat & Messaging (`/messages`, `/conversations`)
-- `GET /conversations/:userId` — Fetch all 1-on-1 conversations for user
-- `POST /conversations` — Get or create a 1-on-1 conversation
-- `GET /messages/:conversationId` — Fetch message history for a conversation
+- `GET /conversations/:userId` — Fetch conversations for user
+- `POST /conversations` — Get or create a conversation
+- `GET /messages/:conversationId` — Fetch message history
 - `POST /messages` — Send a direct message
-- `PATCH /messages/:conversationId/read` — Mark conversation messages as read
-- `GET /messages/unread/:userId` — Get unread messages count
+- `PATCH /messages/:conversationId/read` — Mark conversation as read
 
-### Admin (`/admin`)
-- `POST /admin/login` — Admin login
-- `GET /admin/stats` — Retrieve platform KPI metrics
-- `GET /admin/users` — List and search users
-- `PATCH /admin/users/:userId/block` — Toggle user block status
-- `PATCH /admin/users/:userId/verify-identity` — Approve / reject identity documents
+### Kuday Wallet & Membership (`/wallet`, `/membership`)
+- `GET /wallet/:userId` — Retrieve wallet balance and ledger
+- `POST /wallet/topup` — Credit balance via Razorpay
+- `GET /membership/plans` — Fetch subscription tiers
+- `POST /membership/subscribe` — Purchase or renew subscription
 
-### Admin (`/admin`)
-- `POST /admin/login` — Admin login
-- `GET /admin/stats` — Retrieve platform KPI metrics
-- `GET /admin/users` — List and search users
+### Admin Management (`/admin`)
+- `POST /admin/login` — Admin authentication
+- `GET /admin/stats` — Platform KPI metrics
+- `GET /admin/revenue` — Financial breakdown and revenue analytics
+- `GET /admin/users` — List and filter platform users
 - `PATCH /admin/users/:userId/block` — Toggle user block status
-- `PATCH /admin/users/:userId/verify-identity` — Approve / reject identity documents
+- `PATCH /admin/users/:userId/verify-identity` — Review identity documents
 
 ---
 
@@ -273,6 +409,8 @@ The matching engine ([`RoomMatchCalculatorService.ts`](file:///c:/Users/ASUS/Des
 - **MongoDB**: Local instance or MongoDB Atlas URI
 - **Cloudinary Account**: For image CDN hosting
 - **SMTP Provider**: E.g. Gmail App Password for OTP emails
+- **Razorpay Account**: Key ID & Secret for payments
+- **Gemini API Key**: For AI clause drafting
 
 ### 2. Backend Setup
 ```bash
@@ -280,7 +418,7 @@ cd backend
 npm install
 ```
 
-Create a `.env` file inside `backend/`:
+Create `.env` in `backend/`:
 ```env
 PORT=3000
 MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/project2?retryWrites=true&w=majority
@@ -291,6 +429,9 @@ CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_gmail_app_password
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+GEMINI_API_KEY=your_gemini_api_key
 NODE_ENV=development
 ```
 
@@ -305,7 +446,7 @@ cd frontend
 npm install
 ```
 
-Create a `.env` file inside `frontend/`:
+Create `.env` in `frontend/`:
 ```env
 VITE_API_BASE_URL=http://localhost:3000
 ```
