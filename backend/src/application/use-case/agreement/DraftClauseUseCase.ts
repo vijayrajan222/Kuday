@@ -1,8 +1,7 @@
 import type { IDraftClauseUseCase } from "@application/interfaces/use-case/agreement/IDraftClauseUseCase";
 import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
 import type { DraftClauseResponseDto } from "@application/dto/agreement/DraftClauseDto";
-import { AppError } from "@application/errors/AppError";
-import { HttpStatusCodes } from "@presentation/utils/HttpStatusCodes";
+import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError";
 import { draftClause } from "../../../services/ai/clauseDrafter";
 
 const DISCLAIMER = "AI-drafted clause. Not legal advice. Please review carefully.";
@@ -17,15 +16,15 @@ export class DraftClauseUseCase implements IDraftClauseUseCase {
   ): Promise<DraftClauseResponseDto> {
     const agreement = await this.agreementRepository.findById(agreementId);
     if (!agreement) {
-      throw new AppError("Agreement not found", HttpStatusCodes.NOT_FOUND);
+      throw new NotFoundError("Agreement not found");
     }
 
     if (agreement.hostId !== userId && agreement.seekerId !== userId) {
-      throw new AppError("You are not authorized to draft clauses for this agreement", HttpStatusCodes.FORBIDDEN);
+      throw new ForbiddenError("You are not authorized to draft clauses for this agreement");
     }
 
     if (agreement.status === "completed" || agreement.status === "cancelled") {
-      throw new AppError("Cannot draft clauses for locked or cancelled agreements", HttpStatusCodes.BAD_REQUEST);
+      throw new ValidationError("Cannot draft clauses for locked or cancelled agreements");
     }
 
     const baseTerms = agreement.commonTerms
