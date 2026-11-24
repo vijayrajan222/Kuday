@@ -9,6 +9,7 @@ export class SocketService implements ISocketChatService {
     // Map userId -> Set of socketIds (supports multi-tab)
     private userSocketMap = new Map<string, Set<string>>();
 
+    
     constructor(
         private sendMessageUseCase: ISendMessageUseCase,
         private markMessagesAsReadUseCase: IMarkMessagesAsReadUseCase

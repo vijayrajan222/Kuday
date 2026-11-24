@@ -37,7 +37,8 @@ async function startServer(): Promise<void> {
     // Global Error Handler Middleware
     app.use(globalErrorHandler);
 
-    // Create HTTP Server & Initialize Socket.io Gateway
+    // we need to create http server explicitly to create a server and pass it to socket gateway we are calling it outsdie 
+    //because we want both the socket and the express to use the same server 
     const server = http.createServer(app);
     socketGateway.init(server);
 

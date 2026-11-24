@@ -5,7 +5,7 @@ import dns from "node:dns";
 try {
     dns.setServers(["8.8.8.8", "1.1.1.1", "8.8.4.4", "1.0.0.1"]);
 } catch {
-    // fallback to system resolver
+    // fallback to system resolver.
 }
 
 dotenv.config();
@@ -23,7 +23,7 @@ export async function connectMongo(): Promise<void> {
         } catch (error: unknown) {
             retries--;
             console.log(`Connection attempt failed (${retries} retries left):`, error);
-            if (retries === 0) {
+            if (retries === 0) {  
                 console.log("Failed to connect with mongodb after retries, exiting.");
                 process.exit(1);
             }
