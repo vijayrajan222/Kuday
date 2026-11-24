@@ -126,6 +126,7 @@ import { GetActiveRoommateUseCase } from "@application/use-case/agreement/GetAct
 import { MockAgreementPaymentService } from "@infrastructure/services/MockAgreementPaymentService";
 import { RazorpayAgreementPaymentService } from "@infrastructure/services/RazorpayAgreementPaymentService";
 import { PdfGeneratorService } from "@infrastructure/services/PdfGeneratorService";
+import { GeminiClauseDrafterService } from "@infrastructure/services/GeminiClauseDrafterService";
 
 // Socket Service & Call
 import { SocketService } from "@infrastructure/socket/SocketService";
@@ -400,7 +401,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
         socketGateway,
         interestrepo
     );
-    const draftClauseUseCase = new DraftClauseUseCase(agreementrepo);
+    const clauseDrafterService = new GeminiClauseDrafterService();
+    const draftClauseUseCase = new DraftClauseUseCase(agreementrepo, clauseDrafterService);
     const agreementPaymentService =
         process.env.PAYMENT_PROVIDER === "mock" && !process.env.RAZORPAY_KEY_ID
             ? new MockAgreementPaymentService()

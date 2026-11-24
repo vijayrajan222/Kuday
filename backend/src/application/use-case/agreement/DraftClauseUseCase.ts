@@ -1,19 +1,29 @@
 import type { IDraftClauseUseCase } from "@application/interfaces/use-case/agreement/IDraftClauseUseCase";
 import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
-import type { DraftClauseResponseDto } from "@application/dto/agreement/DraftClauseDto";
+import type { IClauseDrafterService } from "@application/interfaces/services/IClauseDrafterService";
+import type {
+  DraftClauseInputDto,
+  DraftClauseResponseDto,
+} from "@application/dto/agreement/DraftClauseDto";
 import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError";
-import { draftClause } from "../../../services/ai/clauseDrafter";
 
 const DISCLAIMER = "AI-drafted clause. Not legal advice. Please review carefully.";
 
 export class DraftClauseUseCase implements IDraftClauseUseCase {
-  constructor(private readonly agreementRepository: IAgreementRepository) {}
+  constructor(
+    private readonly agreementRepository: IAgreementRepository,
+    private readonly clauseDrafterService: IClauseDrafterService
+  ) {}
 
   async execute(
-    userId: string,
-    agreementId: string,
-    userNeed: string
+    inputOrUserId: DraftClauseInputDto | string,
+    rawAgreementId?: string,
+    rawUserNeed?: string
   ): Promise<DraftClauseResponseDto> {
+    const userId = typeof inputOrUserId === "object" ? inputOrUserId.userId : inputOrUserId;
+    const agreementId = typeof inputOrUserId === "object" ? inputOrUserId.agreementId : rawAgreementId!;
+    const userNeed = typeof inputOrUserId === "object" ? inputOrUserId.userNeed : rawUserNeed!;
+
     const agreement = await this.agreementRepository.findById(agreementId);
     if (!agreement) {
       throw new NotFoundError("Agreement not found");
@@ -39,7 +49,7 @@ export class DraftClauseUseCase implements IDraftClauseUseCase {
         }
       : undefined;
 
-    const draftResult = await draftClause(userNeed, baseTerms);
+    const draftResult = await this.clauseDrafterService.draftClause(userNeed, baseTerms);
 
     return {
       allowed: draftResult.allowed,
