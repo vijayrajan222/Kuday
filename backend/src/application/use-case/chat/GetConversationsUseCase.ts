@@ -1,4 +1,5 @@
 import type { IGetConversationsUseCase } from "@application/interfaces/use-case/chat/IGetConversationsUseCase";
+import type { GetConversationsDto } from "@application/dto/chat/ChatDto";
 import type { IConversationRepository } from "@application/interfaces/repository/IConversationRepository";
 import type { IMessageRepository } from "@application/interfaces/repository/IMessageRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
@@ -11,7 +12,8 @@ export class GetConversationsUseCase implements IGetConversationsUseCase {
         private userRepository: IUserRepository
     ) {}
 
-    async execute(userId: string): Promise<ConversationEntity[]> {
+    async execute(dtoOrUserId: GetConversationsDto | string): Promise<ConversationEntity[]> {
+        const userId = typeof dtoOrUserId === "object" ? dtoOrUserId.userId : dtoOrUserId;
         const conversations = await this.conversationRepository.findByUserId(userId);
 
         const enriched: ConversationEntity[] = [];

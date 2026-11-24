@@ -1,32 +1,11 @@
-export interface HandleWebhookInput {
-    rawBody: string;
-    signature: string;
-    eventPayload: {
-        event: string;
-        payload: {
-            payment?: {
-                entity: {
-                    id: string;
-                    order_id?: string;
-                    amount?: number;
-                    status?: string;
-                    method?: string;
-                    error_code?: string;
-                    error_description?: string;
-                };
-            };
-            refund?: {
-                entity: {
-                    id: string;
-                    payment_id: string;
-                    amount: number;
-                    status: string;
-                };
-            };
-        };
-    };
-}
+import type {
+    HandleWebhookInputDto,
+    HandleWebhookOutputDto,
+    HandleWebhookInput,
+} from "@application/dto/payment/PaymentDto";
+
+export type { HandleWebhookInput, HandleWebhookInputDto, HandleWebhookOutputDto };
 
 export interface IHandleWebhookUseCase {
-    execute(input: HandleWebhookInput): Promise<{ received: boolean; action: string }>;
+    execute(input: HandleWebhookInputDto): Promise<HandleWebhookOutputDto>;
 }

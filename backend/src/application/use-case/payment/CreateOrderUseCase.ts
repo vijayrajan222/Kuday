@@ -5,9 +5,13 @@ import type { IUserRepository } from "@application/interfaces/repository/IUserRe
 import type { IRazorpayService } from "@application/interfaces/services/IRazorpayService";
 import type {
     ICreateOrderUseCase,
+} from "@application/interfaces/use-case/payment/ICreateOrderUseCase";
+import type {
+    CreateOrderInputDto,
+    CreateOrderOutputDto,
     CreateOrderInput,
     CreateOrderOutput,
-} from "@application/interfaces/use-case/payment/ICreateOrderUseCase";
+} from "@application/dto/payment/PaymentDto";
 import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError";
 
 export type { CreateOrderInput, CreateOrderOutput };

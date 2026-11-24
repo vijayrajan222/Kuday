@@ -1,22 +1,17 @@
-import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity";
+import type {
+    VerifyPaymentInputDto,
+    VerifyPaymentOutputDto,
+    VerifyPaymentInput,
+    VerifyPaymentOutput,
+} from "@application/dto/payment/PaymentDto";
 
-export interface VerifyPaymentInput {
-    userId: string;
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature: string;
-}
-
-export interface VerifyPaymentOutput {
-    success: boolean;
-    orderId: string;
-    paymentId: string;
-    amount: number;
-    status: string;
-    alreadyProcessed?: boolean | undefined;
-    subscription?: SubscriptionEntity | undefined;
-}
+export type {
+    VerifyPaymentInput,
+    VerifyPaymentOutput,
+    VerifyPaymentInputDto,
+    VerifyPaymentOutputDto,
+};
 
 export interface IVerifyPaymentUseCase {
-    execute(input: VerifyPaymentInput): Promise<VerifyPaymentOutput>;
+    execute(input: VerifyPaymentInputDto): Promise<VerifyPaymentOutputDto>;
 }

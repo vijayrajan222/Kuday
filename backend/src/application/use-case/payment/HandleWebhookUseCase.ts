@@ -6,8 +6,12 @@ import type { IWalletService } from "@application/interfaces/services/IWalletSer
 import type { IActivateSubscriptionUseCase } from "@application/interfaces/use-case/subscription/IActivateSubscriptionUseCase";
 import type {
     IHandleWebhookUseCase,
-    HandleWebhookInput,
 } from "@application/interfaces/use-case/payment/IHandleWebhookUseCase";
+import type {
+    HandleWebhookInputDto,
+    HandleWebhookOutputDto,
+    HandleWebhookInput,
+} from "@application/dto/payment/PaymentDto";
 import { ValidationError } from "@application/errors/AppError";
 
 export type { HandleWebhookInput };

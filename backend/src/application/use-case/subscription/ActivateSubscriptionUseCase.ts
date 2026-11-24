@@ -5,14 +5,16 @@ import type { ISubscriptionRepository } from "@application/interfaces/repository
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IWalletService } from "@application/interfaces/services/IWalletService";
 import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity";
+import type { IActivateSubscriptionUseCase } from "@application/interfaces/use-case/subscription/IActivateSubscriptionUseCase";
 import type {
-    IActivateSubscriptionUseCase,
+    ActivateFromPaymentDto,
+    ActivateFromWalletDto,
     ActivateFromPaymentInput,
     ActivateFromWalletInput,
-} from "@application/interfaces/use-case/subscription/IActivateSubscriptionUseCase";
+} from "@application/dto/subscription/SubscriptionDto";
 import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError";
 
-export type { ActivateFromPaymentInput, ActivateFromWalletInput };
+export type { ActivateFromPaymentInput, ActivateFromWalletInput, ActivateFromPaymentDto, ActivateFromWalletDto };
 
 export class ActivateSubscriptionUseCase implements IActivateSubscriptionUseCase {
     constructor(

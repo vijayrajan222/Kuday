@@ -30,7 +30,7 @@ export class LoginUserUseCase implements ILoginUserUseCase {
 
         const isPasswordValid = await this._hashService.compareHashes(
             dto.password,
-            existingUser.hashedPassword || ""
+            existingUser.hashedPassword || ""   
         );
 
         if (!isPasswordValid) {

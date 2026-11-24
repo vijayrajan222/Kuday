@@ -2,14 +2,12 @@ import type { IInterestRepository } from "@application/interfaces/repository/IIn
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { ISubscriptionRepository } from "@application/interfaces/repository/ISubscriptionRepository";
 import type { ICallSessionStore, CallSession } from "@application/interfaces/services/ICallSessionStore";
-import type {
-    IStartCallUseCase,
-    StartCallInput,
-} from "@application/interfaces/use-case/call/IStartCallUseCase";
+import type { IStartCallUseCase } from "@application/interfaces/use-case/call/IStartCallUseCase";
+import type { StartCallDto, StartCallInput } from "@application/dto/call/CallDto";
 import { ForbiddenError, ConflictError, ValidationError, NotFoundError } from "@application/errors/AppError";
 import crypto from "crypto";
 
-export type { StartCallInput };
+export type { StartCallInput, StartCallDto };
 
 export class StartCallUseCase implements IStartCallUseCase {
     constructor(

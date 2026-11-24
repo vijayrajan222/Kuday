@@ -3,6 +3,7 @@ import type { ISubscriptionRepository } from "@application/interfaces/repository
 import type { IWalletService } from "@application/interfaces/services/IWalletService";
 import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity";
 import type { IRetryRefundUseCase } from "@application/interfaces/use-case/subscription/IRetryRefundUseCase";
+import type { RetryRefundDto } from "@application/dto/subscription/SubscriptionDto";
 import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError";
 
 export class RetryRefundUseCase implements IRetryRefundUseCase {
@@ -11,7 +12,9 @@ export class RetryRefundUseCase implements IRetryRefundUseCase {
         private readonly walletService: IWalletService
     ) {}
 
-    async execute(subscriptionId: string, userId: string): Promise<SubscriptionEntity> {
+    async execute(dtoOrSubId: RetryRefundDto | string, rawUserId?: string): Promise<SubscriptionEntity> {
+        const subscriptionId = typeof dtoOrSubId === "object" ? dtoOrSubId.subscriptionId : dtoOrSubId;
+        const userId = typeof dtoOrSubId === "object" ? dtoOrSubId.userId : rawUserId!;
         const sub = await this.subRepo.findById(subscriptionId);
         if (!sub) {
             throw new NotFoundError("Subscription not found");

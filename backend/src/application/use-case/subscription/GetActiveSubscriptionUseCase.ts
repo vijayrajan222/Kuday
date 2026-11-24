@@ -2,13 +2,14 @@ import type { ISubscriptionRepository } from "@application/interfaces/repository
 import type { IPlanRepository } from "@application/interfaces/repository/IPlanRepository.js";
 import type { IPaymentRepository } from "@application/interfaces/repository/IPaymentRepository.js";
 import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity.js";
+import type { IGetActiveSubscriptionUseCase } from "@application/interfaces/use-case/subscription/IGetActiveSubscriptionUseCase.js";
 import type {
-    IGetActiveSubscriptionUseCase,
+    ActiveSubscriptionDetailsDto,
     ActiveSubscriptionDetails,
-} from "@application/interfaces/use-case/subscription/IGetActiveSubscriptionUseCase.js";
+} from "@application/dto/subscription/SubscriptionDto.js";
 import { REFUND_WINDOW_DAYS } from "./CancelSubscriptionUseCase.js";
 
-export type { ActiveSubscriptionDetails };
+export type { ActiveSubscriptionDetails, ActiveSubscriptionDetailsDto };
 
 export class GetActiveSubscriptionUseCase implements IGetActiveSubscriptionUseCase {
     constructor(

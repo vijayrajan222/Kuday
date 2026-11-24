@@ -1,8 +1,13 @@
 import type {
     IGetMessagesUseCase,
+} from "@application/interfaces/use-case/chat/IGetMessagesUseCase";
+import type {
+    GetMessagesDto,
+    GetMessagesByOtherUserInputDto,
+    GetMessagesByOtherUserOutputDto,
     GetMessagesByOtherUserInput,
     GetMessagesByOtherUserOutput,
-} from "@application/interfaces/use-case/chat/IGetMessagesUseCase";
+} from "@application/dto/chat/ChatDto";
 import type { IMessageRepository } from "@application/interfaces/repository/IMessageRepository";
 import type { IConversationRepository } from "@application/interfaces/repository/IConversationRepository";
 import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
@@ -17,11 +22,15 @@ export class GetMessagesUseCase implements IGetMessagesUseCase {
     ) {}
 
     async execute(
-        conversationId: string,
-        userId: string,
-        limit = 50,
-        before?: string
+        dtoOrConversationId: GetMessagesDto | string,
+        rawUserId?: string,
+        limitParam = 50,
+        beforeParam?: string
     ): Promise<MessageEntity[]> {
+        const conversationId = typeof dtoOrConversationId === "object" ? dtoOrConversationId.conversationId : dtoOrConversationId;
+        const userId = typeof dtoOrConversationId === "object" ? dtoOrConversationId.userId : rawUserId!;
+        const limit = typeof dtoOrConversationId === "object" ? (dtoOrConversationId.limit ?? 50) : limitParam;
+        const before = typeof dtoOrConversationId === "object" ? dtoOrConversationId.before : beforeParam;
         const conversation = await this.conversationRepository.findById(conversationId);
         if (!conversation) {
             throw new NotFoundError("Conversation not found");

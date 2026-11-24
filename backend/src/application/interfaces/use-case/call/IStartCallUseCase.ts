@@ -1,11 +1,8 @@
 import type { CallSession } from "@application/interfaces/services/ICallSessionStore";
+import type { StartCallDto, StartCallInput } from "@application/dto/call/CallDto";
 
-export interface StartCallInput {
-    callerId: string;
-    receiverId: string;
-    callType: "audio" | "video";
-}
+export type { StartCallInput, StartCallDto };
 
 export interface IStartCallUseCase {
-    execute(input: StartCallInput): Promise<CallSession>;
+    execute(input: StartCallDto): Promise<CallSession>;
 }

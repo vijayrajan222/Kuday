@@ -1,16 +1,8 @@
-import type { MessageEntity, CallType, CallOutcome } from "@domain/entities/MessageEntity";
+import type { MessageEntity } from "@domain/entities/MessageEntity";
+import type { LogCallDto, LogCallInput } from "@application/dto/call/CallDto";
 
-export interface LogCallInput {
-    callerId: string;
-    receiverId: string;
-    callType: CallType;
-    outcome: CallOutcome;
-    startedAt: Date;
-    answeredAt?: Date;
-    endedAt: Date;
-    conversationId?: string;
-}
+export type { LogCallInput, LogCallDto };
 
 export interface ILogCallUseCase {
-    execute(input: LogCallInput): Promise<MessageEntity>;
+    execute(input: LogCallDto): Promise<MessageEntity>;
 }

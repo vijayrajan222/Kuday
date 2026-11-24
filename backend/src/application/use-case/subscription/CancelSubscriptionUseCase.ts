@@ -7,11 +7,15 @@ import type { IWalletService } from "@application/interfaces/services/IWalletSer
 import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity.js";
 import type {
     ICancelSubscriptionUseCase,
+} from "@application/interfaces/use-case/subscription/ICancelSubscriptionUseCase.js";
+import type {
+    CancelSubscriptionInputDto,
+    CancelSubscriptionOutputDto,
     RequestRefundInput,
     RequestRefundOutput,
     CancelSubscriptionInput,
     CancelSubscriptionOutput,
-} from "@application/interfaces/use-case/subscription/ICancelSubscriptionUseCase.js";
+} from "@application/dto/subscription/SubscriptionDto.js";
 import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError.js";
 
 // Refund window: 3 days grace period (configurable via env, default 3)

@@ -1,4 +1,8 @@
 import type { IHandleAgreementWebhookUseCase } from "@application/interfaces/use-case/agreement/IHandleAgreementWebhookUseCase";
+import type {
+  HandleAgreementWebhookInputDto,
+  HandleAgreementWebhookOutputDto,
+} from "@application/dto/agreement/AgreementWebhookDto";
 import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
@@ -66,10 +70,13 @@ export class HandleAgreementWebhookUseCase implements IHandleAgreementWebhookUse
   }
 
   async execute(
-    rawBody: string,
-    signature: string,
-    eventData: unknown
-  ): Promise<{ handled: boolean; message: string }> {
+    inputOrRawBody: HandleAgreementWebhookInputDto | string,
+    rawSignature?: string,
+    rawEventData?: unknown
+  ): Promise<HandleAgreementWebhookOutputDto> {
+    const rawBody = typeof inputOrRawBody === "object" ? inputOrRawBody.rawBody : inputOrRawBody;
+    const signature = typeof inputOrRawBody === "object" ? inputOrRawBody.signature : rawSignature!;
+    const eventData = typeof inputOrRawBody === "object" ? inputOrRawBody.eventData : rawEventData;
     // 1. Verify webhook signature
     const isValid = this.paymentService.verifyWebhook(rawBody, signature);
     if (!isValid) {

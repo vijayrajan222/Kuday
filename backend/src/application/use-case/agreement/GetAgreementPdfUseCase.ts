@@ -3,6 +3,10 @@ import type { IAgreementRepository } from "@application/interfaces/repository/IA
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
 import type { IPdfGeneratorService } from "@application/interfaces/services/IPdfGeneratorService";
+import type {
+  GetAgreementPdfInputDto,
+  GetAgreementPdfOutputDto,
+} from "@application/dto/agreement/AgreementPdfDto";
 import { NotFoundError, UnauthorizedError, ValidationError } from "@application/errors/AppError";
 import { enrichAgreement } from "./helpers/enrichAgreement";
 
@@ -14,7 +18,13 @@ export class GetAgreementPdfUseCase implements IGetAgreementPdfUseCase {
     private readonly pdfGeneratorService: IPdfGeneratorService
   ) {}
 
-  async execute(userId: string, agreementId: string): Promise<{ buffer: Buffer; fileName: string }> {
+  async execute(
+    inputOrUserId: GetAgreementPdfInputDto | string,
+    rawAgreementId?: string
+  ): Promise<GetAgreementPdfOutputDto> {
+    const userId = typeof inputOrUserId === "object" ? inputOrUserId.userId : inputOrUserId;
+    const agreementId = typeof inputOrUserId === "object" ? inputOrUserId.agreementId : rawAgreementId!;
+
     const agreement = await this.agreementRepository.findById(agreementId);
     if (!agreement) {
       throw new NotFoundError("Agreement not found.");
@@ -25,16 +35,14 @@ export class GetAgreementPdfUseCase implements IGetAgreementPdfUseCase {
     }
 
     if (agreement.status !== "completed") {
-      throw new ValidationError("Agreement must be finalized and accepted by both parties before downloading the PDF.");
-    }
-
-    if (agreement.payment?.required && agreement.payment?.status !== "completed" && agreement.payment?.status !== "waived") {
-      throw new ValidationError("Agreement fee must be paid before downloading the PDF.");
+      throw new ValidationError("PDF is only available after the agreement is fully completed and signed.");
     }
 
     const enriched = await enrichAgreement(agreement, this.userRepository, this.roomRepository);
     const buffer = await this.pdfGeneratorService.generateAgreementPdf(enriched);
-    const fileName = `Kuday_Agreement_Rev${agreement.revision || 1}_${agreement.id.slice(-6).toUpperCase()}.pdf`;
+
+    const safeRoom = (enriched.room?.title || "room").toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30);
+    const fileName = `agreement-${safeRoom}-${agreementId.slice(-6)}.pdf`;
 
     return { buffer, fileName };
   }

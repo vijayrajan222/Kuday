@@ -1,15 +1,13 @@
-import type { WalletEntity } from "@domain/entities/WalletEntity";
-import type { WalletTransactionEntity } from "@domain/entities/WalletTransactionEntity";
+import type {
+    GetWalletInputDto,
+    GetWalletOutputDto,
+    GetWalletOutput,
+} from "@application/dto/wallet/WalletDto";
 
-export interface GetWalletOutput {
-    wallet: WalletEntity;
-    balancePaise: number;
-    balanceRupees: number;
-    transactions: WalletTransactionEntity[];
-    totalTransactions: number;
-    isBalanced: boolean;
-}
+export type { GetWalletInputDto, GetWalletOutputDto, GetWalletOutput };
 
 export interface IGetWalletUseCase {
-    execute(userId: string, limit?: number, skip?: number): Promise<GetWalletOutput>;
+    execute(input: GetWalletInputDto): Promise<GetWalletOutputDto>;
+    execute(userId: string, limit?: number, skip?: number): Promise<GetWalletOutputDto>;
+    execute(inputOrUserId: GetWalletInputDto | string, limit?: number, skip?: number): Promise<GetWalletOutputDto>;
 }

@@ -6,9 +6,13 @@ import type { IActivateSubscriptionUseCase } from "@application/interfaces/use-c
 import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity";
 import type {
     IVerifyPaymentUseCase,
+} from "@application/interfaces/use-case/payment/IVerifyPaymentUseCase";
+import type {
+    VerifyPaymentInputDto,
+    VerifyPaymentOutputDto,
     VerifyPaymentInput,
     VerifyPaymentOutput,
-} from "@application/interfaces/use-case/payment/IVerifyPaymentUseCase";
+} from "@application/dto/payment/PaymentDto";
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError } from "@application/errors/AppError";
 
 export type { VerifyPaymentInput, VerifyPaymentOutput };

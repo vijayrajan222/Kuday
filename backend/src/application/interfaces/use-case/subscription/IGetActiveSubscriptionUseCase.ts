@@ -1,19 +1,10 @@
-import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity";
+import type {
+    ActiveSubscriptionDetailsDto,
+    ActiveSubscriptionDetails,
+} from "@application/dto/subscription/SubscriptionDto";
 
-export interface ActiveSubscriptionDetails {
-    subscription: SubscriptionEntity | null;
-    plan: {
-        id: string;
-        name: string;
-        price: number;
-        durationDays: number;
-    } | null;
-    remainingDays: number;
-    estimatedRefund: number; // in paise
-    isFullRefundEligible: boolean;
-    isRefundEligible: boolean;
-}
+export type { ActiveSubscriptionDetails, ActiveSubscriptionDetailsDto };
 
 export interface IGetActiveSubscriptionUseCase {
-    execute(userId: string): Promise<ActiveSubscriptionDetails>;
+    execute(userId: string): Promise<ActiveSubscriptionDetailsDto>;
 }

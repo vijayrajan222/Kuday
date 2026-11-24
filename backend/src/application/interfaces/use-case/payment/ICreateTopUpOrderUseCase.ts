@@ -1,16 +1,17 @@
-export interface CreateTopUpOrderInput {
-    userId: string;
-    amountPaise: number; // Integer in paise
-    idempotencyKey?: string | undefined;
-}
+import type {
+    CreateTopUpOrderInputDto,
+    CreateTopUpOrderOutputDto,
+    CreateTopUpOrderInput,
+    CreateTopUpOrderOutput,
+} from "@application/dto/payment/PaymentDto";
 
-export interface CreateTopUpOrderOutput {
-    orderId: string;
-    amount: number; // in paise
-    currency: string;
-    keyId: string;
-}
+export type {
+    CreateTopUpOrderInput,
+    CreateTopUpOrderOutput,
+    CreateTopUpOrderInputDto,
+    CreateTopUpOrderOutputDto,
+};
 
 export interface ICreateTopUpOrderUseCase {
-    execute(input: CreateTopUpOrderInput): Promise<CreateTopUpOrderOutput>;
+    execute(input: CreateTopUpOrderInputDto): Promise<CreateTopUpOrderOutputDto>;
 }

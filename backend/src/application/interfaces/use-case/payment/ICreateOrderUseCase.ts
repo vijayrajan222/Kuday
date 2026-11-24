@@ -1,22 +1,12 @@
-export interface CreateOrderInput {
-    userId: string;
-    planId: string;
-    idempotencyKey?: string | undefined;
-}
+import type {
+    CreateOrderInputDto,
+    CreateOrderOutputDto,
+    CreateOrderInput,
+    CreateOrderOutput,
+} from "@application/dto/payment/PaymentDto";
 
-export interface CreateOrderOutput {
-    orderId: string;
-    amount: number; // in paise
-    currency: string;
-    keyId: string;
-    plan: {
-        id: string;
-        name: string;
-        price: number;
-        durationDays: number;
-    };
-}
+export type { CreateOrderInput, CreateOrderOutput, CreateOrderInputDto, CreateOrderOutputDto };
 
 export interface ICreateOrderUseCase {
-    execute(input: CreateOrderInput): Promise<CreateOrderOutput>;
+    execute(input: CreateOrderInputDto): Promise<CreateOrderOutputDto>;
 }

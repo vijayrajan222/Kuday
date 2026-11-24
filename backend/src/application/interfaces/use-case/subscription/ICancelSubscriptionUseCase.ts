@@ -1,23 +1,21 @@
-import type { SubscriptionEntity } from "@domain/entities/SubscriptionEntity";
+import type {
+    CancelSubscriptionInputDto,
+    CancelSubscriptionOutputDto,
+    RequestRefundInput,
+    RequestRefundOutput,
+    CancelSubscriptionInput,
+    CancelSubscriptionOutput,
+} from "@application/dto/subscription/SubscriptionDto";
 
-export interface RequestRefundInput {
-    userId: string;
-    subscriptionId: string;
-    reason?: string | undefined;
-    cancellationReason?: string | undefined;
-}
-
-export type CancelSubscriptionInput = RequestRefundInput;
-
-export interface RequestRefundOutput {
-    subscription: SubscriptionEntity;
-    refundAmount: number; // in paise
-    isFullRefund: boolean;
-    refundStatus: string;
-}
-
-export type CancelSubscriptionOutput = RequestRefundOutput;
+export type {
+    RequestRefundInput,
+    RequestRefundOutput,
+    CancelSubscriptionInput,
+    CancelSubscriptionOutput,
+    CancelSubscriptionInputDto,
+    CancelSubscriptionOutputDto,
+};
 
 export interface ICancelSubscriptionUseCase {
-    execute(input: RequestRefundInput): Promise<RequestRefundOutput>;
+    execute(input: CancelSubscriptionInputDto): Promise<CancelSubscriptionOutputDto>;
 }

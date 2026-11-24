@@ -3,9 +3,13 @@ import type { IUserRepository } from "@application/interfaces/repository/IUserRe
 import type { IRazorpayService } from "@application/interfaces/services/IRazorpayService";
 import type {
     ICreateTopUpOrderUseCase,
+} from "@application/interfaces/use-case/payment/ICreateTopUpOrderUseCase";
+import type {
+    CreateTopUpOrderInputDto,
+    CreateTopUpOrderOutputDto,
     CreateTopUpOrderInput,
     CreateTopUpOrderOutput,
-} from "@application/interfaces/use-case/payment/ICreateTopUpOrderUseCase";
+} from "@application/dto/payment/PaymentDto";
 import { NotFoundError, ForbiddenError, ValidationError } from "@application/errors/AppError";
 
 export type { CreateTopUpOrderInput, CreateTopUpOrderOutput };

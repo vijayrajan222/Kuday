@@ -1,21 +1,29 @@
 import type { MessageEntity } from "@domain/entities/MessageEntity";
 import type { ConversationEntity } from "@domain/entities/ConversationEntity";
+import type {
+    GetMessagesDto,
+    GetMessagesByOtherUserInputDto,
+    GetMessagesByOtherUserOutputDto,
+    GetMessagesByOtherUserInput,
+    GetMessagesByOtherUserOutput,
+} from "@application/dto/chat/ChatDto";
 
-export interface GetMessagesByOtherUserInput {
-    userId: string;
-    otherUserId: string;
-    limit?: number;
-    page?: number;
-    before?: string;
-}
-
-export interface GetMessagesByOtherUserOutput {
-    messages: MessageEntity[];
-    conversation: ConversationEntity;
-    total: number;
-}
+export type {
+    GetMessagesDto,
+    GetMessagesByOtherUserInput,
+    GetMessagesByOtherUserOutput,
+    GetMessagesByOtherUserInputDto,
+    GetMessagesByOtherUserOutputDto,
+};
 
 export interface IGetMessagesUseCase {
+    execute(dto: GetMessagesDto): Promise<MessageEntity[]>;
     execute(conversationId: string, userId: string, limit?: number, before?: string): Promise<MessageEntity[]>;
-    executeByUser(input: GetMessagesByOtherUserInput): Promise<GetMessagesByOtherUserOutput>;
+    execute(
+        dtoOrConversationId: GetMessagesDto | string,
+        userId?: string,
+        limit?: number,
+        before?: string
+    ): Promise<MessageEntity[]>;
+    executeByUser(input: GetMessagesByOtherUserInputDto): Promise<GetMessagesByOtherUserOutputDto>;
 }

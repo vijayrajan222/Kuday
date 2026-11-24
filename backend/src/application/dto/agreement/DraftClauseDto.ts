@@ -2,6 +2,12 @@ export interface DraftClauseDto {
   userNeed: string;
 }
 
+export interface DraftClauseInputDto {
+  userId: string;
+  agreementId: string;
+  userNeed: string;
+}
+
 export interface DraftClauseResponseDto {
   allowed: boolean;
   reason?: string | undefined;
