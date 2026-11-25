@@ -238,7 +238,7 @@ export function setupAppDependencies(app: Express): SocketGateway {
 
     const adminLoginUseCase = new AdminLoginUseCase(userrepo, hasher, jwtService);
     const getAdminStatsUseCase = new GetAdminStatsUseCase(userrepo, roomrepo, paymentrepo);
-    const getAdminRevenueUseCase = new GetAdminRevenueUseCase(paymentrepo, walletTxRepo, userrepo);
+    const getAdminRevenueUseCase = new GetAdminRevenueUseCase(paymentrepo, walletTxRepo, userrepo, subscriptionrepo);
     const getAllUsersUseCase = new GetAllUsersUseCase(userrepo);
     const verifyUserIdentityUseCase = new VerifyUserIdentityUseCase(userrepo, notificationrepo);
     const toggleBlockUserUseCase = new ToggleBlockUserUseCase(userrepo);

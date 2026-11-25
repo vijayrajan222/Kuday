@@ -114,4 +114,9 @@ export class MongoSubscriptionRepository implements ISubscriptionRepository {
             .exec();
         return doc !== null;
     }
+
+    async findAll(filter: Record<string, unknown> = {}): Promise<SubscriptionEntity[]> {
+        const docs = await subscriptionModel.find(filter).sort({ createdAt: -1 }).exec();
+        return docs.map((doc) => this.mapToEntity(doc));
+    }
 }

@@ -15,4 +15,5 @@ export interface ISubscriptionRepository {
         session?: unknown
     ): Promise<SubscriptionEntity | null>;
     markBenefitsUsed(id: string, session?: unknown): Promise<boolean>;
+    findAll(filter?: Record<string, unknown>): Promise<SubscriptionEntity[]>;
 }

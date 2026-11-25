@@ -1,6 +1,7 @@
 import type { IPaymentRepository } from "@application/interfaces/repository/IPaymentRepository";
 import type { IWalletTransactionRepository } from "@application/interfaces/repository/IWalletTransactionRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
+import type { ISubscriptionRepository } from "@application/interfaces/repository/ISubscriptionRepository";
 import type { IGetAdminRevenueUseCase } from "@application/interfaces/use-case/admin/IGetAdminRevenueUseCase";
 import type {
     AdminRevenueSummaryDto,
@@ -12,15 +13,25 @@ export class GetAdminRevenueUseCase implements IGetAdminRevenueUseCase {
     constructor(
         private paymentRepo: IPaymentRepository,
         private walletTxRepo: IWalletTransactionRepository,
-        private userRepo: IUserRepository
+        private userRepo: IUserRepository,
+        private subscriptionRepo?: ISubscriptionRepository
     ) {}
 
     async execute(): Promise<AdminRevenueSummaryDto> {
-        const [payments, walletResult, users] = await Promise.all([
+        const [payments, walletResult, users, subscriptions] = await Promise.all([
             this.paymentRepo.findAll(),
             this.walletTxRepo.findAll(250, 0),
             this.userRepo.findAll(),
+            this.subscriptionRepo?.findAll ? this.subscriptionRepo.findAll() : Promise.resolve([]),
         ]);
+
+        const razorpaySubIds = new Set<string>();
+        for (const sub of subscriptions) {
+            if (sub.paymentId) {
+                razorpaySubIds.add(sub.id);
+            }
+        }
+        const paymentIds = new Set<string>(payments.map((p) => p.id));
 
         const userMap = new Map<string, { name: string; email: string; role: string }>();
         for (const u of users) {
@@ -117,9 +128,19 @@ export class GetAdminRevenueUseCase implements IGetAdminRevenueUseCase {
             });
         }
 
-        // Also add direct wallet purchases to transaction history
+        // Also add direct wallet purchases to transaction history (excluding transactions
+        // that were mirror ledger debits created during Razorpay subscription activations).
         for (const tx of walletResult.transactions) {
             if (tx.reason === "premium_purchase") {
+                const isRazorpayMirror =
+                    (tx.referenceId && razorpaySubIds.has(tx.referenceId)) ||
+                    (tx.referenceId && paymentIds.has(tx.referenceId)) ||
+                    (tx.description && tx.description.startsWith("Premium membership activated:"));
+
+                if (isRazorpayMirror) {
+                    continue;
+                }
+
                 const amountInRupees = Math.round((tx.amount / 100) * 100) / 100;
                 const txDate = tx.createdAt ? new Date(tx.createdAt) : new Date();
                 const userInfo = userMap.get(tx.userId) || {
