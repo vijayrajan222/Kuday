@@ -965,10 +965,13 @@ export default function ProfilePage() {
 
                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
                       <span className="text-xs text-slate-400 flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5 text-emerald-600" /> Vacant Count / Capacity
+                        <Users className="h-3.5 w-3.5 text-emerald-600" /> Vacancy / Capacity
                       </span>
                       <p className="font-bold text-slate-900 text-sm">
                         {room.capacity} Person(s)
+                        <span className="font-normal text-xs text-slate-500 ml-2">
+                          ({room.availableSlots ?? room.capacity} open slot{(room.availableSlots ?? room.capacity) === 1 ? '' : 's'})
+                        </span>
                       </p>
                     </div>
                   </div>

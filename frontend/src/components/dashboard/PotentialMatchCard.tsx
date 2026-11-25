@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { MapPin, Sparkles, CheckCircle2, Eye, Heart, Check, Clock } from 'lucide-react';
+import { MapPin, Sparkles, CheckCircle2, Eye, Heart, Check, Clock, Users } from 'lucide-react';
 
 interface PotentialMatchCardProps {
   id: string;
@@ -13,6 +13,8 @@ interface PotentialMatchCardProps {
   matchScore: number;
   isVerified?: boolean;
   isFilled?: boolean;
+  availableSlots?: number;
+  capacity?: number;
   status?: 'accepted' | 'pending' | 'declined' | 'received_pending' | 'none' | null;
   isProcessing?: boolean;
   onDetails: () => void;
@@ -29,12 +31,16 @@ export const PotentialMatchCard = memo(function PotentialMatchCard({
   imageUrl,
   matchScore,
   isVerified,
-  isFilled,
+  isFilled: isFilledProp,
+  availableSlots,
+  capacity,
   status,
   isProcessing,
   onDetails,
   onAction,
 }: PotentialMatchCardProps) {
+  const isFilled = Boolean(isFilledProp || (typeof availableSlots === 'number' && availableSlots <= 0));
+
   return (
     <div
       className={`group overflow-hidden rounded-2xl border transition-all flex flex-col justify-between ${
@@ -105,10 +111,26 @@ export const PotentialMatchCard = memo(function PotentialMatchCard({
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-slate-600 pt-1 border-t border-slate-100">
-            <span className="rounded-md bg-slate-100 px-2 py-0.5 font-medium text-[11px] text-slate-700 capitalize">
-              {badgeTag}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs text-slate-600 pt-1 border-t border-slate-100">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="rounded-md bg-slate-100 px-2 py-0.5 font-medium text-[11px] text-slate-700 capitalize">
+                {badgeTag}
+              </span>
+              {typeof availableSlots === 'number' && (
+                <span
+                  className={`rounded-md px-2 py-0.5 font-bold text-[11px] flex items-center gap-1 ${
+                    availableSlots > 0
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  }`}
+                >
+                  <Users className="w-3 h-3 shrink-0" />
+                  {availableSlots > 0
+                    ? `${availableSlots}${capacity ? `/${capacity}` : ''} ${availableSlots === 1 ? 'Slot' : 'Slots'} Available`
+                    : 'No Slots Available'}
+                </span>
+              )}
+            </div>
             {occupationOrType && (
               <span className="text-slate-500 text-[11px] capitalize truncate max-w-[120px]">
                 {occupationOrType}
@@ -129,7 +151,15 @@ export const PotentialMatchCard = memo(function PotentialMatchCard({
             Details
           </button>
 
-          {status === 'accepted' ? (
+          {isFilled ? (
+            <button
+              type="button"
+              disabled
+              className="flex-1 rounded-lg bg-slate-100 border border-slate-200 py-2 text-xs font-semibold text-slate-400 flex items-center justify-center gap-1 cursor-not-allowed"
+            >
+              Unavailable
+            </button>
+          ) : status === 'accepted' ? (
             <button
               type="button"
               disabled

@@ -516,7 +516,9 @@ export default function CustomerDashboard() {
                   <strong className="text-slate-900">
                     &quot;{myRoom.title || myRoom.roomType.replace(/_/g, ' ')}&quot;
                   </strong>{' '}
-                  is {myRoom.isActive === false ? 'currently inactive.' : 'active and visible.'}
+                  is {myRoom.isActive === false || (myRoom.availableSlots ?? 0) <= 0
+                    ? 'currently inactive (No slots available).'
+                    : `active and visible with ${myRoom.availableSlots ?? 1} slot${(myRoom.availableSlots ?? 1) > 1 ? 's' : ''} available.`}
                 </span>
               ) : (
                 <span>
@@ -662,11 +664,15 @@ export default function CustomerDashboard() {
             myRoom ? (
               <ActiveListingCard
                 title={myRoom.title || myRoom.roomType.replace(/_/g, ' ')}
-                subtitle={`${myRoom.location} • ₹${myRoom.monthlyRent.toLocaleString('en-IN')}/mo`}
+                subtitle={`${myRoom.location} • ₹${myRoom.monthlyRent.toLocaleString('en-IN')}/mo • ${
+                  (myRoom.availableSlots ?? 0) > 0
+                    ? `${myRoom.availableSlots} slot${(myRoom.availableSlots ?? 0) > 1 ? 's' : ''} available`
+                    : 'Fully Occupied'
+                }`}
                 imageUrl={myRoom.images?.[0]}
                 fallbackInitial={firstName || user?.email || 'H'}
-                badgeText={myRoom.isActive === false ? 'Inactive' : 'Active'}
-                isActive={myRoom.isActive !== false}
+                badgeText={myRoom.isActive === false || (myRoom.availableSlots ?? 0) <= 0 ? 'Inactive' : 'Active'}
+                isActive={myRoom.isActive !== false && (myRoom.availableSlots ?? 0) > 0}
                 buttonText="Manage Listing"
                 onManage={() => navigate(ROUTES.PROFILE)}
               />
@@ -924,6 +930,8 @@ export default function CustomerDashboard() {
                       imageUrl={room.images?.[0] || room.host?.selfieUrl}
                       matchScore={room.matchPercentage ?? 85}
                       isVerified={Boolean(room.host?.identityVerified)}
+                      availableSlots={room.availableSlots}
+                      capacity={room.capacity}
                       status={interestStatus}
                       isProcessing={processingId === room.id}
                       onDetails={() => navigate(ROUTES.ROOM_DETAILS.replace(':roomId', room.id))}

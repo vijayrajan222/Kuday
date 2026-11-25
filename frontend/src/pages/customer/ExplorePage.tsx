@@ -523,6 +523,8 @@ export default function ExplorePage() {
                       imageUrl={room.images?.[0] || room.host?.selfieUrl}
                       matchScore={room.matchPercentage ?? 85}
                       isVerified={Boolean(room.host?.identityVerified)}
+                      availableSlots={room.availableSlots}
+                      capacity={room.capacity}
                       status={interestStatus}
                       isProcessing={processingId === room.id}
                       onDetails={() => navigate(ROUTES.ROOM_DETAILS.replace(':roomId', room.id))}

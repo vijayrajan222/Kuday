@@ -254,9 +254,20 @@ export default function RoomDetailsPage() {
                 {room.availabilityNotes}
               </p>
             )}
-            <p className="text-xs text-slate-500">
-              Capacity: <strong className="text-slate-700">{room.capacity} Person(s)</strong>
-            </p>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+              <p>
+                Capacity: <strong className="text-slate-700">{room.capacity} Person(s)</strong>
+              </p>
+              {room.availableSlots !== undefined && (
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-[11px] ${
+                  room.availableSlots > 0
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-rose-50 text-rose-700 border border-rose-200'
+                }`}>
+                  {room.availableSlots > 0 ? `${room.availableSlots} Slot${room.availableSlots > 1 ? 's' : ''} Available` : 'Fully Occupied (No Slots)'}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Amenities Grid */}
