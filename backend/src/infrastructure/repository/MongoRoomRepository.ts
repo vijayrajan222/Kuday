@@ -30,19 +30,21 @@ export class MongoRoomRepository implements IRoomRepository {
     }
 
     async create(roomData: Omit<RoomEntity, "id">): Promise<RoomEntity> {
+        const capacityNum = Number(roomData.capacity) || 1;
+        const availableSlotsNum = Number(roomData.availableSlots ?? roomData.capacity ?? 1);
         const payload: Record<string, unknown> = {
             hostId: roomData.hostId,
             roomType: roomData.roomType,
             monthlyRent: roomData.monthlyRent,
             location: roomData.location,
-            capacity: roomData.capacity,
-            availableSlots: roomData.availableSlots ?? roomData.capacity ?? 1,
+            capacity: capacityNum,
+            availableSlots: availableSlotsNum,
             availabilityNotes: roomData.availabilityNotes,
             amenities: roomData.amenities,
             images: roomData.images,
             title: roomData.title || "",
             description: roomData.description || "",
-            isActive: roomData.isActive ?? true,
+            isActive: roomData.isActive !== undefined ? roomData.isActive : availableSlotsNum > 0,
         };
         if (roomData.coordinates) {
             payload.coordinates = roomData.coordinates;
@@ -66,6 +68,15 @@ export class MongoRoomRepository implements IRoomRepository {
             { $inc: { availableSlots: -1 } },
             { new: true }
         ).exec();
+        if (doc) {
+            if ((doc.availableSlots ?? 0) <= 0) {
+                await RoomModel.findByIdAndUpdate(roomId, { $set: { isActive: false } }).exec();
+                doc.isActive = false;
+            } else {
+                await RoomModel.findByIdAndUpdate(roomId, { $set: { isActive: true } }).exec();
+                doc.isActive = true;
+            }
+        }
         return doc ? this.mapToEntity(doc) : null;
     }
 
@@ -78,6 +89,10 @@ export class MongoRoomRepository implements IRoomRepository {
             { $inc: { availableSlots: 1 } },
             { new: true }
         ).exec();
+        if (doc && (doc.availableSlots ?? 0) > 0) {
+            await RoomModel.findByIdAndUpdate(roomId, { $set: { isActive: true } }).exec();
+            doc.isActive = true;
+        }
         return doc ? this.mapToEntity(doc) : null;
     }
 

@@ -399,7 +399,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
         notificationrepo,
         sendMessageUseCase,
         socketGateway,
-        interestrepo
+        interestrepo,
+        seekerrepo
     );
     const clauseDrafterService = new GeminiClauseDrafterService();
     const draftClauseUseCase = new DraftClauseUseCase(agreementrepo, clauseDrafterService);
@@ -413,7 +414,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
         roomrepo,
         agreementPaymentService,
         socketGateway,
-        interestrepo
+        interestrepo,
+        seekerrepo
     );
     const verifyAgreementPaymentUseCase = new VerifyAgreementPaymentUseCase(
         agreementrepo,
@@ -422,7 +424,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
         agreementPaymentService,
         socketGateway,
         interestrepo,
-        walletService
+        walletService,
+        seekerrepo
     );
     const handleAgreementWebhookUseCase = new HandleAgreementWebhookUseCase(
         agreementrepo,
@@ -431,7 +434,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
         agreementPaymentService,
         socketGateway,
         interestrepo,
-        walletService
+        walletService,
+        seekerrepo
     );
     const pdfGeneratorService = new PdfGeneratorService();
     const getAgreementPdfUseCase = new GetAgreementPdfUseCase(
@@ -444,7 +448,8 @@ export function setupAppDependencies(app: Express): SocketGateway {
         agreementrepo,
         userrepo,
         roomrepo,
-        socketGateway
+        socketGateway,
+        seekerrepo
     );
     const getActiveRoommateUseCase = new GetActiveRoommateUseCase(
         agreementrepo,

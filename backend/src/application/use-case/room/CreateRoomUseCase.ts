@@ -83,10 +83,14 @@ export class CreateRoomUseCase implements ICreateRoomUseCase {
             if (updatedRoom) return updatedRoom;
         }
 
+        const newCapacity = Number(roomDetails.capacity) || 1;
+        const newAvailableSlots = Number(roomDetails.availableSlots ?? roomDetails.capacity ?? 1);
         const newRoom = await this.roomRepository.create({
             hostId,
             ...roomDetails,
-            availableSlots: roomDetails.availableSlots ?? roomDetails.capacity ?? 1,
+            capacity: newCapacity,
+            availableSlots: newAvailableSlots,
+            isActive: newAvailableSlots > 0,
             images: finalImages,
         });
 

@@ -2,6 +2,7 @@ import type { ITerminateAgreementUseCase, TerminateAgreementDto } from "@applica
 import type { IAgreementRepository } from "@application/interfaces/repository/IAgreementRepository";
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
+import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository";
 import type { ISocketNotificationService } from "@application/interfaces/services/ISocketNotificationService";
 import type { AgreementResponseDto } from "@application/dto/agreement/AgreementResponseDto";
 import { NotFoundError, UnauthorizedError, ValidationError } from "@application/errors/AppError";
@@ -12,7 +13,8 @@ export class TerminateAgreementUseCase implements ITerminateAgreementUseCase {
         private readonly agreementRepository: IAgreementRepository,
         private readonly userRepository: IUserRepository,
         private readonly roomRepository: IRoomRepository,
-        private readonly socketService?: ISocketNotificationService
+        private readonly socketService?: ISocketNotificationService,
+        private readonly seekerPreferenceRepository?: ISeekerPreferenceRepository
     ) {}
 
     async execute(
@@ -51,17 +53,26 @@ export class TerminateAgreementUseCase implements ITerminateAgreementUseCase {
                     updatedRoom = await this.roomRepository.findById(agreement.roomId);
                 }
 
-                // 2. If the room's host currently has role "none" (and the room now has availableSlots > 0),
-                // set the host's role back to "host" and reactivate that room.
-                // Don't change the host's role if it is anything else.
-                // Do NOT change the seeker's role.
-                const hostUser = await this.userRepository.findById(agreement.hostId);
-                if (hostUser?.role === "none" && updatedRoom && (updatedRoom.availableSlots ?? 0) > 0) {
-                    await this.userRepository.updateProfile(agreement.hostId, { role: "host" });
+                // 2. If the room now has availableSlots > 0:
+                // Reactivate that room and restore host's role to "host" if currently "none"
+                if (updatedRoom && (updatedRoom.availableSlots ?? 0) > 0) {
                     const reactivated = await this.roomRepository.update(agreement.roomId, { isActive: true });
                     if (reactivated) {
                         updatedRoom = reactivated;
                     }
+                    const hostUser = await this.userRepository.findById(agreement.hostId);
+                    if (hostUser?.role === "none") {
+                        await this.userRepository.updateProfile(agreement.hostId, { role: "host" });
+                    }
+                }
+
+                // 3. Agreement has ended: restore seeker's role if currently "none" and reactivate seeker preference
+                const seekerUser = await this.userRepository.findById(agreement.seekerId);
+                if (seekerUser?.role === "none") {
+                    await this.userRepository.updateProfile(agreement.seekerId, { role: "seeker" });
+                }
+                if (this.seekerPreferenceRepository) {
+                    await this.seekerPreferenceRepository.updateStatusByUserId(agreement.seekerId, true);
                 }
 
                 const enriched = await enrichAgreement(updated, this.userRepository, this.roomRepository);

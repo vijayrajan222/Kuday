@@ -4,6 +4,7 @@ import type { IAgreementRepository } from "@application/interfaces/repository/IA
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
 import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
+import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository";
 import type { IAgreementPaymentService } from "@application/interfaces/services/IAgreementPaymentService";
 import type { ISocketNotificationService } from "@application/interfaces/services/ISocketNotificationService";
 import { getAgreementFee } from "@domain/services/agreementFeeCalculator";
@@ -18,7 +19,8 @@ export class CreateAgreementPaymentOrderUseCase implements ICreateAgreementPayme
     private readonly roomRepository: IRoomRepository,
     private readonly paymentService: IAgreementPaymentService,
     private readonly socketService?: ISocketNotificationService,
-    private readonly interestRepository?: IInterestRepository
+    private readonly interestRepository?: IInterestRepository,
+    private readonly seekerPreferenceRepository?: ISeekerPreferenceRepository
   ) {}
 
   async execute(userId: string, agreementId: string): Promise<AgreementPaymentOrderResponseDto> {
@@ -65,6 +67,7 @@ export class CreateAgreementPaymentOrderUseCase implements ICreateAgreementPayme
           roomRepository: this.roomRepository,
           userRepository: this.userRepository,
           interestRepository: this.interestRepository,
+          seekerPreferenceRepository: this.seekerPreferenceRepository,
           socketService: this.socketService,
         },
         agreement.id,

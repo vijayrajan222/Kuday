@@ -3,6 +3,7 @@ import type { IAgreementRepository } from "@application/interfaces/repository/IA
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
 import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
+import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository";
 import type { INotificationRepository } from "@application/interfaces/repository/INotificationRepository";
 import type { ISendMessageUseCase } from "@application/interfaces/use-case/chat/ISendMessageUseCase";
 import type { ISocketNotificationService } from "@application/interfaces/services/ISocketNotificationService";
@@ -21,7 +22,8 @@ export class AcceptAgreementProposalUseCase implements IAcceptAgreementProposalU
         private readonly notificationRepository?: INotificationRepository,
         private readonly sendMessageUseCase?: ISendMessageUseCase,
         private readonly socketService?: ISocketNotificationService,
-        private readonly interestRepository?: IInterestRepository
+        private readonly interestRepository?: IInterestRepository,
+        private readonly seekerPreferenceRepository?: ISeekerPreferenceRepository
     ) {}
 
     async execute(agreementId: string, userId: string, revision: number): Promise<AgreementResponseDto> {
@@ -103,6 +105,7 @@ export class AcceptAgreementProposalUseCase implements IAcceptAgreementProposalU
                     roomRepository: this.roomRepository,
                     userRepository: this.userRepository,
                     interestRepository: this.interestRepository,
+                    seekerPreferenceRepository: this.seekerPreferenceRepository,
                     socketService: this.socketService,
                 },
                 agreementId,

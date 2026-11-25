@@ -7,6 +7,7 @@ import type { IAgreementRepository } from "@application/interfaces/repository/IA
 import type { IUserRepository } from "@application/interfaces/repository/IUserRepository";
 import type { IRoomRepository } from "@application/interfaces/repository/IRoomRepository";
 import type { IInterestRepository } from "@application/interfaces/repository/IInterestRepository";
+import type { ISeekerPreferenceRepository } from "@application/interfaces/repository/ISeekerPreferenceRepository";
 import type { IWalletService } from "@application/interfaces/services/IWalletService";
 import type { IAgreementPaymentService } from "@application/interfaces/services/IAgreementPaymentService";
 import type { ISocketNotificationService } from "@application/interfaces/services/ISocketNotificationService";
@@ -22,7 +23,8 @@ export class HandleAgreementWebhookUseCase implements IHandleAgreementWebhookUse
     private readonly paymentService: IAgreementPaymentService,
     private readonly socketService?: ISocketNotificationService,
     private readonly interestRepository?: IInterestRepository,
-    private readonly walletService?: IWalletService
+    private readonly walletService?: IWalletService,
+    private readonly seekerPreferenceRepository?: ISeekerPreferenceRepository
   ) {}
 
   private async enrich(agreement: AgreementEntity): Promise<AgreementResponseDto> {
@@ -122,6 +124,7 @@ export class HandleAgreementWebhookUseCase implements IHandleAgreementWebhookUse
           roomRepository: this.roomRepository,
           userRepository: this.userRepository,
           interestRepository: this.interestRepository,
+          seekerPreferenceRepository: this.seekerPreferenceRepository,
           socketService: this.socketService,
         },
         agreement.id,
