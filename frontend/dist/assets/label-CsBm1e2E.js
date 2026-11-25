@@ -1,1 +1,0 @@
-import{a as e,n as t,t as n}from"./jsx-runtime-D3jfb0Ew.js";import{m as r}from"./index-Bl0b9Uju.js";var i=e(t(),1),a=n(),o=(0,i.forwardRef)(({className:e,...t},n)=>(0,a.jsx)(`label`,{ref:n,className:r(`block text-sm font-medium text-slate-700`,e),...t}));o.displayName=`Label`;export{o as t};
